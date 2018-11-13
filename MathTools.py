@@ -4,15 +4,14 @@ import matplotlib.pyplot as plt
 a = (1,2)
 b = (3,1)
 
-line1 = (1,0)
-#line1 = (0.5,-1)
-#line1 = (float('inf'),2)
+#line1 = (1,0)
+line1 = (.2,2)
+#line1 = (0,3)
+#line1 = (float('inf'),9)
 #line1 = (float('inf'),3)
 
-lineX = [-1,2,2,3,4,6,7,8,9,10]
-lineY = [-1,2.5,3,2,0,-2,6,1,1.0,1]
-
-### CURRENT ISSUES - INTERSECTIONS BETWEEN LINES THAT ARE THE SAME LINE NOT WORKING RIGHT - NEED TO GET BEGINNING AND END OF THE LINE SEGMENT
+lineX = [0,1,3,4,5,7,10,8,10,10,15,16,18]
+lineY = [1,3,-2,3,3,5,6,4,2,-1,-1,2,6]
 
 def lineFromPoints(p1,p2):
     """Returns the slope and intercept of a line defined by two points
@@ -104,6 +103,9 @@ def findIntersections(seriesX,seriesY,line):
     """returns a list of points where a line intersects a series of linear line segments.
     The line should be a tuple of form (slope, intercept) and the x and y values are lists of equal length
     Intersections are returned in order of occurrence from top to bottom of the two lists.
+    
+    Will not return intersections for lines that are identical - this is technically undefined
+    There may be duplicate intersections in some cases, e.g., if the intersection is exactly at the point where two line segments abutt
     """
     
     intersectsX = []
@@ -129,7 +131,18 @@ def findIntersections(seriesX,seriesY,line):
             intersection = intersectionOfLines(line,testLine)
             intersectsX.append(intersection[0])
             intersectsY.append(intersection[1])
-            
+       
+    # remove any identical intersect points
+    checkList = list(zip(intersectsX,intersectsY))
+    newList = []
+    for element in checkList:
+        if element not in newList:
+            newList.append(element)
+    try:
+        intersectsX, intersectsY = zip(*newList) # remake the intersectsX/intersectY list with the unique points
+    except ValueError: # when there are no intersections a ValueError is thrown
+        intersectsX, intersectsY = [], []
+        
     return(intersectsX,intersectsY)
     
     
