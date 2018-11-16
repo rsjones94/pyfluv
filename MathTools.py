@@ -2,11 +2,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+depth = 4
+
 a = (1,2)
 b = (3,1)
 
 #line1 = (1,0)
-line1 = (.1,2.5)
+line1 = (0,depth)
 #line1 = (0,3)
 #line1 = (float('inf'),9)
 #line1 = (float('inf'),3)
@@ -325,7 +327,7 @@ def prepareCrossSection(seriesX,seriesY,line, thw = None):
     # what's left is the fundamental shape of the channel
     return(scalped[0],scalped[1])
     
-def shoelaceArea(seriesX,seriesY):
+def getShoelaceArea(seriesX,seriesY):
     """An implementation of the showlace formula for finding area of an irrgular, simple polygon
     Modified from code by user Mahdi on Stack Exchange
     Take two list of x and y coords and returns the area enclosed by the points (assuming the last point connects to the first)
@@ -335,6 +337,66 @@ def shoelaceArea(seriesX,seriesY):
     
     area = 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
     return(area)
+    
+def getMeanElevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results if overhangs are present - should remove first
+    """Takes a cross section and returns the mean elevation of the points.
+    By default, ignores ceilings (any line segment [x1,y1],[x2,y2] where x1>=x2)
+    """
+    els = [] # array of mean elevation for each qualifying segment
+    weights = [] # horizontal component of length of each qualifying segment
+    for i in range(0,len(seriesX)-1):
+        x1 = seriesX[i]
+        x2 = seriesX[i+1]
+        y1 = seriesY[i]
+        y2 = seriesY[i+1]
+        
+        if ignoreCeilings:
+            condition = x2>x1
+        else: 
+            condition = True
+            
+        if condition:
+            segmentEl = np.mean([y1,y2])
+            segmentLength = x2-x1
+            #print('El = ' + str(segmentEl))
+            #print('Length = ' + str(segmentLength))
+            els.append(segmentEl)
+            weights.append(segmentLength)
+        
+    print(els)
+    print(weights)
+        
+    normWeights = [x / sum(weights) for x in weights] #normalize the weights
+    
+    meanEl = np.dot(els,normWeights)
+    return(meanEl)
+    
+def getMeanDepth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
+    """A wrapper for getMeanElevation, but will subtract the bkf depth for you
+    """
+    meanDepth = bkfDepth - getMeanElevation(seriesX,seriesY,ignoreCeilings)
+    return(meanDepth)
+    
+    
+    
+def removeOverhangs(seriesX,seriesY,shrinking = True): # NOT DONE
+    """Remove all overhangs from a cross section.
+    By default, the algorithm will result in a XS with smaller area than original (expanding)
+    If shrinking is set to False, the new XS will have a greater area (expanding)
+    """
+    newX, newY = [seriesX],[seriesY]
+    
+    for i in range(0,len(seriesX)):
+        pointX = newX[i]
+        pointY = newY[i]
+        
+        # determine if it's forehang
+            #handle
+        #determine if it's a backhang
+            #handle
+
+    pass
+        
     
     
 # figuring out wetted perimeter will be a challenge
@@ -352,4 +414,5 @@ plt.plot(merged[0],merged[1])
 prepared = prepareCrossSection(lineX,lineY,line1,thw=None) 
 plt.plot(prepared[0],prepared[1], linewidth = 3)
 
-print(shoelaceArea(prepared[0],prepared[1]))
+print('Area = ' + str(round(getShoelaceArea(prepared[0],prepared[1]),2)))
+print('Mean Depth = ', str(round(getMeanDepth(prepared[0],prepared[1],depth),2)))
