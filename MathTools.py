@@ -1,17 +1,18 @@
 # simple functions for finding intersections and areas between lines
 import matplotlib.pyplot as plt
+import numpy as np
 
 a = (1,2)
 b = (3,1)
 
 #line1 = (1,0)
-line1 = (.2,2)
+line1 = (.1,2.5)
 #line1 = (0,3)
 #line1 = (float('inf'),9)
 #line1 = (float('inf'),3)
 
-lineX = [0,1,3,4,5,7,10,8,10,10,15,16,18]
-lineY = [1,3,-2,3,3,5,6,4,2,-1,-1,2,6]
+lineX = [0,1,3,4,5,7,12,8,10,10,15,15,18]
+lineY = [1,3,1,3,3,5,3,4,2,0,0,2,6]
 
 def lineFromPoints(p1,p2):
     """Returns the slope and intercept of a line defined by two points
@@ -99,13 +100,13 @@ def intersectsOnInterval(interval,l1,l2,vertical=False):
 
     return(False)
         
-def findIntersections(seriesX,seriesY,line):
+def getIntersections(seriesX,seriesY,line):
     """returns a list of points where a line intersects a series of linear line segments.
     The line should be a tuple of form (slope, intercept) and the x and y values are lists of equal length
-    Intersections are returned in order of occurrence from top to bottom of the two lists.
+    Intersections are returned in order of occurrence from top to bottom of the two lists along with a list that indicates the index that the corresponding intersection occurs after
     
     Will not return intersections for lines that are identical - this is technically undefined
-    There may be duplicate intersections in some cases, e.g., if the intersection is exactly at the point where two line segments abutt
+    If addToSeries is True, the function will 
     """
     
     intersectsX = []
@@ -113,6 +114,7 @@ def findIntersections(seriesX,seriesY,line):
     
     n = len(seriesX)
     
+    intersectionIndex = []
     for i in range(0,n-1):
         x1 = seriesX[i]
         x2 = seriesX[i+1]
@@ -122,7 +124,7 @@ def findIntersections(seriesX,seriesY,line):
         isVert = False
         interval = (x1,x2)
         if (x1==x2):
-            isVert = True
+            isVert = True # we'll use the isVert flag to indicate if the intersection algorithm needs to use its vertical functionality
             interval = (y1,y2)
         
         testLine = lineFromPoints((x1,y1),(x2,y2)) # create a line based on two adjacent points in the lists
@@ -131,23 +133,223 @@ def findIntersections(seriesX,seriesY,line):
             intersection = intersectionOfLines(line,testLine)
             intersectsX.append(intersection[0])
             intersectsY.append(intersection[1])
+            intersectionIndex.append(i)
        
     # remove any identical intersect points
     checkList = list(zip(intersectsX,intersectsY))
     newList = []
-    for element in checkList:
-        if element not in newList:
-            newList.append(element)
+    newIntersectList = []
+    for i in range(0,len(checkList)):
+        if checkList[i] not in newList:
+            newList.append(checkList[i])
+            newIntersectList.append(intersectionIndex[i])
     try:
         intersectsX, intersectsY = zip(*newList) # remake the intersectsX/intersectY list with the unique points
     except ValueError: # when there are no intersections a ValueError is thrown
         intersectsX, intersectsY = [], []
         
-    return(intersectsX,intersectsY)
+    return(intersectsX,intersectsY,newIntersectList)
+    
+def addIntersectionsToSeries(origSeriesX,origSeriesY,intersections):
+    """Merges the intersections from getIntersections() to the original series
+    Takes two lists indicating x and y values and a tuple that has three lists - intersectionX, intersectionY and the indices that the intersections should be inserted after
+    
+    Returns three lists - the merged X values and merged Y values and a list that flags if a point is an intersection (0 for no, 1 for yes)
+    """
+    seriesX = origSeriesX.copy()
+    seriesY = origSeriesY.copy()
+    
+    intersX = intersections[0]
+    intersY = intersections[1]
+    indices = intersections[2]
+    
+    flagger = []
+    for i in range(len(seriesX)):
+        flagger.append(0) # making a list of flags for if a point is an intersection - initially none are
+    
+    offset = 1
+    for i in range(0,len(indices)): # inserting points
+        seriesX.insert(indices[i]+offset,intersX[i])
+        seriesY.insert(indices[i]+offset,intersY[i])
+        flagger.insert(indices[i]+offset,1)
+        offset += 1
+        
+    return(seriesX,seriesY,flagger)
+    
+def aboveBelow(point,line):
+    """Calculates if a point is above, below or on a line
+    takes a point (px,py) and a line (m,b)
+    Returns 1 for above, -1 for below, 0 for on
+    If the line is vertical (m = inf) no result will be given
+    """
+    y = yFromEquation(point[0],line)
+    
+    try:
+        if point[1] == y:
+            ans = 0
+        elif point[1] > y:
+            ans = 1
+        elif point[1] < y:
+            ans = -1
+    except TypeError: # when the line is vertical, a TypeError is thrown
+        ans = None
+        
+    return(ans)
+        
+def scalpSeries(seriesX,seriesY,equation, above = True):
+    """Returns a list where are all points above (default) or below a non-vertical line are removed
+    """
+    
+    if above:
+        matchVal = 1
+    elif not(above):
+        matchVal = -1
+    
+    newX, newY = [],[]
+    
+    for i in range(0,len(seriesX)):
+        x = seriesX[i]
+        y = seriesY[i]
+        if not(aboveBelow((x,y),equation) == matchVal):
+            newX.append(x)
+            newY.append(y)
+    
+    return(newX,newY)
+
+def removeSide(seriesX,seriesY,xVal,leftRight):
+    """Accepts a two lists (x and y coords) and remove all points that are either to the left or right of a given x
+    leftRight = 'left' will remove all points to left
+    leftRight = 'right' will remove all point to right
+    """
+    
+    newX, newY = [],[]
+    
+    for i in range(0,len(seriesX)):
+        x = seriesX[i]
+        y = seriesY[i]
+        if leftRight == 'left':
+            if x >= xVal:
+                newX.append(x)
+                newY.append(y)
+        elif leftRight == 'right':
+            if x <= xVal:
+                newX.append(x)
+                newY.append(y)
+    
+    return(newX,newY)
+    
+def keepRange(seriesX,seriesY,xRange):
+    """Keeps only the points that fall within a range (inclusive)
+    """
+    
+    xCopy,yCopy = removeSide(seriesX,seriesY,xRange[0],leftRight='left')
+    xCopy,yCopy = removeSide(xCopy,yCopy,xRange[1],leftRight='right')
+    
+    return(xCopy,yCopy)
+    
+
+def triArea(a,b,c):
+    """Returns the area of a triangle defined by three points (px,py)
+    """
+    Ax = a[0]
+    Ay = a[1]
+    Bx = b[0]
+    By = b[1]
+    Cx = c[0]
+    Cy = c[1]
+    
+    area = abs((Ax*(By-Cy) + Bx*(Cy-Ay) + Cx*(Ay-By)) / 2)
+    return(area)
+    
+def getNearestIntersectBounds(seriesX,seriesY,flag,searchStart):
+    """Finds the nearest intersection point (distance defined as array distance, not euclidean distance or delta-x/y) to left and right of a given index
+    Will be used to define bankfull limits and left/right chopping
+    flag is an array that indicates if a corresponding (x,y) point is an intersection
+    """
+    xBounds = []
+    yBounds = []
+    indices = []
+    
+    #xArray = np.asarray(seriesX)
+    #idx = (np.abs(xArray - searchStart)).argmin() # index of the station that is closest to searchStart
+    #these two lines above were used to start a search from a given station, but a result is that overhangs can sometimes be closer to the station specified than the thalweg
+    idx = searchStart
+    
+    i = idx
+    while True: # search to the left first
+        #print(i)
+        if flag[i] == 1 or i == 0:
+            xBounds.append(seriesX[i])
+            yBounds.append(seriesY[i])
+            indices.append(i)
+            break
+        i = i - 1
+        
+    i = idx
+    while True: # search to the right
+        #print(i)
+        i = i + 1 # we add to the index first because if the starting point is an intersection the above loop will have already found it
+        if flag[i] == 1 or i == (len(flag)-1):
+            xBounds.append(seriesX[i])
+            yBounds.append(seriesY[i])
+            indices.append(i)
+            break
+        
+    return (xBounds,yBounds,indices)
+
+def prepareCrossSection(seriesX,seriesY,line, thw = None):
+    """Takes a cross section and returns the shape under the XS and between the main channel (defined as having the lowest thalweg)
+    Can specify index of the thalweg; otherwise the function assumes it's the deepest point (if multiple points of equal depth assist, the leftmost is used)
+    """
+    
+    intersects = getIntersections(seriesX,seriesY,line) # get where the line intersects
+    withAddedIntersects = addIntersectionsToSeries(seriesX,seriesY,intersects) # merge the intersecting points
+    
+    if thw == None:
+        mainChannelIndex = np.asarray(withAddedIntersects[1]).argmin() # find the index of the deepest point in the XS. If there are multiple points of equal depth, the leftmost is selected
+    else:
+        mainChannelIndex = thw
+    
+    # find the left and right bounds of the channel (nearest [by index] intersecting points to the thw)
+    channelBounds = getNearestIntersectBounds(withAddedIntersects[0],withAddedIntersects[1],withAddedIntersects[2],mainChannelIndex)
+    # get the stations of points between the intersect bounds - we'll use it to set the keepRange limits (to preserve undercuts)
+    betweenX = (withAddedIntersects[0][channelBounds[2][0]:channelBounds[2][1]+1])
+    minX = min(betweenX)
+    maxX = max(betweenX)
+    
+    #remove points outside of channel
+    chopped = keepRange(withAddedIntersects[0],withAddedIntersects[1],(minX,maxX)) #if you use channelBounds[0] you will remove undercuts in some cases that should be preserved
+    #remove points above channel
+    scalped = scalpSeries(chopped[0],chopped[1],line,above=True)
+    
+    # what's left is the fundamental shape of the channel
+    return(scalped[0],scalped[1])
+    
+def shoelaceArea(seriesX,seriesY):
+    """An implementation of the showlace formula for finding area of an irrgular, simple polygon
+    Modified from code by user Mahdi on Stack Exchange
+    Take two list of x and y coords and returns the area enclosed by the points (assuming the last point connects to the first)
+    """
+    x = seriesX
+    y = seriesY
+    
+    area = 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+    return(area)
     
     
-inters = findIntersections(lineX,lineY,line1)
+# figuring out wetted perimeter will be a challenge
+    
+    
+    
+inters = getIntersections(lineX,lineY,line1)
 
 myPlot = plt.plot(lineX,lineY)
 plt.scatter(inters[0],inters[1])
-    
+
+merged = addIntersectionsToSeries(lineX,lineY,inters)
+plt.plot(merged[0],merged[1])
+
+prepared = prepareCrossSection(lineX,lineY,line1,thw=None) 
+plt.plot(prepared[0],prepared[1], linewidth = 3)
+
+print(shoelaceArea(prepared[0],prepared[1]))
