@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-depth = 4
+depth = 2.5
 
 a = (1,2)
 b = (3,1)
@@ -13,8 +13,8 @@ line1 = (0,depth)
 #line1 = (float('inf'),9)
 #line1 = (float('inf'),3)
 
-lineX = [0,1,3,4,5,7,12,8,10,10,15,15,18]
-lineY = [1,3,1,3,3,5,3,4,2,0,0,2,6]
+lineX = [0,1,3,4,5,7,12,8,10,10,15,14,16,14,15,16]
+lineY = [1,3,1,3,3,5,5,4,2,0,0,2,4,3,4,4.5]
 
 def lineFromPoints(p1,p2):
     """Returns the slope and intercept of a line defined by two points
@@ -108,7 +108,6 @@ def getIntersections(seriesX,seriesY,line):
     Intersections are returned in order of occurrence from top to bottom of the two lists along with a list that indicates the index that the corresponding intersection occurs after
     
     Will not return intersections for lines that are identical - this is technically undefined
-    If addToSeries is True, the function will 
     """
     
     intersectsX = []
@@ -363,9 +362,6 @@ def getMeanElevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results
             els.append(segmentEl)
             weights.append(segmentLength)
         
-    print(els)
-    print(weights)
-        
     normWeights = [x / sum(weights) for x in weights] #normalize the weights
     
     meanEl = np.dot(els,normWeights)
@@ -377,24 +373,30 @@ def getMeanDepth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
     meanDepth = bkfDepth - getMeanElevation(seriesX,seriesY,ignoreCeilings)
     return(meanDepth)
     
-    
-    
-def removeOverhangs(seriesX,seriesY,shrinking = True): # NOT DONE
-    """Remove all overhangs from a cross section.
-    By default, the algorithm will result in a XS with smaller area than original (expanding)
-    If shrinking is set to False, the new XS will have a greater area (expanding)
+def isOverhang(index,seriesX,seriesY):
+    """Determines point in a series is part of an overhang
     """
-    newX, newY = [seriesX],[seriesY]
+    pointX = seriesX[index]
+    pointY = seriesY[index]
+    intersections = getIntersections(seriesX,seriesY,(float('inf'),pointX)) # returns the y coordinates of any intersections of a vertical line with h-intercept of pointX and the cross section
     
-    for i in range(0,len(seriesX)):
-        pointX = newX[i]
-        pointY = newY[i]
-        
-        # determine if it's forehang
-            #handle
-        #determine if it's a backhang
-            #handle
-
+    intersectionsX = intersections[0]
+    intersectionsY = intersections[1]
+    
+    xs = zip(seriesX,seriesY)
+    
+    for i in range(0,len(intersectionsX)):
+        testPoint= (intersectionsX[i],intersectionsY[i])
+        if (intersectionsY[i] < pointY) and (testPoint not in xs): # if the intersection elevation is below the testing point and the intersection point is an acutaly point in the cross section (which implies that the the test point and intersection are on a vertical line together and do not constitute an overhang)
+            return(True)
+    
+    return(False)
+    
+    
+def fillOverhangs(seriesX,seriesY): # NOT DONE
+    """Removes all overhangs from a cross section by filling underneath them.
+    This will result in a XS with smaller area than original.
+    """
     pass
         
     
