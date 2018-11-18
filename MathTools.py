@@ -13,8 +13,8 @@ line1 = (0,depth)
 #line1 = (float('inf'),9)
 #line1 = (float('inf'),3)
 
-lineX = [0,1,3,4,5,7,12,8,10,10,15,14,16,14,15,16]
-lineY = [1,3,1,3,3,5,5,4,2,0,0,2,4,3,4,4.5]
+lineX = [0,1,3,2,5,7,9,11,8,10,10,15,14,16,14,13.5,12,15.5]
+lineY = [1,3,1,4,3,5,4.75,5,4,2,0,0,2,4,3,4,4.5,5]
 
 def lineFromPoints(p1,p2):
     """Returns the slope and intercept of a line defined by two points
@@ -374,7 +374,7 @@ def getMeanDepth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
     return(meanDepth)
     
 def isOverhang(index,seriesX,seriesY):
-    """Determines point in a series is part of an overhang
+    """Determines if point in a series is part of an overhang
     """
     pointX = seriesX[index]
     pointY = seriesY[index]
@@ -391,6 +391,102 @@ def isOverhang(index,seriesX,seriesY):
             return(True)
     
     return(False)
+    
+
+def getOverhangs(seriesX,seriesY):
+    """Returns the a list of indices of overhangs in a cross sections.
+    """
+    overhangs = []
+    
+    for i in range(0,len(seriesX)):
+        if isOverhang(i,seriesX,seriesY):
+            overhangs.append(i)
+    
+    return(overhangs)
+    
+    
+def findContiguousSequences(numbers):
+    """Takes a list of numbers and returns a list of lists of numbers that are form contiguous sequences in that list
+    """
+    masterList = []
+    tackList = [numbers[0]] # the first number will always be in a list
+    
+    for i in range(1,len(numbers)): # skip the first
+        if numbers[i] == numbers[i-1] + 1:
+            tackList.append(numbers[i])
+            if i == len(numbers) - 1: # if we reach the end of the list, we need to append the tackList no matter what
+                masterList.append(tackList)
+        else:
+            masterList.append(tackList)
+            tackList = [numbers[i]]
+            
+    return(masterList)
+        
+    
+def pareContiguousSequences(sequences,seriesY):
+    """Given a list of lists of contiguous sequences corresponding to XS shots and a list of elevations, returns only the indices with the highest elevation in each sequence (peak of the overhang)
+    """
+    
+    keepList = []
+    
+    for seq in sequences:
+        currentHigh = seriesY[seq[0]]
+        currentWinner = seq[0]
+        for i in range(0,len(seq)):
+            if seriesY[seq[i]] > currentHigh:
+                currentWinner = seq[i]
+        keepList.append(currentWinner)
+        
+    return(keepList)
+            
+
+    
+    
+def cutOverhangs(seriesX,seriesY):
+    """Returns new XS x and y coordinates that have had overhangs cut out
+    Resulting XS may have a greater area and width depending on bankfull elevation
+    """
+    
+    overhangs = getOverhangs(seriesX,seriesY)
+    contigOverhangs = findContiguousSequences(overhangs)
+    pareOverhangs = pareContiguousSequences(contigOverhangs,seriesY)
+    
+    pointsNotEssential = [] # points that are overhangs but not the peak of the overhang
+    for element in overhangs:
+        if element not in pareOverhangs:
+            pointsNotEssential.append(element)
+            
+    pointsEssential = []
+    for i in range(0,len(seriesX)):
+        if i not in pointsNotEssential:
+            pointsEssential.append(i)
+    
+    newX = seriesX[:]
+    newY = seriesY[:]
+    
+    for i in range(0,len(pareOverhangs)):
+        peakIndex = pareOverhangs[i]
+        contigArray = contigOverhangs[i] # the continuous sequence that the peak belongs to
+        nextInd = contigArray[len(contigArray)-1] + 1 # index of the point following the continuous sequence
+        prevInd = contigArray[0] - 1 # index of the point preceding the continuous sequnece
+        
+        try:
+            if newX[peakIndex] > newX[nextInd]: # if it's a forehang
+                newX[peakIndex] = newX[nextInd]
+        except IndexError: # will happen when the last point is a backhang
+            pass
+        
+        try:
+            if newX[peakIndex] < newX[prevInd]: # if it's a backhang
+                newX[peakIndex] = newX[prevInd]
+        except IndexError: # will happen when the first point is a forehang
+            pass
+            
+    newX = [newX[i] for i in pointsEssential]
+    newY = [newY[i] for i in pointsEssential]
+           
+                
+    return(newX,newY)
     
     
 def fillOverhangs(seriesX,seriesY): # NOT DONE
@@ -418,3 +514,19 @@ plt.plot(prepared[0],prepared[1], linewidth = 3)
 
 print('Area = ' + str(round(getShoelaceArea(prepared[0],prepared[1]),2)))
 print('Mean Depth = ', str(round(getMeanDepth(prepared[0],prepared[1],depth),2)))
+
+ov = getOverhangs(lineX,lineY)
+ovHangsX = [lineX[i] for i in ov]
+ovHangsY = [lineY[i] for i in ov]
+plt.scatter(ovHangsX,ovHangsY,s=100)
+
+#nums = [1,2,3,5,6,8,10,12,13,14,15]
+overhangSeqs = findContiguousSequences(ov)
+
+pareHangs = pareContiguousSequences(overhangSeqs,lineY)
+topHangsX = [lineX[i] for i in pareHangs]
+topHangsY = [lineY[i] for i in pareHangs]
+plt.scatter(topHangsX,topHangsY,s=200)
+
+cut = cutOverhangs(lineX,lineY)
+#plt.plot(cut[0],cut[1], linewidth = 4)
