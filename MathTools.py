@@ -2,19 +2,25 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-depth = 2.5
+depth = 3.6
 
-a = (1,2)
-b = (3,1)
+method = 'fill'
 
-#line1 = (1,0)
+if method == 'cut':
+    findType = 'overhang'
+    pareType = 'max'
+elif method == 'fill':
+    findType = 'undercut'
+    pareType = 'min'
+else:
+    raise Exception('Invalid method. Method must be "cut" or "fill"')
+
 line1 = (0,depth)
-#line1 = (0,3)
-#line1 = (float('inf'),9)
-#line1 = (float('inf'),3)
 
-lineX = [0,1,3,2,5,7,9,11,8,10,10,15,14,16,14,13.5,12,15.5]
-lineY = [1,3,1,4,3,5,4.75,5,4,2,0,0,2,4,3,4,4.5,5]
+lineX = [0,1,3,2,5,7,9,7.5,10,10,12,15,14,16,14,13.5,12.5,17]
+lineY = [1,3,1,4,3,5,5,4,2,0,.5,0,2,4,3,4,4.5,5]
+
+###
 
 def lineFromPoints(p1,p2):
     """Returns the slope and intercept of a line defined by two points
@@ -101,7 +107,19 @@ def intersectsOnInterval(interval,l1,l2,vertical=False):
             return(True)
 
     return(False)
+    
+def isFloatIn(checkTuple,tupleList):
+    """Equivalent to the is in keywords, but will correct for floating point errors
+    """
+    n = len(tupleList)
+    
+    for i in range(0,n):
+        if np.allclose(checkTuple,tupleList[i]):
+            return(True)
         
+    return(False)
+    
+    
 def getIntersections(seriesX,seriesY,line):
     """returns a list of points where a line intersects a series of linear line segments.
     The line should be a tuple of form (slope, intercept) and the x and y values are lists of equal length
@@ -141,7 +159,7 @@ def getIntersections(seriesX,seriesY,line):
     newList = []
     newIntersectList = []
     for i in range(0,len(checkList)):
-        if checkList[i] not in newList:
+        if not isFloatIn(checkList[i],newList):
             newList.append(checkList[i])
             newIntersectList.append(intersectionIndex[i])
     try:
@@ -151,18 +169,20 @@ def getIntersections(seriesX,seriesY,line):
         
     return(intersectsX,intersectsY,newIntersectList)
     
-def addIntersectionsToSeries(origSeriesX,origSeriesY,intersections):
-    """Merges the intersections from getIntersections() to the original series
-    Takes two lists indicating x and y values and a tuple that has three lists - intersectionX, intersectionY and the indices that the intersections should be inserted after
+def insertPointsInSeries(origSeriesX,origSeriesY,insertions):
+    """Merges the points in a list to a cross section
+    Takes two lists indicating x and y values and a tuple that has three lists - insertX, insertY and the indices that the points should be inserted after
     
     Returns three lists - the merged X values and merged Y values and a list that flags if a point is an intersection (0 for no, 1 for yes)
+    If an insertion point already exists in the series, it will still be merged
+    TODO: Make it so an insertion point will be ignored iff its x-y coords are equal to the point it is to be inserted after
     """
     seriesX = origSeriesX.copy()
     seriesY = origSeriesY.copy()
     
-    intersX = intersections[0]
-    intersY = intersections[1]
-    indices = intersections[2]
+    intersX = insertions[0]
+    intersY = insertions[1]
+    indices = insertions[2]
     
     flagger = []
     for i in range(len(seriesX)):
@@ -304,7 +324,7 @@ def prepareCrossSection(seriesX,seriesY,line, thw = None):
     """
     
     intersects = getIntersections(seriesX,seriesY,line) # get where the line intersects
-    withAddedIntersects = addIntersectionsToSeries(seriesX,seriesY,intersects) # merge the intersecting points
+    withAddedIntersects = insertPointsInSeries(seriesX,seriesY,intersects) # merge the intersecting points
     
     if thw == None:
         mainChannelIndex = np.asarray(withAddedIntersects[1]).argmin() # find the index of the deepest point in the XS. If there are multiple points of equal depth, the leftmost is selected
@@ -373,36 +393,50 @@ def getMeanDepth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
     meanDepth = bkfDepth - getMeanElevation(seriesX,seriesY,ignoreCeilings)
     return(meanDepth)
     
-def isOverhang(index,seriesX,seriesY):
-    """Determines if point in a series is part of an overhang
+def isCut(index,seriesX,seriesY,findType):
+    """Determines if point in a series is part of an overhang or an undercut
+    findType must be 'overhang' or 'undercut'
     """
+    
+    if findType is not 'overhang' and findType is not 'undercut':
+        raise Exception('Invalid findType value. findType must be "overhang" or "undercut"')
+    
     pointX = seriesX[index]
     pointY = seriesY[index]
-    intersections = getIntersections(seriesX,seriesY,(float('inf'),pointX)) # returns the y coordinates of any intersections of a vertical line with h-intercept of pointX and the cross section
+    intersections = getIntersections(seriesX,seriesY,(float('inf'),pointX)) # returns the x and y coordinates of any intersections of a vertical line with h-intercept of pointX and the cross section
     
     intersectionsX = intersections[0]
     intersectionsY = intersections[1]
     
-    xs = zip(seriesX,seriesY)
+    xs = list(map(list, zip(seriesX, seriesY)))
     
     for i in range(0,len(intersectionsX)):
-        testPoint= (intersectionsX[i],intersectionsY[i])
-        if (intersectionsY[i] < pointY) and (testPoint not in xs): # if the intersection elevation is below the testing point and the intersection point is an acutaly point in the cross section (which implies that the the test point and intersection are on a vertical line together and do not constitute an overhang)
-            return(True)
+        testPoint = (intersectionsX[i],intersectionsY[i])
+        if findType == 'overhang':
+            if (intersectionsY[i] < pointY) and (not isFloatIn(testPoint,xs)): # if the intersection elevation is below the testing point and the intersection point is actually a  point in the cross section (which implies that the the test point and intersection are on a vertical line together and do not constitute an overhang)
+                return(True)
+        elif findType == 'undercut':
+            if (intersectionsY[i] > pointY) and (not isFloatIn(testPoint,xs)): # if the intersection elevation is below the testing point and the intersection point is actually a  point in the cross section (which implies that the the test point and intersection are on a vertical line together and do not constitute an overhang)
+                return(True)
     
     return(False)
     
 
-def getOverhangs(seriesX,seriesY):
-    """Returns the a list of indices of overhangs in a cross sections.
+def getCuts(seriesX,seriesY,findType):
+    """Returns the a list of indices of overhangs or undercuts in a cross sections.
+    findType must be 'overhang' or 'undercut'
     """
-    overhangs = []
+    
+    if findType is not 'overhang' and findType is not 'undercut':
+        raise Exception('Invalid findType value. findType must be "overhang" or "undercut"')
+    
+    cuts = []
     
     for i in range(0,len(seriesX)):
-        if isOverhang(i,seriesX,seriesY):
-            overhangs.append(i)
+        if isCut(i,seriesX,seriesY,findType):
+            cuts.append(i)
     
-    return(overhangs)
+    return(cuts)
     
     
 def findContiguousSequences(numbers):
@@ -423,35 +457,49 @@ def findContiguousSequences(numbers):
     return(masterList)
         
     
-def pareContiguousSequences(sequences,seriesY):
-    """Given a list of lists of contiguous sequences corresponding to XS shots and a list of elevations, returns only the indices with the highest elevation in each sequence (peak of the overhang)
+def pareContiguousSequences(sequences,seriesY,minOrMax=None):
+    """Given a list of lists of contiguous sequences corresponding to XS shots and a list of elevations, returns only the indices with the max elevation in each sequence (peak of the overhang) or min (bottom of an undercut)
     """
+    if minOrMax is not 'min' and minOrMax is not 'max':
+        raise Exception('Invalid minOrMax value. minOrMax must be "min" or "max"')
     
     keepList = []
     
     for seq in sequences:
-        currentHigh = seriesY[seq[0]]
+        currentY = seriesY[seq[0]]
         currentWinner = seq[0]
         for i in range(0,len(seq)):
-            if seriesY[seq[i]] > currentHigh:
+            if seriesY[seq[i]] > currentY and minOrMax == 'max':
+                currentWinner = seq[i]
+            if seriesY[seq[i]] < currentY and minOrMax == 'min':
                 currentWinner = seq[i]
         keepList.append(currentWinner)
         
     return(keepList)
             
 
+def removeOverhangs(seriesX,seriesY,method):
+    """Returns new XS x and y coordinates that have had overhangs removed either by cutting them off or filling under them
+    Valid values for method are "cut" and "fill"
     
-    
-def cutOverhangs(seriesX,seriesY):
-    """Returns new XS x and y coordinates that have had overhangs cut out
-    Resulting XS may have a greater area and width depending on bankfull elevation
+    Note that regardless of method specified, the XS is modified by either deleting points or altering their x value alone.
+    If XS shots are sparse, then an algorithm that moves y values as well (i.e., moving points along existing line segmenets) will give better results,
+    but this has not been implemented
     """
+    if method == 'cut':
+        findType = 'overhang'
+        pareType = 'max'
+    elif method == 'fill':
+        findType = 'undercut'
+        pareType = 'min'
+    else:
+        raise Exception('Invalid method. Method must be "cut" or "fill"')
     
-    overhangs = getOverhangs(seriesX,seriesY)
+    overhangs = getCuts(seriesX,seriesY,findType)
     contigOverhangs = findContiguousSequences(overhangs)
-    pareOverhangs = pareContiguousSequences(contigOverhangs,seriesY)
+    pareOverhangs = pareContiguousSequences(contigOverhangs,seriesY, minOrMax = pareType)
     
-    pointsNotEssential = [] # points that are overhangs but not the peak of the overhang
+    pointsNotEssential = [] # points that are overhangs or undercuts but not the peak or base
     for element in overhangs:
         if element not in pareOverhangs:
             pointsNotEssential.append(element)
@@ -469,7 +517,7 @@ def cutOverhangs(seriesX,seriesY):
         contigArray = contigOverhangs[i] # the continuous sequence that the peak belongs to
         nextInd = contigArray[len(contigArray)-1] + 1 # index of the point following the continuous sequence
         prevInd = contigArray[0] - 1 # index of the point preceding the continuous sequnece
-        
+
         try:
             if newX[peakIndex] > newX[nextInd]: # if it's a forehang
                 newX[peakIndex] = newX[nextInd]
@@ -488,14 +536,7 @@ def cutOverhangs(seriesX,seriesY):
                 
     return(newX,newY)
     
-    
-def fillOverhangs(seriesX,seriesY): # NOT DONE
-    """Removes all overhangs from a cross section by filling underneath them.
-    This will result in a XS with smaller area than original.
-    """
-    pass
-        
-    
+
     
 # figuring out wetted perimeter will be a challenge
     
@@ -506,7 +547,7 @@ inters = getIntersections(lineX,lineY,line1)
 myPlot = plt.plot(lineX,lineY)
 plt.scatter(inters[0],inters[1])
 
-merged = addIntersectionsToSeries(lineX,lineY,inters)
+merged = insertPointsInSeries(lineX,lineY,inters)
 plt.plot(merged[0],merged[1])
 
 prepared = prepareCrossSection(lineX,lineY,line1,thw=None) 
@@ -515,18 +556,16 @@ plt.plot(prepared[0],prepared[1], linewidth = 3)
 print('Area = ' + str(round(getShoelaceArea(prepared[0],prepared[1]),2)))
 print('Mean Depth = ', str(round(getMeanDepth(prepared[0],prepared[1],depth),2)))
 
-ov = getOverhangs(lineX,lineY)
+ov = getCuts(lineX,lineY,findType)
 ovHangsX = [lineX[i] for i in ov]
 ovHangsY = [lineY[i] for i in ov]
 plt.scatter(ovHangsX,ovHangsY,s=100)
 
-#nums = [1,2,3,5,6,8,10,12,13,14,15]
 overhangSeqs = findContiguousSequences(ov)
-
-pareHangs = pareContiguousSequences(overhangSeqs,lineY)
+pareHangs = pareContiguousSequences(overhangSeqs,lineY,pareType)
 topHangsX = [lineX[i] for i in pareHangs]
 topHangsY = [lineY[i] for i in pareHangs]
 plt.scatter(topHangsX,topHangsY,s=200)
 
-cut = cutOverhangs(lineX,lineY)
-#plt.plot(cut[0],cut[1], linewidth = 4)
+cut = removeOverhangs(lineX,lineY,method)
+plt.plot(cut[0],cut[1], linewidth = 4)
