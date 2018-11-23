@@ -4,7 +4,7 @@ import numpy as np
 #import shapely
 # TODO: integrate shapely for some geometric operations
 
-depth = 3.6
+depth = 3
 
 method = 'fill'
 adjustY = True
@@ -21,7 +21,7 @@ else:
 line1 = (0,depth)
 
 lineX = [0,1,3,2,5,7,9,7.5,10,10,12,15,14,16,14,13.5,12.5,17]
-lineY = [1,3,1,4,3,5,5,4,2,0,.5,0,2,4,3,4,4.5,5]
+lineY = [1,3,1,4,3,5,5,4,2,-1,.5,0,2,4,3,4,4.5,5]
 
 ###
 
@@ -30,6 +30,7 @@ def lineFromPoints(p1,p2):
     Takes two tuples or lists of length two and returns a tuple (m,b) where m is the slope and b is the intercept
     of a line y = mx + b that passes through both points
     If a line is vertical, slope is 'inf' and the intercept given is the horizontal intercept
+    If the two points are the same, then the slope is 'inf' and the x intercept is the points' x value
     """
     rise = p2[1] - p1[1]
     run = p2[0] - p1[0]
@@ -112,7 +113,7 @@ def intersectsOnInterval(interval,l1,l2,vertical=False):
     return(False)
     
 def isFloatIn(checkTuple,tupleList):
-    """Equivalent to the is in keywords, but will correct for floating point errors
+    """Equivalent to the "is in" keywords, but will correct for floating point errors
     """
     n = len(tupleList)
     
@@ -323,7 +324,7 @@ def getNearestIntersectBounds(seriesX,seriesY,flag,searchStart):
 
 def prepareCrossSection(seriesX,seriesY,line, thw = None):
     """Takes a cross section and returns the shape under the XS and between the main channel (defined as having the lowest thalweg)
-    Can specify index of the thalweg; otherwise the function assumes it's the deepest point (if multiple points of equal depth assist, the leftmost is used)
+    Can specify index of the thalweg; otherwise the function assumes it's the deepest point (if multiple points of equal depth exist, the leftmost is used)
     """
     
     intersects = getIntersections(seriesX,seriesY,line) # get where the line intersects
@@ -349,15 +350,24 @@ def prepareCrossSection(seriesX,seriesY,line, thw = None):
     # what's left is the fundamental shape of the channel
     return(scalped[0],scalped[1])
     
-def getShoelaceArea(seriesX,seriesY):
-    """An implementation of the showlace formula for finding area of an irrgular, simple polygon
+def shoelaceArea(seriesX,seriesY):
+    """An implementation of the showlace formula for finding area of an irregular, simple polygon
     Modified from code by user Mahdi on Stack Exchange
     Take two list of x and y coords and returns the area enclosed by the points (assuming the last point connects to the first)
+    
+    The area returned is signed
     """
     x = seriesX
     y = seriesY
     
-    area = 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+    area = 0.5*(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+    return(area)
+
+def getArea(seriesX,seriesY):
+    """A wrapper for shoelaceArea(). Returns the absolute (not signed) area
+    """
+    
+    area = np.abs(shoelaceArea(seriesX,seriesY))
     return(area)
     
     
@@ -517,16 +527,10 @@ def removeOverhangs(seriesX,seriesY,method,adjustY=True):
            
                 
     return(newX,newY)
+ 
+
     
-def maxDepth():
-    """
-    """
-    
-def maxWidth():
-    """
-    """
-    
-def getMeanElevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results if overhangs are present - should remove first
+def getMeanElevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results if overhangs are present - should remove first to prevent couble counting surfaces (when there is more than one depth for a given x)
     """Takes a cross section and returns the mean elevation of the points.
     By default, ignores ceilings (any line segment [x1,y1],[x2,y2] where x1>=x2)
     """
@@ -563,10 +567,87 @@ def getMeanDepth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
     return(meanDepth)
     
 
-def lengthOfOverlap():
+def getCentroid(seriesX,seriesY):
+    """Calculates the centroid of a non-intersecting polygon. Modified from code by Robert Fontino at UCLA.
+    Args:
+        poly: a list of points, each of which is a list of the form [x, y].
+    Returns:
+        the centroid of the polygon in the form [x, y].
+    Raises:
+        ValueError: if poly has less than 3 points or the points are not
+                    formatted correctly.
     """
-    Calculates the length of the overlap of two line segments iff their associated lines are identical
+    
+    poly = list(map(list, zip(seriesX, seriesY)))
+    
+    # Make sure poly is formatted correctly
+    if len(poly) < 3:
+        raise ValueError('polygon has less than 3 points')
+    for point in poly:
+        if type(point) is not list or 2 != len(point):
+            raise ValueError('point is not a list of length 2')
+    # Calculate the centroid from the weighted average of the polygon's
+    # constituent triangles
+    area_total = 0
+    centroid_total = [float(poly[0][0]), float(poly[0][1])]
+    for i in range(0, len(poly) - 2):
+        # Get points for triangle ABC
+        a, b, c = poly[0], poly[i+1], poly[i+2]
+        # Calculate the signed area of triangle ABC
+        area = ((a[0] * (b[1] - c[1])) +
+                (b[0] * (c[1] - a[1])) +
+                (c[0] * (a[1] - b[1]))) / 2.0;
+        # If the area is zero, the triangle's line segments are
+        # colinear so we should skip it
+        if 0 == area:
+            continue
+        # The centroid of the triangle ABC is the average of its three
+        # vertices
+        centroid = [(a[0] + b[0] + c[0]) / 3.0, (a[1] + b[1] + c[1]) / 3.0]
+        # Add triangle ABC's area and centroid to the weighted average
+        centroid_total[0] = ((area_total * centroid_total[0]) +
+                             (area * centroid[0])) / (area_total + area)
+        centroid_total[1] = ((area_total * centroid_total[1]) +
+                             (area * centroid[1])) / (area_total + area)
+        area_total += area
+    return(centroid_total)
+    
+    
+def maxDepth(seriesY,bkfEl):
+    """Returns the maximum depth of a cross section. Takes an array of elevations and a water/bkf depth
     """
+    minEl = min(seriesY)
+    depth = bkfEl - minEl
+    
+    return(depth)
+    
+def maxWidth(seriesX):
+    """Returns the difference of the leftmost and rightmost points in a cross section. Takes an array of stations/x coords
+    Note that this is just one definition of max width
+    """
+    width = max(seriesX) - min(seriesX)
+    return(width)
+    
+
+def lengthOfOverlap(s1,s2):
+    """Calculates the length of the overlap of two line segments iff their associated lines are identical
+    Takes two line segments of form ([x1,y1],[x2,y2]) and returns an unsigned length
+    """
+    
+    s1.sort()
+    s2.sort()
+        
+    l1 = lineFromPoints(s1[0],s1[1])
+    l2 = lineFromPoints(s2[0],s1[1])
+    
+    lineIsSame = np.allclose(l1,l2)
+    
+    if not(lineIsSame):
+        return(0)
+    else:
+        pass # need to handle what to do if the lines are the same
+    
+    
     
 def blendPolygons():
     """
@@ -574,6 +655,7 @@ def blendPolygons():
     
     TODO: WHAT THE HELL DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
     """
+
     
     
 inters = getIntersections(lineX,lineY,line1)
@@ -587,7 +669,7 @@ plt.plot(merged[0],merged[1])
 prepared = prepareCrossSection(lineX,lineY,line1,thw=None) 
 plt.plot(prepared[0],prepared[1], linewidth = 3)
 
-print('Area = ' + str(round(getShoelaceArea(prepared[0],prepared[1]),2)))
+print('Area = ' + str(round(getArea(prepared[0],prepared[1]),2)))
 print('Mean Depth = ', str(round(getMeanDepth(prepared[0],prepared[1],depth),2)))
 
 ov = getCuts(lineX,lineY,findType)
@@ -603,3 +685,6 @@ plt.scatter(topHangsX,topHangsY,s=200)
 
 cut = removeOverhangs(lineX,lineY,method,adjustY)
 plt.plot(cut[0],cut[1], linewidth = 4)
+
+cent = getCentroid(prepared[0],prepared[1])
+plt.scatter(cent[0],cent[1],s=250)
