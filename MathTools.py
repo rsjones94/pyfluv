@@ -1,10 +1,13 @@
 # simple functions for finding intersections and areas between lines
 import matplotlib.pyplot as plt
 import numpy as np
+#import shapely
+# TODO: integrate shapely for some geometric operations
 
 depth = 3.6
 
 method = 'fill'
+adjustY = True
 
 if method == 'cut':
     findType = 'overhang'
@@ -357,41 +360,6 @@ def getShoelaceArea(seriesX,seriesY):
     area = 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
     return(area)
     
-def getMeanElevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results if overhangs are present - should remove first
-    """Takes a cross section and returns the mean elevation of the points.
-    By default, ignores ceilings (any line segment [x1,y1],[x2,y2] where x1>=x2)
-    """
-    els = [] # array of mean elevation for each qualifying segment
-    weights = [] # horizontal component of length of each qualifying segment
-    for i in range(0,len(seriesX)-1):
-        x1 = seriesX[i]
-        x2 = seriesX[i+1]
-        y1 = seriesY[i]
-        y2 = seriesY[i+1]
-        
-        if ignoreCeilings:
-            condition = x2>x1
-        else: 
-            condition = True
-            
-        if condition:
-            segmentEl = np.mean([y1,y2])
-            segmentLength = x2-x1
-            #print('El = ' + str(segmentEl))
-            #print('Length = ' + str(segmentLength))
-            els.append(segmentEl)
-            weights.append(segmentLength)
-        
-    normWeights = [x / sum(weights) for x in weights] #normalize the weights
-    
-    meanEl = np.dot(els,normWeights)
-    return(meanEl)
-    
-def getMeanDepth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
-    """A wrapper for getMeanElevation, but will subtract the bkf depth for you
-    """
-    meanDepth = bkfDepth - getMeanElevation(seriesX,seriesY,ignoreCeilings)
-    return(meanDepth)
     
 def isCut(index,seriesX,seriesY,findType):
     """Determines if point in a series is part of an overhang or an undercut
@@ -478,13 +446,12 @@ def pareContiguousSequences(sequences,seriesY,minOrMax=None):
     return(keepList)
             
 
-def removeOverhangs(seriesX,seriesY,method):
+def removeOverhangs(seriesX,seriesY,method,adjustY=True):
     """Returns new XS x and y coordinates that have had overhangs removed either by cutting them off or filling under them
     Valid values for method are "cut" and "fill"
     
-    Note that regardless of method specified, the XS is modified by either deleting points or altering their x value alone.
-    If XS shots are sparse, then an algorithm that moves y values as well (i.e., moving points along existing line segmenets) will give better results,
-    but this has not been implemented
+    KNOWN BUG: If the XS is such that all points that are substrate (points x[i] where x[i] > x[i-1])
+    are covered by overhangs, and there are by fore- and backhangs, then the algorithm will fail
     """
     if method == 'cut':
         findType = 'overhang'
@@ -513,21 +480,36 @@ def removeOverhangs(seriesX,seriesY,method):
     newY = seriesY[:]
     
     for i in range(0,len(pareOverhangs)):
+        
         peakIndex = pareOverhangs[i]
         contigArray = contigOverhangs[i] # the continuous sequence that the peak belongs to
         nextInd = contigArray[len(contigArray)-1] + 1 # index of the point following the continuous sequence
         prevInd = contigArray[0] - 1 # index of the point preceding the continuous sequnece
 
         try:
-            if newX[peakIndex] > newX[nextInd]: # if it's a forehang
+            if newX[peakIndex] > newX[nextInd]: # if it's a backhang
+                anchorX = newX[peakIndex] # save the x
                 newX[peakIndex] = newX[nextInd]
-        except IndexError: # will happen when the last point is a backhang
+                if adjustY:
+                    # we need to calculate the elevation of the adjusted point - it will fall on line segment behind it
+                    p1 = (newX[prevInd],newY[prevInd])
+                    p2 = (anchorX,newY[prevInd+1])
+                    theLine = lineFromPoints(p1,p2)
+                    newY[peakIndex] = yFromEquation(newX[peakIndex],theLine)
+        except IndexError: # will happen when the last point is a forehang
             pass
         
         try:
-            if newX[peakIndex] < newX[prevInd]: # if it's a backhang
+            if newX[peakIndex] < newX[prevInd]: # if it's a forehang
+                anchorX = newX[peakIndex] # save the x
                 newX[peakIndex] = newX[prevInd]
-        except IndexError: # will happen when the first point is a forehang
+                if adjustY:
+                    # we need to calculate the elevation of the adjusted point - it will fall on line segment ahead of it
+                    p1 = (anchorX,newY[nextInd-1])
+                    p2 = (newX[nextInd],newY[nextInd])
+                    theLine = lineFromPoints(p1,p2)
+                    newY[peakIndex] = yFromEquation(newX[peakIndex],theLine)
+        except IndexError: # will happen when the first point is a backhang
             pass
             
     newX = [newX[i] for i in pointsEssential]
@@ -536,10 +518,62 @@ def removeOverhangs(seriesX,seriesY,method):
                 
     return(newX,newY)
     
+def maxDepth():
+    """
+    """
+    
+def maxWidth():
+    """
+    """
+    
+def getMeanElevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results if overhangs are present - should remove first
+    """Takes a cross section and returns the mean elevation of the points.
+    By default, ignores ceilings (any line segment [x1,y1],[x2,y2] where x1>=x2)
+    """
+    els = [] # array of mean elevation for each qualifying segment
+    weights = [] # horizontal component of length of each qualifying segment
+    for i in range(0,len(seriesX)-1):
+        x1 = seriesX[i]
+        x2 = seriesX[i+1]
+        y1 = seriesY[i]
+        y2 = seriesY[i+1]
+        
+        if ignoreCeilings:
+            condition = x2>x1
+        else: 
+            condition = True
+            
+        if condition:
+            segmentEl = np.mean([y1,y2])
+            segmentLength = x2-x1
+            #print('El = ' + str(segmentEl))
+            #print('Length = ' + str(segmentLength))
+            els.append(segmentEl)
+            weights.append(segmentLength)
+        
+    normWeights = [x / sum(weights) for x in weights] #normalize the weights
+    
+    meanEl = np.dot(els,normWeights)
+    return(meanEl)
+    
+def getMeanDepth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
+    """A wrapper for getMeanElevation, but will subtract the bkf depth for you
+    """
+    meanDepth = bkfDepth - getMeanElevation(seriesX,seriesY,ignoreCeilings)
+    return(meanDepth)
+    
 
+def lengthOfOverlap():
+    """
+    Calculates the length of the overlap of two line segments iff their associated lines are identical
+    """
     
-# figuring out wetted perimeter will be a challenge
+def blendPolygons():
+    """
+    Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes
     
+    TODO: WHAT THE HELL DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
+    """
     
     
 inters = getIntersections(lineX,lineY,line1)
@@ -567,5 +601,5 @@ topHangsX = [lineX[i] for i in pareHangs]
 topHangsY = [lineY[i] for i in pareHangs]
 plt.scatter(topHangsX,topHangsY,s=200)
 
-cut = removeOverhangs(lineX,lineY,method)
+cut = removeOverhangs(lineX,lineY,method,adjustY)
 plt.plot(cut[0],cut[1], linewidth = 4)
