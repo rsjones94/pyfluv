@@ -6,7 +6,7 @@ import numpy as np
 
 depth = 3
 
-method = 'fill'
+method = 'cut'
 adjustY = True
 
 if method == 'cut':
@@ -87,13 +87,62 @@ def intersectionOfLines(l1,l2):
         except ZeroDivisionError: # we might expect that the lines are parallel
             return(None)
 
-    
     return(x,y)
 
+def doesIntersect(s1,s2):
+    """Returns whether two line segments [[x1,y1],[x2,y2]] intersect one another
+    """
+    # evaluate the y range
+    y1a = s1[0][1]
+    y1b = s1[1][1]
+    y1Range = [y1a,y1b]
+    y1Range.sort()
+    
+    y2a = s2[0][1]
+    y2b = s2[1][1]
+    y2Range = [y2a,y2b]
+    y2Range.sort()
+    
+    if (y2Range[1] < y1Range[0] and y2Range[0] < y1Range[0]) or (y2Range[1] > y1Range[0] and y2Range[0] > y1Range[0]):
+        return(False) # can't have any overlap if there is no overlap in the y ranges
+
+    yRange = y1Range+y2Range
+    yRange.sort()
+    yRange = yRange[1:3] # we just want to evaluate on the overlapping parts of ranges
+    
+    
+    #evaluate the x range
+    x1a = s1[0][0]
+    x1b = s1[1][0]
+    x1Range = [x1a,x1b]
+    x1Range.sort()
+    
+    x2a = s2[0][0]
+    x2b = s2[1][0]
+    x2Range = [x2a,x2b]
+    x2Range.sort()
+    
+    if (x2Range[1] < x1Range[0] and x2Range[0] < x1Range[0]) or (x2Range[1] > x1Range[0] and x2Range[0] > x1Range[0]):
+        return(False) # can't have any overlap if there is no overlap in the x ranges
+
+    xRange = x1Range+x2Range
+    xRange.sort()
+    xRange = xRange[1:3]
+    
+    # we only want to check for intersections on the most restrictive combination of the two ranges
+    
+    l1 = lineFromPoints(s1[0],s1[1])
+    l2 = lineFromPoints(s2[0],s2[1])
+    
+    if intersectsOnInterval(yRange,l1,l2,vertical=True) and intersectsOnInterval(xRange,l1,l2,vertical=False):
+        return(True)
+    else:
+        return(False)
+    
+
 def intersectsOnInterval(interval,l1,l2,vertical=False):
-    """determines if two lines intersection on a given interval (inclusive)
+    """determines if two lines intersection on a given interval (inclusive). By default this is a range of x values but setting vertical to True will use a range of y values instead
     Takes tuples of length two - an interval, and two line-defining tuples of form (slope, intercept)
-    Assume neither line is vertical. If one is, set vertical to True and use a y interval
     """
     
     try:
@@ -113,7 +162,7 @@ def intersectsOnInterval(interval,l1,l2,vertical=False):
     return(False)
     
 def isFloatIn(checkTuple,tupleList):
-    """Equivalent to the "is in" keywords, but will correct for floating point errors
+    """Equivalent to "is in" keyword combo, but will correct for floating point errors
     """
     n = len(tupleList)
     
@@ -365,6 +414,7 @@ def shoelaceArea(seriesX,seriesY):
 
 def getArea(seriesX,seriesY):
     """A wrapper for shoelaceArea(). Returns the absolute (not signed) area
+    TODO: Make sure that when this is used to calculate XS area under an elevation that the left and right points have elevations == to the elevation you are calculating area under
     """
     
     area = np.abs(shoelaceArea(seriesX,seriesY))
@@ -558,7 +608,7 @@ def getMeanElevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results
     normWeights = [x / sum(weights) for x in weights] #normalize the weights
     
     meanEl = np.dot(els,normWeights)
-    return(meanEl)
+    return(meanEl)  
     
 def getMeanDepth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
     """A wrapper for getMeanElevation, but will subtract the bkf depth for you
@@ -628,10 +678,21 @@ def maxWidth(seriesX):
     width = max(seriesX) - min(seriesX)
     return(width)
     
+def lengthOfOverlap1d(s1,s2):
+    """Calculates the length of overlap of two 1d line line segments
+    Takes s1 and s2 where each is a tuple (x1,x2) of coordinates
+    Returns the unsigned length of overlap between them
+    """
+    min1 = min(s1)
+    min2 = min(s2)
+    max1 = max(s1)
+    max2 = max(s2)
+    overlap =  max(0, min(max1, max2) - max(min1, min2))
+    return overlap
 
-def lengthOfOverlap(s1,s2):
-    """Calculates the length of the overlap of two line segments iff their associated lines are identical
-    Takes two line segments of form ([x1,y1],[x2,y2]) and returns an unsigned length
+def lengthOfOverlap2d(s1,s2):
+    """Calculates the length of the overlap of two line 2d segments iff their associated lines are identical
+    Takes two line segments of form [[x1,y1],[x2,y2]] (MUST BE IN A LIST, NOT TUPLE) and returns an unsigned length
     """
     
     s1.sort()
@@ -645,8 +706,60 @@ def lengthOfOverlap(s1,s2):
     if not(lineIsSame):
         return(0)
     else:
-        pass # need to handle what to do if the lines are the same
+        s1proj = (s1[0][0],s1[1][0]) # range of s1, or the projection of s1 onto the x axis represented as a range of x
+        s2proj = (s2[0][0],s2[1][0]) # range of s2, or the projection of s2 onto the y axis represented as a range of x
+        # we need to get the range of the overlap of the x values
+        xOverlap = lengthOfOverlap1d(s1proj,s2proj)
+        slope = l1[0]
+        lengthOfOverlap = (xOverlap**2 + (xOverlap*slope)**2)**0.5 # Pythagorean theorem
+        return(lengthOfOverlap)
+        
+def lengthOfSegment(segment):
+    """Returns the length of a line segment [[x1,y1],[x2,y2]]
+    """
+    deltaX = segment[1][0] - segment[0][0]
+    deltaY = segment[1][1] - segment[0][1]
     
+    length = (deltaX**2  + deltaY**2)**0.5
+    return(length)
+        
+def wettedPerimeter(childX,childY,parentX,parentY):
+    """Calculates the total wetted perimeter of a prepared cross section by comparing it its parent XS
+    It can be assumed that all segments that are not horizontal are wetted, but a horizontal segment is wetted iff it overlaps with a segment in the parents XS
+    Returns an unsigned length
+    """
+    length = 0
+    for i in range(1,len(childX)):
+        segment = [[childX[i-1],childY[i-1]],[childX[i],childY[i]]]
+        line = lineFromPoints(segment[0],segment[1])
+        if not(np.isclose(0,line[0])): # if the line isn't flat, we know it's fully wetted
+            length += lengthOfSegment(segment)
+        else: # otherwise, we can only add the length of the segment that overlaps with a portion of the original XS; it could be a ceiling but it (more likely) represents a water surface
+            for j in range(1,len(parentX)):
+                checkSeg = [[parentX[i-1],parentY[i-1]],[parentX[i],parentY[i]]]
+                lapLength = lengthOfOverlap2d(segment,checkSeg)
+                length += lapLength
+                
+    return(length)
+    
+def isSimple(seriesX,seriesY,verbose=False):
+    """Given two lists of x and y coords for a polyon, determines if the shape is simple (non self-intersecting) or not
+    Algorithms exist that solve this in O(nlogn) and even O(n), but for simplicity of implementation a straightforward algorithm that runs in O(n^2) is used
+    The algorithm terminates upon finding the first self-intersection. If verbose is true, then the indices of the offending segments are printed.
+    """
+    for i in range(1,len(seriesX)):
+        segment = [[seriesX[i-1],seriesY[i-1]],[seriesX[i],seriesY[i]]]
+        # check if the segment intersects with any segments in the series, EXCEPT itself or the segments immediately before/after (these will always intersect by their definition)
+        for j in range(1,len(seriesX)):
+            if j in range(i-1,i+2):
+                next
+            else:
+                checkSeg = [[seriesX[j-1],seriesY[j-1]],[seriesX[j],seriesY[j]]]
+                if doesIntersect(segment,checkSeg):
+                    if verbose:
+                        print('Not simple on ' + str(i) + ' and ' + str(j))
+                    return(False)
+    return(True)
     
     
 def blendPolygons():
@@ -688,3 +801,13 @@ plt.plot(cut[0],cut[1], linewidth = 4)
 
 cent = getCentroid(prepared[0],prepared[1])
 plt.scatter(cent[0],cent[1],s=250)
+
+wetLength = wettedPerimeter(prepared[0],prepared[1],lineX,lineY)
+print(wetLength)
+
+
+sampX = [1,3,2,4,5,5,6,6,5.5,5,2,1]
+sampY = [1,4,5,5,2,3,3,2,2,1,1.5,3]
+plt.figure()
+plt.plot(sampX,sampY)
+print('Simple: ' + str(isSimple(sampX,sampY)))
