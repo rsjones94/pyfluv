@@ -483,7 +483,8 @@ def is_cut(index,seriesX,seriesY,findType):
     Determines if point in a series is part of an overhang or an undercut
     findType must be 'overhang' or 'undercut'
     
-    TODO: can have an overhang where intersection is a natural point in XS and a false negative will be returned
+    TODO: need to test to make sure function does not give false negative if overhanging a natural point
+    NOPE DOES NOT WORK
     """
     
     if findType is not 'overhang' and findType is not 'undercut':
@@ -496,7 +497,7 @@ def is_cut(index,seriesX,seriesY,findType):
     intersectionsX = intersections[0]
     intersectionsY = intersections[1]
     
-    if len(intersectionsX) == 1: # if there is only one intersection, then we know the point can not be either an overhan or an undercut
+    if len(intersectionsX) == 1: # if there is only one intersection, then we know the point can not be either an overhang or an undercut
         return(False)
     
     for i in range(0,len(intersectionsX)): # we need to check each intersection to see if it's really an overhang/undercut
@@ -532,7 +533,6 @@ def is_cut(index,seriesX,seriesY,findType):
                     return(True)
                 
     return(False)
-    
     
 
 def get_cuts(seriesX,seriesY,findType):
