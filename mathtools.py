@@ -194,34 +194,26 @@ def angle_by_points(p1,p2,p3):
     angle = np.arccos((P12**2 + P13**2 - P23**2) / (2 * P12 * P13))
     return(angle)
     
-def on_line_together(index1,index2,seriesX,seriesY):
+def on_line_together(index1,index2,seriesX,seriesY, tol = 10e-5):
     """
     Tests if two points in a series lay on an uninterupted line segment together
+    Default angle deviation tolerance of 10e-5 radians
     """
-    previousAngle = None
-    
     if (index2 - index1) == 1:
         return(True)
     elif not((index2 - index1) > 1):
         raise ValueError('Error: must specify two indices where index2 is > index1')
-    
-    p1 = [seriesX[index1],seriesY[index1]]
-    p2 = [seriesX[index1+1],seriesY[index1+1]]
-    p3 = [seriesX[index1+2],seriesY[index1+2]]
-    previousAngle = angle_by_points(p1,p2,p3)
 
-    for i in range(index1+1,index2): # skip the first index specified, stop one short of the last
-        p1 = [seriesX[i-1],seriesY[i-1]]
+    for i in range(index1+1,index2): # skip the first  two indices specified, stop one short of the last
+        p1 = [seriesX[index1],seriesY[index1]]
         p2 = [seriesX[i],seriesY[i]]
-        p3 = [seriesX[i+1],seriesY[i+1]]
+        p3 = [seriesX[index2],seriesY[index2]]
         angle = angle_by_points(p1,p2,p3)
-        #print(str(angle) + '+' + str(previousAngle))
-        anglesMatch = np.isclose(previousAngle,angle)
-        if anglesMatch:
-            previousAngle = angle
-        else:
+        angleIsNought = np.isclose(0,angle,atol=tol)
+        if not(angleIsNought):
             return(False)
     return(True)
+    
     
 def get_intersections(seriesX,seriesY,line):
     """
@@ -486,7 +478,7 @@ def is_cut(index,seriesX,seriesY,findType):
     TODO: need to test to make sure function does not give false negative if overhanging a natural point
     NOPE DOES NOT WORK
     """
-    
+    #print('newcall: checking index ' + str(index))
     if findType is not 'overhang' and findType is not 'undercut':
         raise Exception('Invalid findType value. findType must be "overhang" or "undercut"')
     #print(index)
@@ -516,6 +508,8 @@ def is_cut(index,seriesX,seriesY,findType):
         else: # if eqs is not length 1, then we need to make sure that that at least one equivalent point is not on the same line as the point we're checking (i.e., they are not on the same vertical line segment).
               # we also should only check equivalent points where the elevation is above or below (depending on the findType) the check point
             for j in range(0,len(eqs)):
+                #print('i is ' + str(i) + ' and j is ' + str(j))
+                
                 eqIndex = eqs[j]
                 eqY = seriesY[eqIndex]
                 
@@ -527,10 +521,13 @@ def is_cut(index,seriesX,seriesY,findType):
 
                 segmentRange = [index,eqIndex]
                 segmentRange.sort()
+                #print('Checking indices ' + str(segmentRange))
                 if segmentRange[0] == segmentRange[1]:
                     pass
-                elif elCheck and not(on_line_together(segmentRange[0],segmentRange[1],seriesX,seriesY)):
-                    return(True)
+                else:
+                    onSameLine = on_line_together(segmentRange[0],segmentRange[1],seriesX,seriesY)
+                    if elCheck and not(onSameLine):
+                        return(True)
                 
     return(False)
     
@@ -540,7 +537,6 @@ def get_cuts(seriesX,seriesY,findType):
     Returns the a list of indices of overhangs or undercuts in a cross sections.
     findType must be 'overhang' or 'undercut'
     """
-    
     if findType is not 'overhang' and findType is not 'undercut':
         raise Exception('Invalid findType value. findType must be "overhang" or "undercut"')
     
@@ -873,4 +869,3 @@ def get_stationing():
     """
     Get stationing given survey x,y (planform) data
     """
-

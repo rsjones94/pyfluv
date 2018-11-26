@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import mathtools as mt
 import streamgeometry as strgeo
 
+
 depth = 3
 
 method = 'cut'
@@ -20,15 +21,8 @@ else:
 
 line1 = (0,depth)
 
-lineX = [0,1,3,2,5,7,9,7.5,10,10,12,15,14,16,14,13.5,12.5,17]
+lineX = [0,1,3,2,5,7,10,7.5,10,10,12,15,14,16,14,13.5,12.5,17]
 lineY = [1,3,1,4,3,5,5,4,2,-1,.5,0,2,4,3,4,4.5,5]
-
-"""
-nocutX = [1,2,3,2,5,6]
-nocutY = [3,2,1,10,2,3]
-
-testCross = strgeo.CrossSection(exes = nocutX, whys = nocutY, name = 'cool')
-"""  
     
 inters = mt.get_intersections(lineX,lineY,line1)
 
