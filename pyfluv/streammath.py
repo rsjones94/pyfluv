@@ -1,18 +1,23 @@
 """
 Simple functions for processing stream survey data
-
-
 """
 import numpy as np
 
 
 def line_from_points(p1,p2):
     """
-    Returns the slope and intercept of a line defined by two points
-    Takes two tuples or lists of length two and returns a tuple (m,b) where m is the slope and b is the intercept
-    of a line y = mx + b that passes through both points
-    If a line is vertical, slope is 'inf' and the intercept given is the horizontal intercept
-    If the two points are the same, then the slope is 'inf' and the x intercept is the points' x value
+    Creates a line (slope,intercept) based on two points that fall on the line.
+    
+    Args:
+        p1: A list or tuple of form (x,y)
+        p2: A list or tuple of form (x,y)
+        
+    Returns:
+        A tuple (slope,intercept) based on p1 and p2. If the line is not vertical, then the intercept is the y -intercept.
+        If the line is vertical, the slope is float('inf') and the intercept is the x-intercept.
+        
+    Raises:
+        None.
     """
     rise = p2[1] - p1[1]
     run = p2[0] - p1[0]
@@ -29,7 +34,17 @@ def line_from_points(p1,p2):
 
 def y_from_equation(x,equation):
     """
-    Returns the y value for a line given an x and a tuple containing (slope, intercept)
+    Given an equation representing a line (slope,intercept) and an x-coordinate, returns the corresponding y-value.
+    
+    Args:
+        x: The x-coordinate, an int or float
+        equation: A tuple or list of form (slope,intercept). The intercept is assumed to be a y-intercept.
+    
+    Returns:
+        An int or float representing the y-coordinate on the line at x. If the line is vertical, returns te string 'Undefined'.
+    
+    Raises:
+        None.
     """
     if equation[0] != float('inf'):
         y = equation[0] * x + equation[1]
@@ -40,8 +55,20 @@ def y_from_equation(x,equation):
     
 def intersection_of_lines(l1,l2):
     """
-    Returns the x and y coordinates of the intersection of two lines
-    Takes two tuples of lists of length two of form (slope, intercept) that define the two lines
+    Returns the x and y coordinates of the intersection of two lines.
+    
+    Args:
+        l1: The first line, a tuple or list of form (slope,intercept). If slope is float('inf'), the intercept is taken
+            to be a x-intercept. Otherwise, the slope is the y-intercept.
+        l2: The first line, a tuple or list of form (slope,intercept). If slope is float('inf'), the intercept is taken
+            to be a x-intercept. Otherwise, the slope is the y-intercept.
+    
+    Returns:
+        A tuple (x,y) of the intersection between the lines if they do intersect.
+        If there is no intersection, None is returned.
+    
+    Raises:
+        None.
     """
     isVert1 = False # flags to note of lines are vertical, as such lines will need special code to check for intersections
     isVert2 = False
@@ -76,8 +103,19 @@ def intersection_of_lines(l1,l2):
 
 def does_intersect(s1,s2):
     """
-    Returns whether two line segments [[x1,y1],[x2,y2]] intersect one another
+    Determines if two line segments intersect.
+    
+    Args:
+        s1: A line segment in the form ((x1,y1),(x2,y2)). May be any combination of lists and tuples.
+        s2: A line segment in the form ((x1,y1),(x2,y2)). May be any combination of lists and tuples.
+    
+    Returns:
+        Returns True if the segments intersect, else returns False.
+    
+    Raises:
+        None.
     """
+
     # evaluate the y range
     y1a = s1[0][1]
     y1b = s1[1][1]
@@ -127,8 +165,19 @@ def does_intersect(s1,s2):
 
 def intersects_on_interval(interval,l1,l2,vertical=False):
     """
-    Determines if two lines intersection on a given interval (inclusive). By default this is a range of x values but setting vertical to True will use a range of y values instead
-    Takes tuples of length two - an interval, and two line-defining tuples of form (slope, intercept)
+    Determines if two lines intersect on a given interval (inclusive).
+    
+    Args:
+        interval: A tuple or list (x1,x2) that representes the inclusive range that an intersection will be checked for. By default, this range is a range of x values.
+        s2: A tuple or list in the form (slope,intercept). If the slope is not float('inf'), then the intercept is a y-intercept. Otherwise it is an x intercept.
+        s2: A tuple or list in the form (slope,intercept). If the slope is not float('inf'), then the intercept is a y-intercept. Otherwise it is an x intercept.
+        vertical: A boolean. If True, then interval represents a range of x values. If False, represent a range of y values.
+    
+    Returns:
+        True if the segments intersect, else returns False.
+    
+    Raises:
+        None.
     """
     try:
         inter = intersection_of_lines(l1,l2)
@@ -148,7 +197,17 @@ def intersects_on_interval(interval,l1,l2,vertical=False):
     
 def is_float_in(checkTuple,tupleList):
     """
-    Equivalent to "is in" keyword combo, but will correct for floating point errors
+    Like the "is in" keyword combo, but corrects for floating point errors.
+    
+    Args:
+        checkTuple: A tuple or list of values or a single numeric value that you want to check is in tupleList. 
+        tupleList: A a list or tuple containing lists or tuples that have the same length as checkTuple or a list or tuple of numeric values.
+        
+    Returns:
+        True if checkTuple is in tupleList. False otherwise.
+    
+    Raises:
+        None.
     """
     n = len(tupleList)
     
@@ -160,7 +219,17 @@ def is_float_in(checkTuple,tupleList):
     
 def indices_of_equivalents(checkTuple,tupleList):
     """
-    Returns an array of indices in tupleList that are equivalent to the checkTuple (checking with np.)
+    Finds all indices in a list of tuples that are equal to a tuple.
+    
+    Args:
+        checkTuple: A tuple or list of values that you want to check for equivalency in a list of tuples.
+        tupleList: A a list or tuple containing lists or tuples that have the same length as checkTuple.
+        
+    Returns:
+        A list of values that indicate the indices of tupleList that containing a tuple equivalent to checkTuple.
+    
+    Raises:
+        None.
     """
     n = len(tupleList)
     eq = []
@@ -173,7 +242,17 @@ def indices_of_equivalents(checkTuple,tupleList):
 
 def segment_length(p1,p2):
     """
-    Returns the length of a segment defined by two points
+    Returns the length of a line segment defined by two points.
+    
+    Args:
+        p1: A list or tuple of form (x,y)
+        p2: A list or tuple of form (x,y)
+        
+    Returns:
+        The length of the line segment as an int or float.
+    
+    Raises:
+        None.
     """
     p1x = p1[0]
     p1y = p1[1]
@@ -185,7 +264,18 @@ def segment_length(p1,p2):
     
 def angle_by_points(p1,p2,p3):
     """
-    Returns the angle in radians defined by three points with p2 as the center
+    Gets the angle defined by three points in radians, assuming p2 is the hinge/on the bisecting line
+    
+    Args:
+        p1: A list or tuple of form (x,y)
+        p2: A list or tuple of form (x,y)
+        p3: A list or tuple of form (x,y)
+        
+    Returns:
+        Returns the angle define by the three points in radians as an int or float.
+    
+    Raises:
+        None.
     """
     P12 = segment_length(p1,p2)
     P13 = segment_length(p1,p3)
@@ -196,8 +286,21 @@ def angle_by_points(p1,p2,p3):
     
 def on_line_together(index1,index2,seriesX,seriesY, tol = 10e-5):
     """
-    Tests if two points in a series lay on an uninterupted line segment together
-    Default angle deviation tolerance of 10e-5 radians
+    Tests if two points in a series lay on an uninterupted line segment together.
+    
+    Args:
+        index1: The index of the first point (seriesX[index1],seriesY[index1])
+        index2: The index of the second point (seriesX[index2],seriesY[index2])
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        tol: The maximum angular deviation concurrent line segments can have and still be considered on the same uninterupted segment.
+            By default this is 10e-5 rads.
+        
+    Returns:
+        True if the two points are the same line segment. False otherwise.
+    
+    Raises:
+        ValueError: If index2 is not greater than index1.
     """
     if (index2 - index1) == 1:
         return(True)
@@ -218,10 +321,20 @@ def on_line_together(index1,index2,seriesX,seriesY, tol = 10e-5):
 def get_intersections(seriesX,seriesY,line):
     """
     Returns a list of points where a line intersects a series of linear line segments.
-    The line should be a tuple of form (slope, intercept) and the x and y values are lists of equal length
-    Intersections are returned in order of occurrence from top to bottom of the two lists along with a list that indicates the index that the corresponding intersection occurs after
     
-    Will not return intersections for lines that are identical - this is technically undefined
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        line: a line represented as tuple or list of form (slope,intercept).
+            If slope is float('inf'), then the intercept is assumed to be an x-intercept. Otherwise, it is a y-intercept.
+        
+    Returns:
+        A tuple of lists representing the intersections with the form (x,y). These are guaranteed to be unique.
+            The form is (x-coordinates,y-coordinates,intersectionIndex). intersectionIndex is a list whose entries represent
+            what index an intersection comes after in seriesX and seriesY
+        
+    Raises:
+        None.
     """
     intersectsX = []
     intersectsY = []
@@ -266,13 +379,24 @@ def get_intersections(seriesX,seriesY,line):
     
 def insert_points_in_series(origSeriesX,origSeriesY,insertions):
     """
-    Merges the points in a list to a cross section
-    Takes two lists indicating x and y values and a tuple that has three lists - insertX, insertY and the indices that the points should be inserted after
+    Adds points to a series of x-y values. The indices the points are to be added to are specified by the user.
     
-    Returns three lists - the merged X values and merged Y values and a list that flags if a point is an intersection (0 for no, 1 for yes)
-    If an insertion point already exists in the series, it will still be merged
-    TODO: Make it so an insertion point will be ignored iff its x-y coords are equal to the point it is to be inserted after
+    Args:
+        origSeriesX: A list of x coordinates.
+        origSeriesY: A list of corresponding y coordinates.
+        insertions: A tuple of lists of form (x-coordinates,y-coordinates,insertionIndices). This is the form of the output of streammath.get_intersections().
+            
+    Returns:
+        A list of three lists of form (newXVals,newYVals,flagger). Flagger is a list that flags whether or not a given point
+            in newXVals / newYVals was inserted into a series of points (1 for True, 0 for False).
+        
+    Raises:
+        None.
+        
+    Todo:
+        Make it so an insertion point will be ignored iff its x-y coords are equal to the point it is to be inserted after
     """
+
     seriesX = origSeriesX.copy()
     seriesY = origSeriesY.copy()
     
@@ -295,10 +419,19 @@ def insert_points_in_series(origSeriesX,origSeriesY,insertions):
     
 def above_below(point,line):
     """
-    Calculates if a point is above, below or on a line
-    takes a point (px,py) and a line (m,b)
-    Returns 1 for above, -1 for below, 0 for on
-    If the line is vertical (m = inf) no result will be given
+    Calculates if a point is above, below or on a line. Does not work for vertical lines.
+    
+    Args:
+        point: A tuple or list of for (x,y)
+        line: A line of form (slope,intercept)
+        
+    Returns:
+        1 if the point is above the line.
+        0 if the point is on the line.
+        -1 if the point is below the line.
+        
+    Raises:
+        None.
     """
     y = y_from_equation(point[0],line)
     
@@ -315,7 +448,20 @@ def above_below(point,line):
       
     
 def scalp_series(seriesX,seriesY,equation, above = True):
-    """Returns a list where are all points above (default) or below a non-vertical line are removed
+    """
+    Returns a list where are all points above (default) or below a non-vertical line are removed. Never removes points on the line.
+    
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        equation: A list or tuple representing a line of form (slope,y-intercept)
+        above: True (default) if you want to remove all points above the line. False if you want to remove all points below the line.
+        
+    Returns:
+        A tuple of two lists representing the scalped series.
+        
+    Raises:
+        None.
     """
     if above:
         matchVal = 1
@@ -335,10 +481,23 @@ def scalp_series(seriesX,seriesY,equation, above = True):
 
 def remove_side(seriesX,seriesY,xVal,leftRight):
     """
-    Accepts a two lists (x and y coords) and remove all points that are either to the left or right of a given x
-    leftRight = 'left' will remove all points to left
-    leftRight = 'right' will remove all point to right
+    Removes all points in a series of x and y vals that are either to the left or right of a vertical line.
+    
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        xVal: The x intercept of the vertical line.
+        leftRight: A string specifying which side to remove points from. 'left' to remove points to the left of xVal, 'right' to remove points to the right.
+        
+    Returns:
+        A tuple of two lists representing the modified series.
+        
+    Raises:
+        Exception: if leftRight is neither 'left' nor 'right'
     """
+    if leftRight is not 'overhang' and leftRight is not 'undercut':
+        raise Exception('Invalid leftRight value. findType must be "left" or "right"')
+        
     newX, newY = [],[]
     
     for i in range(0,len(seriesX)):
@@ -358,7 +517,18 @@ def remove_side(seriesX,seriesY,xVal,leftRight):
     
 def keep_range(seriesX,seriesY,xRange):
     """
-    Keeps only the points that fall within a range (inclusive)
+    Removes all points from a series of x-y points that do not fall within a range of x values (inclusive)
+    
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        xRange: The range of x values to keep points in (inclusive) as a list or tuple of form (x1,x2).
+        
+    Returns:
+        A tuple of two lists representing the modified series.
+        
+    Raises:
+        None.
     """
     xCopy,yCopy = remove_side(seriesX,seriesY,xRange[0],leftRight='left')
     xCopy,yCopy = remove_side(xCopy,yCopy,xRange[1],leftRight='right')
@@ -367,7 +537,18 @@ def keep_range(seriesX,seriesY,xRange):
 
 def tri_area(a,b,c):
     """
-    Returns the area of a triangle defined by three points (px,py)
+    Gets the area of a triangle defined by three points.
+    
+    Args:
+        a: A point represented as a tuple or list of form (x,y)
+        b: A point represented as a tuple or list of form (x,y)
+        c: A point represented as a tuple or list of form (x,y)
+        
+    Returns:
+        An int or float of the area of the triangle.
+        
+    Raises:
+        None.
     """
     Ax = a[0]
     Ay = a[1]
@@ -382,9 +563,22 @@ def tri_area(a,b,c):
     
 def get_nearest_intersect_bounds(seriesX,seriesY,flag,searchStart):
     """
-    Finds the nearest intersection point (distance defined as array distance, not euclidean distance or delta-x/y) to left and right of a given index
-    Will be used to define bankfull limits and left/right chopping
-    flag is an array that indicates if a corresponding (x,y) point is an intersection
+    Finds the nearest intersection point (distance defined as array distance, not euclidean distance or delta-x or delta-y) to the left and right
+        of a given index in a series of x-y points.
+    
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        flag: A list indicating what points in a series are intersection points. 1 for True, 0 for False.
+        searchStart: the index in seriesX/seriesY to begin the search from.
+        
+    Returns:
+        A tuple of three lists. The first list is the x coords of the nearest intersections.
+            The second is the y coords of the nearest intersections.
+            The third is the indices of the nearest intersections.
+        
+    Raises:
+        None.
     """
     xBounds = []
     yBounds = []
@@ -393,11 +587,11 @@ def get_nearest_intersect_bounds(seriesX,seriesY,flag,searchStart):
     #xArray = np.asarray(seriesX)
     #idx = (np.abs(xArray - searchStart)).argmin() # index of the station that is closest to searchStart
     #these two lines above were used to start a search from a given station, but a result is that overhangs can sometimes be closer to the station specified than the thalweg
+        # so if we want to use this functionality, we must remove overhangs first
     idx = searchStart
     
     i = idx
     while True: # search to the left first
-        #print(i)
         if flag[i] == 1 or i == 0:
             xBounds.append(seriesX[i])
             yBounds.append(seriesY[i])
@@ -407,7 +601,6 @@ def get_nearest_intersect_bounds(seriesX,seriesY,flag,searchStart):
         
     i = idx
     while True: # search to the right
-        #print(i)
         i = i + 1 # we add to the index first because if the starting point is an intersection the above loop will have already found it
         if flag[i] == 1 or i == (len(flag)-1):
             xBounds.append(seriesX[i])
@@ -419,8 +612,19 @@ def get_nearest_intersect_bounds(seriesX,seriesY,flag,searchStart):
 
 def prepare_cross_section(seriesX,seriesY,line, thw = None):
     """
-    Takes a cross section and returns the shape under the XS and between the main channel (defined as having the lowest thalweg)
-    Can specify index of the thalweg; otherwise the function assumes it's the deepest point (if multiple points of equal depth exist, the leftmost is used)
+    Takes a cross section and returns the shape under the XS and between the main channel (defined as having the lowest thalweg by default)
+    
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        line: A tuple of form (slope,intercept) that represents the line that will be used to crop the channel. Cannot be vertical.
+        thw: the index of the thalweg. By default this is None, and the function will assume the index is where seriesY is lowest.
+        
+    Returns:
+        A tuple of two lists. The first is the prepared x coordinates. The second is the prepared y coordinates.
+        
+    Raises:
+        None.
     """
     
     intersects = get_intersections(seriesX,seriesY,line) # get where the line intersects
@@ -448,11 +652,17 @@ def prepare_cross_section(seriesX,seriesY,line, thw = None):
     
 def shoelace_area(seriesX,seriesY):
     """
-    An implementation of the showlace formula for finding area of an irregular, simple polygon
-    Modified from code by user Mahdi on Stack Exchange
-    Take two list of x and y coords and returns the area enclosed by the points (assuming the last point connects to the first)
+    An implementation of the showlace formula for finding the area of an irregular, simple polygon - modified from code by user Mahdi on Stack Exchange
     
-    The area returned is signed
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+    Returns:
+        The signed area enclosed by the polygon defined by seriesX and seriesY. If the polygon is not simple (not self-intersecting)
+            then the area may not be correct.
+        
+    Raises:
+        None.
     """
     x = seriesX
     y = seriesY
@@ -463,8 +673,21 @@ def shoelace_area(seriesX,seriesY):
 
 def get_area(seriesX,seriesY):
     """
-    A wrapper for shoelace_area(). Returns the absolute (not signed) area
-    TODO: Make sure that when this is used to calculate XS area under an elevation that the left and right points have elevations == to the elevation you are calculating area under
+    A wrapper for streammath.shoelace_area(). Returns the absolute (not signed) area.
+    
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        
+    Returns:
+        The unsigned area enclosed by the polygon defined by seriesX and seriesY. If the polygon is not simple (not self-intersecting)
+            then the area may not be correct.
+        
+    Raises:
+        None.
+        
+    Todo: 
+        Make sure that when this is used to calculate XS area under an elevation that the left and right points have elevations == to the elevation you are calculating area under
     """
     area = np.abs(shoelace_area(seriesX,seriesY))
     return(area)
@@ -472,11 +695,19 @@ def get_area(seriesX,seriesY):
     
 def is_cut(index,seriesX,seriesY,findType):
     """
-    Determines if point in a series is part of an overhang or an undercut
-    findType must be 'overhang' or 'undercut'
+    Determines if point in a series is part of an overhang or an undercut.
     
-    TODO: need to test to make sure function does not give false negative if overhanging a natural point
-    NOPE DOES NOT WORK
+    Args:
+        index: index of the point in question.
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        findType: A string ("overhang" or "undercut") indicating if you want to identify if the point is an overhang or an undercut.
+        
+    Returns:
+        True if the point is the findType specified, False otherwise.
+        
+    Raises:
+        Exception: if findType is not "overhang" or "undercut".
     """
     #print('newcall: checking index ' + str(index))
     if findType is not 'overhang' and findType is not 'undercut':
@@ -534,8 +765,18 @@ def is_cut(index,seriesX,seriesY,findType):
 
 def get_cuts(seriesX,seriesY,findType):
     """
-    Returns the a list of indices of overhangs or undercuts in a cross sections.
-    findType must be 'overhang' or 'undercut'
+    Determines if which points in a series are part of an overhang or an undercut.
+    
+    Args:
+        seriesX: A list of x coordinates.
+        seriesY: A list of corresponding y coordinates.
+        findType: A string ("overhang" or "undercut") indicating if you want to identify is an overhangs or undercuts.
+        
+    Returns:
+        A list of indices representing which points in the series are of the findType specified.
+        
+    Raises:
+        Exception: If findType is not "overhang" or "undercut"
     """
     if findType is not 'overhang' and findType is not 'undercut':
         raise Exception('Invalid findType value. findType must be "overhang" or "undercut"')
@@ -550,7 +791,17 @@ def get_cuts(seriesX,seriesY,findType):
     
 def find_contiguous_sequences(numbers):
     """
-    Takes a list of numbers and returns a list of lists of numbers that are form contiguous sequences in that list
+    Takes a list of numbers and returns a list of lists of numbers that are form contiguous always-increasing sequences in that list.
+    
+    Args:
+        numbers: A list of numbers.
+            
+    Returns:
+        A list of lists where each sublist is a sequence of numbers found in the paremeter numbers where
+            each subsequent element is equal to the previous element + 1.
+        
+    Raises:
+        None.
     """
     masterList = []
     tackList = [numbers[0]] # the first number will always be in a list
@@ -569,6 +820,17 @@ def find_contiguous_sequences(numbers):
 def pare_contiguous_sequences(sequences,seriesY,minOrMax=None):
     """
     Given a list of lists of contiguous sequences corresponding to XS shots and a list of elevations, returns only the indices with the max elevation in each sequence (peak of the overhang) or min (bottom of an undercut)
+    
+    Args:
+        sequences: A list of lists that represent the indices of overhangs or undercuts.
+        seriesY: A list of y-values that sequences maps onto.
+        minOrMax: Whether to find the highest or lowest points in each sublist of sequences. Must be "min" or "max"
+            
+    Returns:
+        A list of indices that represent the highest or lowest point in each sublist of sequences.
+        
+    Raises:
+        Exception: If minOrMax is not "min" or "max".
     """
     if minOrMax is not 'min' and minOrMax is not 'max':
         raise Exception('Invalid minOrMax value. minOrMax must be "min" or "max"')
@@ -589,11 +851,19 @@ def pare_contiguous_sequences(sequences,seriesY,minOrMax=None):
 
 def remove_overhangs(seriesX,seriesY,method,adjustY=True):
     """
-    Returns new XS x and y coordinates that have had overhangs removed either by cutting them off or filling under them
-    Valid values for method are "cut" and "fill"
+    Returns new cross section x and y coordinates that have had overhangs removed either by cutting them off or filling under them
     
-    KNOWN BUG: If the XS is such that all points that are substrate (points x[i] where x[i] > x[i-1])
-    are covered by overhangs, and there are by fore- and backhangs, then the algorithm will fail
+    Args:
+        seriesX: A list of x-coordinates.
+        seriesY: A list of corresponding y-coordinates.
+        method: What method to use for removing overhangs. Must be "cut" or "fill".
+        adjustY: A boolean that specifies if y-values at the edges of removed overhangs should be adjusted. Default is True.
+            
+    Returns:
+        A tuple of lists representing the new x and y coordinates of the section.
+        
+    Raises:
+        Exception: If method is not "cut" or "fill"
     """
     if method == 'cut':
         findType = 'overhang'
@@ -602,7 +872,7 @@ def remove_overhangs(seriesX,seriesY,method,adjustY=True):
         findType = 'undercut'
         pareType = 'min'
     else:
-        raise Exception('Invalid method. Method must be "cut" or "fill"')
+        raise Exception('Invalid method. method must be "cut" or "fill"')
     
     overhangs = get_cuts(seriesX,seriesY,findType)
     contigOverhangs = find_contiguous_sequences(overhangs)
@@ -661,8 +931,19 @@ def remove_overhangs(seriesX,seriesY,method,adjustY=True):
 
 def get_mean_elevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results if overhangs are present - should remove first to prevent couble counting surfaces (when there is more than one depth for a given x)
     """
-    Takes a cross section and returns the mean elevation of the points.
-    By default, ignores ceilings (any line segment [x1,y1],[x2,y2] where x1>=x2)
+    Takes a series of x and y points and returns the weighted mean elevation of the line segments. 
+        By default, ignores ceilings (any line segment [x1,y1],[x2,y2] where x1>=x2).
+    
+    Args:
+        seriesX: A list of x-coordinates.
+        seriesY: A list of corresponding y-coordinates.
+        ignoreCeilings: True by default. A boolean that specifies if segments that are vertical or ceilings should be ignored.
+        
+    Returns:
+        The mean weighed mean elevation of the line segments.
+        
+    Raises:
+        None.
     """
     els = [] # array of mean elevation for each qualifying segment
     weights = [] # horizontal component of length of each qualifying segment
@@ -693,8 +974,20 @@ def get_mean_elevation(seriesX,seriesY,ignoreCeilings=True): # gives weird resul
     
 def get_mean_depth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
     """
-    A wrapper for get_mean_elevation, but will subtract the bkf depth for you
+    A wrapper for streammath.get_mean_elevation(), but will subtract a number (usually bankfull depth) for you.
+    
+    Args:
+        seriesX: A list of x-coordinates.
+        seriesY: A list of corresponding y-coordinates.
+        ignoreCeilings: True by default. A boolean that specifies if segments that are vertical or ceilings should be ignored.
+        
+    Returns:
+        The mean weighed mean depth of the line segments.
+        
+    Raises:
+        None.
     """
+    
     meanDepth = bkfDepth - get_mean_elevation(seriesX,seriesY,ignoreCeilings)
     return(meanDepth)
     
@@ -702,10 +995,13 @@ def get_mean_depth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
 def get_centroid(seriesX,seriesY):
     """
     Calculates the centroid of a non-intersecting polygon. Modified from code by Robert Fontino at UCLA.
+    
     Args:
         poly: a list of points, each of which is a list of the form [x, y].
+        
     Returns:
         the centroid of the polygon in the form [x, y].
+        
     Raises:
         ValueError: if poly has less than 3 points or the points are not
                     formatted correctly.
@@ -747,7 +1043,17 @@ def get_centroid(seriesX,seriesY):
     
 def max_depth(seriesY,bkfEl):
     """
-    Returns the maximum depth of a cross section. Takes an array of elevations and a water/bkf depth
+    Returns the maximum depth of a cross section.
+    
+    Args:
+        seriesY: a list of y-coordinates in the cross section.
+        bkfEl: the elevation of bankfull.
+        
+    Returns:
+        The max depth of the channel.
+        
+    Raises:
+        None.
     """
     minEl = min(seriesY)
     depth = bkfEl - minEl
@@ -756,8 +1062,16 @@ def max_depth(seriesY,bkfEl):
     
 def max_width(seriesX):
     """
-    Returns the difference of the leftmost and rightmost points in a cross section. Takes an array of stations/x coords
-    Note that this is just one definition of max width
+    Returns the difference of the leftmost and rightmost points in a cross section. Note that this is just one definition of max width.
+    
+    Args:
+        seriesX: a list of x-coordinates in the cross section.
+        
+    Returns:
+        The max width of the channel.
+        
+    Raises:
+        None.
     """
     width = max(seriesX) - min(seriesX)
     return(width)
@@ -765,9 +1079,17 @@ def max_width(seriesX):
     
 def length_of_overlap_1d(s1,s2):
     """
-    Calculates the length of overlap of two 1d line line segments
-    Takes s1 and s2 where each is a tuple (x1,x2) of coordinates
-    Returns the unsigned length of overlap between them
+    Calculates the length of overlap of two 1d line segments.
+    
+    Args:
+        s1: a tuple or list representing a 1d line segment defined by two x-coordinates (x1,x2)
+        s2: a tuple or list representing a 1d line segment defined by two x-coordinates (x1,x2)
+        
+    Returns:
+        The unsigned length of the overlap between the line segments.
+        
+    Raises:
+        None.
     """
     min1 = min(s1)
     min2 = min(s2)
@@ -779,8 +1101,17 @@ def length_of_overlap_1d(s1,s2):
 
 def length_of_overlap_2d(s1,s2):
     """
-    Calculates the length of the overlap of two line 2d segments iff their associated lines are identical
-    Takes two line segments of form [[x1,y1],[x2,y2]] (MUST BE IN A LIST, NOT TUPLE) and returns an unsigned length
+    Calculates the length of overlap of two 2d line segments.
+    
+    Args:
+        s1: a tuple or list of tuples or lists representing a line segment of form ((x1,y2),(x2,y2))
+        s2: a tuple or list of tuples or lists representing a line segment of form ((x1,y2),(x2,y2))
+        
+    Returns:
+        The unsigned length of the overlap between the line segments.
+        
+    Raises:
+        None.
     """
     
     s1.sort()
@@ -804,7 +1135,17 @@ def length_of_overlap_2d(s1,s2):
        
         
 def length_of_segment(segment):
-    """Returns the length of a line segment [[x1,y1],[x2,y2]]
+    """
+    Calculates the length of a line segment.
+    
+    Args:
+        segment: a tuple or list of tuples or lists representing a line segment of form ((x1,y2),(x2,y2))
+        
+    Returns:
+        The unsigned length of the overlap between the line segments.
+        
+    Raises:
+        None.
     """
     deltaX = segment[1][0] - segment[0][0]
     deltaY = segment[1][1] - segment[0][1]
@@ -815,9 +1156,21 @@ def length_of_segment(segment):
     
 def wetted_perimeter(childX,childY,parentX,parentY):
     """
-    Calculates the total wetted perimeter of a prepared cross section by comparing it its parent XS
-    It can be assumed that all segments that are not horizontal are wetted, but a horizontal segment is wetted iff it overlaps with a segment in the parents XS
-    Returns an unsigned length
+    Calculates the total wetted perimeter of a prepared cross section by comparing it to its parent XS.
+        It can be assumed that all segments that are not horizontal are wetted, but a horizontal segment
+        is wetted for only its length that overlaps with a segment in the parent XS.
+    
+    Args:
+        childX: a list of prepared x coordinates.
+        childY: a list of prepared y coordinates.
+        parentX: a list of x coordinates that childX originated from.
+        parentY: a list of y coordinates that childY originated from.
+        
+    Returns:
+        The wetted perimeter of the cross section.
+        
+    Raises:
+        None.
     """
     length = 0
     for i in range(1,len(childX)):
@@ -833,12 +1186,20 @@ def wetted_perimeter(childX,childY,parentX,parentY):
     return(length)
     
     
-def is_simple(seriesX,seriesY,verbose=False):
+def is_simple(seriesX,seriesY):
     """
-    Given two lists of x and y coords for a multipoint line, determines if the shape is simple (non self-intersecting) or not
-    Algorithms exist that solve this in O(nlogn), but for simplicity of implementation a straightforward algorithm that runs in O(n^2) is used
-    The algorithm terminates upon finding the first self-intersection.
-    Returns (True,-1,-1) if simple, otherwise returns (False,[index of 1st intersecting segment],[index of 2nd intersecgting segment])
+    Given two lists of x and y coords for a multipoint line, determines if the series of line segments is simple (non self-intersecting) or not.
+    
+    Args:
+        seriesX: a list of x coordinates.
+        seriesY: a list of y coordinates.
+        
+    Returns:
+        (True,-1,-1) if the series is simple. If the series self-intersections, returns a tuple where the first value
+            is False, and the second and third are the indices of the line segments that intersect eachother.
+        
+    Raises:
+        None.
     """
     
     bad1 = -1
@@ -860,12 +1221,26 @@ def is_simple(seriesX,seriesY,verbose=False):
     
 def blend_polygons():
     """
-    Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes
+    Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.
     
-    TODO: WHAT THE HELL DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
+    Args:
+        
+    Returns:
+ 
+    Raises:
+
+    Todo:
+        WHAT THE HELL DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
     """
     
 def get_stationing():
     """
-    Get stationing given survey x,y (planform) data
+    Get stationing given survey [x,y] (planform) data.
+    
+    Args:
+        
+    Returns:
+ 
+    Raises:
+
     """

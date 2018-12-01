@@ -9,24 +9,55 @@ import streammath as sm
 
 class CrossSection(object):
     
-    def __init__(self, exes, whys, name = None, bkfEl = None, xsType = None):
-        self.name = name # the name of the cross section
-        self.exes = exes # the stationing (x, or "ex") values of the total station survey
-        self.whys = whys # the elevation (y, or "why") values of the total statoin survey
-        self.bkfEl = bkfEl # the elevation of the bankfull at the cross section
-        self.xsType = xsType
+    """
+    A generic geomorphic cross section.
+    
+    Attributes:
+        name(str): the name of the XS
+        exes(:obj:'list' of :obj:'float'): the raw x vals of the cross section (planform)
+        whys(:obj:'list' of :obj:'float'): the raw y vals of the cross sections (planform)
+        zees(:obj:'list' of :obj:'float'): the raw z vals of the cross section (elevation)
+        raw2dX(float): the stationing of the cross section
+        raw2dY(float): the elevations of the cross section
+        bkfEl(float): the bankfull elevation at the XS
+        hasOverhangs(bool): whether or not overhangs are present in the raw survey
+
+    """
+    
+    def __init__(self, exes, whys, zees, name = None, bkfEl = None):
+        self.name = name
+        self.exes = exes
+        self.whys = whys
+        self.zees = zees
+        self.bkfEl = bkfEl
         self.hasOverhangs = False
         
+        self.create_2d_form()
         self.validate_geometry()
         
         # need to check to make sure exes and whys are lists of equal length with only numbers
+        
+    def create_2d_form(self,project=True):
+        """
+        Uses the survey x,y,z data to create stationing and elevation data.
+        
+        Args:
+            project: a boolean telling whether or not to project x,y data onto a centerline
+            
+        Returns:
+            A tuple of two lists, one representing stationing and another representing elevation.
+            
+        Raises:
+            None.
+        """
+        pass
     
     def validate_geometry(self):
         """
         Checks if a cross section is self-intersecting (always illegal) and if it has overhangs (okay, but changes data processing)
         """
-        x = self.exes
-        y = self.whys
+        x = self.raw2dX
+        y = self.raw2dY
         
         overhangs = sm.get_cuts(x,y,'overhang') # list of points that are overhangs
         if overhangs: # pythonic way to check if a list is not empty
