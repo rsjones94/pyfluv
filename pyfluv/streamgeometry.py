@@ -4,7 +4,7 @@ Contains the CrossSection class, which stores and processes stream geometry (cro
 """
 import warnings
 
-import mathtools as mt
+import streammath as sm
 
 
 class CrossSection(object):
@@ -28,12 +28,12 @@ class CrossSection(object):
         x = self.exes
         y = self.whys
         
-        overhangs = mt.get_cuts(x,y,'overhang') # list of points that are overhangs
+        overhangs = sm.get_cuts(x,y,'overhang') # list of points that are overhangs
         if overhangs: # pythonic way to check if a list is not empty
             self.hasOverhangs = True
             warnings.warn('Overhangs present in geometry')
         
-        simplicity = mt.is_simple(x,y)
+        simplicity = sm.is_simple(x,y)
         if not(simplicity[0]): # if the geometry is not simple
             raise Exception('Error: geometry is self-intersecting on segments ' + str(simplicity[1]) + ' and ' + str(simplicity[2]))
     
