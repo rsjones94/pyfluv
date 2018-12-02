@@ -65,3 +65,21 @@ sampY = [1,4,5,5,2,3,3,2,2,1,1.5,3]
 plt.figure()
 plt.plot(sampX,sampY)
 print('Simple: ' + str(sm.is_simple(sampX,sampY)))
+
+
+x1 = [1,3,2,4,6,7,7,8,6,10,11,10,12,14]
+y1 = [2,3,4,5,10,7,5,5,6,7,10,11,3,8]
+
+projected = sm.centerline_series(x1,y1)
+projX = projected[0]
+projY = projected[1]
+plt.figure()
+plt.plot(x1,y1)
+plt.scatter(projX,projY)
+
+for i in range(len(projX)):
+    px = (x1[i],projX[i])
+    py = (y1[i],projY[i])
+    plt.plot(px,py)
+
+

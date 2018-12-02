@@ -495,7 +495,7 @@ def remove_side(seriesX,seriesY,xVal,leftRight):
     Raises:
         Exception: if leftRight is neither 'left' nor 'right'
     """
-    if leftRight is not 'overhang' and leftRight is not 'undercut':
+    if leftRight is not 'left' and leftRight is not 'right':
         raise Exception('Invalid leftRight value. findType must be "left" or "right"')
         
     newX, newY = [],[]
@@ -1219,6 +1219,108 @@ def is_simple(seriesX,seriesY):
     return(True,bad1,bad2)
     
     
+def project_point(a,b):
+    """
+    Project a vector onto another vector
+    
+    Args:
+        a: a vector as a list or tuple of form (x,y) to be projected onto b
+        a: a vector as a list or tuple of form (x,y) which a is to be projected on
+        
+    Returns:
+        The projection of a onto b as a numpy array (x,y)
+ 
+    Raises:
+        None.
+    """
+    maga = (sum(np.multiply(a,a)))**0.5
+    print("maga = " + str(maga))
+    magb = (sum(np.multiply(b,b)))**0.5
+    print("magb = " + str(magb))
+    
+    unitb = np.divide(b,magb)
+    print("unitb = " + str(unitb))
+    costheta = np.matmul(a,b) / (maga*magb)
+    print("costheta = " + str(costheta))
+    a1 = maga*costheta
+    print("a1 = " + str(a1))
+  
+    proj = np.multiply(unitb,a1)
+    return(proj)
+    
+def centerline_series(seriesX,seriesY):
+    """
+    Project series of x and y coords onto the centerline defined by the first and last points in the series
+    
+    Args:
+        seriesX: a list or tuple of x coordinates.
+        seriesY: a list or tuple of y coordinates.
+        
+    Returns:
+        A tuple of lists that represent the project of (seriesX,seriesY) onto its centerline.
+        
+    Raises:
+        None.
+    """
+    # first define the origin as the first (x,y) point
+    origX = seriesX[0]
+    origY = seriesY[0]
+    
+    rmX = np.subtract(seriesX,origX)
+    rmY = np.subtract(seriesY,origY)
+    
+    # get the point that will be defining the centerline
+    centerlineX = rmX[len(rmX)-1]
+    centerlineY = rmY[len(rmY)-1]
+    centerlinePoint = (centerlineX,centerlineY)
+    
+    projX = []
+    projY = []
+    
+    for i in range(0,len(seriesX)):
+        originalPoint = (seriesX[i],seriesY[i])
+        projected = project_point(originalPoint,centerlinePoint)
+        projX.append(projected[0])
+        projY.append(projected[1])
+    
+    return(projX,projY)
+  
+def get_stationing(seriesX,seriesY,project = False):
+    """
+    Get stationing given survey [x,y] (planform) data.
+    
+    Args:
+        seriesX: a list of x (planform) coordinates.
+        seriesY: a list of y (planform) coordinates.
+        project: a boolean indicating if points should be projected onto the centerline
+                             (defined by the first and last points) before stationing is calculated.
+        
+    Returns:
+        A list containing the stationing corresponding to each (x,y) pair.
+ 
+    Raises:
+        None.
+    """
+    if project:
+        projected = centerline_series(seriesX,seriesY)
+        workingX = projected[0]
+        workingY = projected[1]
+    else:
+        workingX = seriesX
+        workingY = seriesY
+    
+    stationList = [0]
+    for i in range(1,len(seriesX)):
+        p1 = (workingX[i-1],workingY[i-1])
+        p2 = (workingX[i],workingY[i])
+        length = segment_length(p1,p2)
+        station = stationList[i-1] + length
+        stationList.append(station)
+        
+    return(stationList)
+    
+
+    
 def blend_polygons():
     """
     Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.
@@ -1233,14 +1335,3 @@ def blend_polygons():
         WHAT THE HELL DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
     """
     
-def get_stationing():
-    """
-    Get stationing given survey [x,y] (planform) data.
-    
-    Args:
-        
-    Returns:
- 
-    Raises:
-
-    """
