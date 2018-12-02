@@ -1234,16 +1234,16 @@ def project_point(a,b):
         None.
     """
     maga = (sum(np.multiply(a,a)))**0.5
-    print("maga = " + str(maga))
+    #print("maga = " + str(maga))
     magb = (sum(np.multiply(b,b)))**0.5
-    print("magb = " + str(magb))
+    #print("magb = " + str(magb))
     
     unitb = np.divide(b,magb)
-    print("unitb = " + str(unitb))
+    #print("unitb = " + str(unitb))
     costheta = np.matmul(a,b) / (maga*magb)
-    print("costheta = " + str(costheta))
+    #print("costheta = " + str(costheta))
     a1 = maga*costheta
-    print("a1 = " + str(a1))
+    #print("a1 = " + str(a1))
   
     proj = np.multiply(unitb,a1)
     return(proj)
@@ -1257,7 +1257,7 @@ def centerline_series(seriesX,seriesY):
         seriesY: a list or tuple of y coordinates.
         
     Returns:
-        A tuple of lists that represent the project of (seriesX,seriesY) onto its centerline.
+        A tuple of numpy arrays that represent the projection of (seriesX,seriesY) onto its centerline.
         
     Raises:
         None.
@@ -1274,14 +1274,19 @@ def centerline_series(seriesX,seriesY):
     centerlineY = rmY[len(rmY)-1]
     centerlinePoint = (centerlineX,centerlineY)
     
-    projX = []
-    projY = []
+    projX = [0]
+    projY = [0]
     
-    for i in range(0,len(seriesX)):
-        originalPoint = (seriesX[i],seriesY[i])
+    for i in range(1,len(seriesX)): # running project_point() on the origin will give NaNs, so we prepopulated it
+        originalPoint = (rmX[i],rmY[i])
         projected = project_point(originalPoint,centerlinePoint)
         projX.append(projected[0])
         projY.append(projected[1])
+        
+    # add the origin we subtracted out earlier back in
+    projX = np.add(projX,origX)
+    projY = np.add(projY,origY)
+    
     
     return(projX,projY)
   

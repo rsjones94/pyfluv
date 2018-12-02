@@ -67,8 +67,33 @@ plt.plot(sampX,sampY)
 print('Simple: ' + str(sm.is_simple(sampX,sampY)))
 
 
-x1 = [1,3,2,4,6,7,7,8,6,10,11,10,12,14]
-y1 = [2,3,4,5,10,7,5,5,6,7,10,11,3,8]
+p2 = (3,3)
+p1 = (4,1)
+
+lox = (0,p2[0])
+loy = (0,p2[1])
+
+lax = (0,p1[0])
+lay = (0,p1[1])
+
+newproj = sm.project_point(p1,p2)
+lpx = (newproj[0])
+lpy = (newproj[1])
+
+plx = (p1[0],newproj[0])
+ply = (p1[1],newproj[1])
+
+plt.figure()
+plt.plot(lox,loy)
+plt.plot(lax,lay)
+plt.scatter(lpx,lpy)
+plt.plot(plx,ply)
+plt.axes().set_aspect('equal', 'datalim')
+plt.show()
+
+
+x1 = [3,4,6,7,11,13,12,14]
+y1 = [2,5,6,7,10,11,5,8]
 
 projected = sm.centerline_series(x1,y1)
 projX = projected[0]
@@ -81,5 +106,4 @@ for i in range(len(projX)):
     px = (x1[i],projX[i])
     py = (y1[i],projY[i])
     plt.plot(px,py)
-
 
