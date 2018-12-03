@@ -3,6 +3,7 @@ Simple functions for processing stream survey data
 """
 import numpy as np
 
+#TODO: need to check for side effects
 
 def line_from_points(p1,p2):
     """
