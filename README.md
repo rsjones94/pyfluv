@@ -2,7 +2,7 @@
 
 A python package for the analysis of stream planform, profile and cross sections with a focus on restoration and mitigation.
 
-This project is currently PRE-ALPHA.
+This project is currently PRE-ALPHA. You *could* download it right now, but it wouldn't be a good use of your time. Come back later!
 
 ## Getting Started
 
