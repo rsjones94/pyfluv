@@ -36,7 +36,7 @@ import pyfluv
 
 #### Without pip
 
-Download pip, then see above.
+[Get pip](https://pip.pypa.io/en/stable/installing/), then see above.
 
 
 ## Built With
