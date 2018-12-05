@@ -18,6 +18,8 @@ but it *should* work with any **3.X** distribution.
 
 ### Installing
 
+#### With pip
+
 If you have pip on your machine, just
 
 ```
@@ -26,14 +28,16 @@ pip install pyfluv
 
 from the terminal. Pip will install pyfluv's dependencies (as of version 0.10, just numpy) for you.
 
-If you don't have pip installed or refuse to pip install pyfluv, then you can download the pyfluv folder and reference it from wherever
-you downloaded it to. You will need to install numpy yourself.
-
 Once pyfluv is installed, it can be imported in Python with
 
 ```python
 import pyfluv
 ```
+
+#### Without pip
+
+Download pip, then see above.
+
 
 ## Built With
 
