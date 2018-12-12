@@ -3,8 +3,6 @@ Simple functions for processing stream survey data
 """
 import numpy as np
 
-#TODO: need to check for side effects
-
 def line_from_points(p1,p2):
     """
     Creates a line (slope,intercept) based on two points that fall on the line.
@@ -42,7 +40,7 @@ def y_from_equation(x,equation):
         equation: A tuple or list of form (slope,intercept). The intercept is assumed to be a y-intercept.
     
     Returns:
-        An int or float representing the y-coordinate on the line at x. If the line is vertical, returns te string 'Undefined'.
+        An int or float representing the y-coordinate on the line at x. If the line is vertical, returns the string 'Undefined'.
     
     Raises:
         None.
@@ -1325,7 +1323,21 @@ def get_stationing(seriesX,seriesY,project = False):
         
     return(stationList)
     
-
+def monotonic_increasing(x):
+    """
+    Determines if an array is monotonically increasing. Modified from code by Autoplectic on SO
+    
+    Args:
+        x: a list
+        
+    Returns:
+        True if x is increasing monotinically, False otherwise
+ 
+    Raises:
+        None
+    """
+    dx = np.diff(x)
+    return np.all(dx >= 0)
     
 def blend_polygons():
     """
