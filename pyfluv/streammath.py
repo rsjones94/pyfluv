@@ -51,6 +51,26 @@ def y_from_equation(x,equation):
         y = 'Undefined'
     return(y)
     
+def x_from_equation(y,equation):
+    """
+    Given an equation representing a line (slope,intercept) and a y-coordinate, returns the corresponding x-value.
+    
+    Args:
+        y: The y-coordinate, an int or float
+        equation: A tuple or list of form (slope,intercept). The intercept is assumed to be a y-intercept.
+    
+    Returns:
+        An int or float representing the x-coordinate on the line at y. If the line is vertical, returns the string 'Undefined'.
+    
+    Raises:
+        None.
+    """
+    if equation[0] != float('inf'):
+        x = (y - equation[1]) / equation[0]
+    elif equation[0] == float('inf'):
+        x = 'Undefined'
+    return(x)
+    
     
 def intersection_of_lines(l1,l2):
     """
@@ -808,11 +828,15 @@ def find_contiguous_sequences(numbers):
     for i in range(1,len(numbers)): # skip the first
         if numbers[i] == numbers[i-1] + 1:
             tackList.append(numbers[i])
-            if i == len(numbers) - 1: # if we reach the end of the list, we need to append the tackList no matter what
-                masterList.append(tackList)
         else:
             masterList.append(tackList)
-            tackList = [numbers[i]]   
+            tackList = [numbers[i]]
+        if i == len(numbers) - 1: # if we reach the end of the list, we need to append the tackList no matter what
+            masterList.append(tackList)
+            
+    if len(numbers) == 1: # when there's only one number in numbers, we have to tack this on by hand as the loop is never entered
+        masterList.append(tackList)
+        
     return(masterList)
         
     
@@ -871,11 +895,11 @@ def remove_overhangs(seriesX,seriesY,method,adjustY=True):
         findType = 'undercut'
         pareType = 'min'
     else:
-        raise Exception('Invalid method. method must be "cut" or "fill"')
+        raise Exception('Invalid method. Method must be "cut" or "fill"')
     
     overhangs = get_cuts(seriesX,seriesY,findType)
     contigOverhangs = find_contiguous_sequences(overhangs)
-    pareOverhangs = pare_contiguous_sequences(contigOverhangs,seriesY, minOrMax = pareType)
+    pareOverhangs = pare_contiguous_sequences(contigOverhangs,seriesY,minOrMax = pareType)
     
     pointsNotEssential = [] # points that are overhangs or undercuts but not the peak or base
     for element in overhangs:
@@ -889,9 +913,7 @@ def remove_overhangs(seriesX,seriesY,method,adjustY=True):
     
     newX = seriesX[:]
     newY = seriesY[:]
-    
     for i in range(0,len(pareOverhangs)):
-        
         peakIndex = pareOverhangs[i]
         contigArray = contigOverhangs[i] # the continuous sequence that the peak belongs to
         nextInd = contigArray[len(contigArray)-1] + 1 # index of the point following the continuous sequence
@@ -1265,6 +1287,7 @@ def centerline_series(seriesX,seriesY):
     origX = seriesX[0]
     origY = seriesY[0]
     
+    # then subtract the origin from the series so everything starts at (0,0)
     rmX = np.subtract(seriesX,origX)
     rmY = np.subtract(seriesY,origY)
     
@@ -1286,12 +1309,11 @@ def centerline_series(seriesX,seriesY):
     projX = np.add(projX,origX)
     projY = np.add(projY,origY)
     
-    
     return(projX,projY)
   
 def get_stationing(seriesX,seriesY,project = False):
     """
-    Get stationing given survey [x,y] (planform) data.
+    Get stationing given survey [x,y] (planform) data. Note that overhangs are impossible if project = False.
     
     Args:
         seriesX: a list of x (planform) coordinates.
@@ -1309,17 +1331,25 @@ def get_stationing(seriesX,seriesY,project = False):
         projected = centerline_series(seriesX,seriesY)
         workingX = projected[0]
         workingY = projected[1]
+        
+        stationList = [0]
+        for i in range(1,len(seriesX)):
+            p1 = (workingX[0],workingY[0])
+            p2 = (workingX[i],workingY[i])
+            length = segment_length(p1,p2)
+            station = length
+            stationList.append(station)
     else:
         workingX = seriesX
         workingY = seriesY
     
-    stationList = [0]
-    for i in range(1,len(seriesX)):
-        p1 = (workingX[i-1],workingY[i-1])
-        p2 = (workingX[i],workingY[i])
-        length = segment_length(p1,p2)
-        station = stationList[i-1] + length
-        stationList.append(station)
+        stationList = [0]
+        for i in range(1,len(seriesX)):
+            p1 = (workingX[i-1],workingY[i-1])
+            p2 = (workingX[i],workingY[i])
+            length = segment_length(p1,p2)
+            station = stationList[i-1] + length
+            stationList.append(station)
         
     return(stationList)
     
@@ -1338,6 +1368,117 @@ def monotonic_increasing(x):
     """
     dx = np.diff(x)
     return np.all(dx >= 0)
+
+def crawl_to_elevation(seriesY,elevation,startInd):
+    """
+    Find the indices of the first points the the left and right of a starting point that exceeds an elevation
+    
+    Args:
+        seriesY: a list of elevation points (implicitly ordered by station)
+        elevation: the threshhold elevation
+        startInd: the index to begin the search
+        
+    Returns:
+        A tuple (leftIndex,rightIndex) that indicates the first points that go above the elevation threshhold
+        If there is no index on a particular side meeting this, None will be returned in lieu of an index
+    
+    Raises:
+        Exception: if the elevation of the initial index is at or above the threshhold elevation
+    """
+    initialEl = seriesY[startInd]
+    if initialEl >= elevation:
+        raise Exception('Search start elevation of ' + str(initialEl) + ' is at or above threshhold of ' + str(elevation))
+    
+    listLen = len(seriesY)
+    indices = []
+    
+    # first search to the left
+    for i in range(startInd,-1,-1):
+        if seriesY[i] >= elevation:
+            indices.append(i)
+            break
+        elif i == 0:
+            indices.append(None)
+        
+    # then search to the right
+    for i in range(startInd,listLen,1):
+        if seriesY[i] >= elevation:
+            indices.append(i)
+            break
+        elif i == listLen - 1:
+            indices.append(None)
+    return(indices)
+    
+def find_min_index(seriesY):
+    """
+    Finds the index of the minimum in an array
+    """
+    winIndex = 0
+    winValue = seriesY[0]
+    for i in range(1,len(seriesY)):
+        if seriesY[i] < winValue:
+            winValue = seriesY[i]
+            winIndex = i
+    
+    return(winIndex)
+    
+def break_at_bankfull(seriesX,seriesY,bkfEl,startInd):
+    """
+    Take a cross section and cuts it at the bankfull elevation. XS should be free of overhangs.
+        If the bkf elevation is unbounded on either side, adds a point at the bkf elevation.
+        
+    Args:
+        seriesX: a list of stationing
+        seriesY: a list of elevations
+        startInd: index of the center of the channel. Does not need to be exactly the center.
+        bkfEl: the bankfull elevation
+        
+    Returns:
+        A new Xs as two list that defines the channel at bankfull flow.
+        
+    Raises:
+        Exception: if your start index has an elevation above bankfull elevation.
+    """
+    
+    cutIndices = crawl_to_elevation(seriesY,bkfEl,startInd)
+    
+    exesToInsert = []
+    whysToInsert = []
+    yInsert = bkfEl
+    for i in [0,1]: # finding the stationing of the points we're inserting, first left then right
+        try:
+            if i == 0:
+                p1 = (seriesX[cutIndices[i]],seriesY[cutIndices[i]])
+                p2 = (seriesX[cutIndices[i]+1],seriesY[cutIndices[i]+1])
+            elif i == 1:
+                p1 = (seriesX[cutIndices[i]-1],seriesY[cutIndices[i]-1])
+                p2 = (seriesX[cutIndices[i]],seriesY[cutIndices[i]])
+            line = line_from_points(p1,p2)
+            xInsert = x_from_equation(bkfEl,line)
+        except TypeError: #if there is the value of cutIndices[i] is None
+            if i == 0:
+                xInsert = seriesX[0]
+            elif i == 1:
+                xInsert = seriesX[len(seriesX)-1]
+        exesToInsert.append(xInsert)
+        whysToInsert.append(yInsert)
+        
+    # next we'll trim down the original XS. If cutIndices are None, we need to replace with the limits
+    if cutIndices[0] == None:
+        cutIndices[0] = -1
+    if cutIndices[1] == None:
+        cutIndices[1] = len(seriesX)
+    
+    cutX = seriesX[cutIndices[0]+1:cutIndices[1]]
+    cutY = seriesY[cutIndices[0]+1:cutIndices[1]]
+    
+    cutX.insert(0,exesToInsert[0])
+    cutX.append(exesToInsert[1])
+    
+    cutY.insert(0,whysToInsert[0])
+    cutY.append(whysToInsert[1])
+    
+    return(cutX,cutY)
     
 def blend_polygons():
     """

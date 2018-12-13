@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 
 import streammath as sm
 import streamgeometry as strgeo
-
-
+"""
 depth = 3
 
 method = 'cut'
@@ -106,4 +105,21 @@ for i in range(len(projX)):
     px = (x1[i],projX[i])
     py = (y1[i],projY[i])
     plt.plot(px,py)
+"""
+exes = [0,1,2,1.5,4,5,6,7,8,9,10]
+whys = [0,0,0,0,0,0,0,0,0,0,0]
+zees = [10,8.5,6,4,3,2.5,3,4,6,8,10]
 
+xs = strgeo.CrossSection(exes,whys,zees,name='MyXS',bkfEl = 7.5)
+#xs.planplot(showProjections=True)
+xs.qplot(showBkf=True,showCutSection=True)
+"""
+plt.figure()
+plt.plot(exes,zees)
+plt.scatter(exes,zees)
+ov = sm.get_cuts(exes,zees,'overhang')
+plt.scatter(exes[2],zees[2])
+
+rem = sm.remove_overhangs(exes,zees,'fill',True)
+plt.plot(rem[0],rem[1])
+"""
