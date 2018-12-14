@@ -993,13 +993,14 @@ def get_mean_elevation(seriesX,seriesY,ignoreCeilings=True): # gives weird resul
     return(meanEl)  
     
     
-def get_mean_depth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
+def get_mean_depth(seriesX,seriesY,bkfEl,ignoreCeilings=True):
     """
     A wrapper for streammath.get_mean_elevation(), but will subtract a number (usually bankfull depth) for you.
     
     Args:
         seriesX: A list of x-coordinates.
         seriesY: A list of corresponding y-coordinates.
+        bkfEl: the elevation of bankfull
         ignoreCeilings: True by default. A boolean that specifies if segments that are vertical or ceilings should be ignored.
         
     Returns:
@@ -1009,7 +1010,7 @@ def get_mean_depth(seriesX,seriesY,bkfDepth,ignoreCeilings=True):
         None.
     """
     
-    meanDepth = bkfDepth - get_mean_elevation(seriesX,seriesY,ignoreCeilings)
+    meanDepth = bkfEl - get_mean_elevation(seriesX,seriesY,ignoreCeilings)
     return(meanDepth)
     
 
