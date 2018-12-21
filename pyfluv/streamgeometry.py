@@ -191,7 +191,6 @@ class CrossSection(object):
         Checks if a cross section is self-intersecting (always illegal) and if it has 
             overhangs (okay, but changes data processing).
         """
-        
         noOverhangs = not(sm.monotonic_increasing(self.rawSta))
         if noOverhangs:
             self.hasOverhangs = True

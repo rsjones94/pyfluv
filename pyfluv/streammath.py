@@ -21,10 +21,10 @@ def line_from_points(p1,p2):
     rise = p2[1] - p1[1]
     run = p2[0] - p1[0]
     
-    try:
+    if not(np.isclose(0,run)):
         slope = rise / run # rise over run
         intercept = p1[1] - p1[0]*slope
-    except ZeroDivisionError: # we might expect that a line is vertical
+    else: # we might expect that a line is vertical
         slope = float('inf')
         intercept = p1[0] # in this case, this is actually the horizontal intercept
     
@@ -57,7 +57,7 @@ def x_from_equation(y,equation):
     
     Args:
         y: The y-coordinate, an int or float
-        equation: A tuple or list of form (slope,intercept). The intercept is assumed to be a y-intercept.
+        equation: A tuple or list of form (slope,intercept). The intercept is assumed to be a y-intercept unless slope is float('Inf'), which indicates it is an x-intercept.
     
     Returns:
         An int or float representing the x-coordinate on the line at y. If the line is vertical, returns the string 'Undefined'.
@@ -68,7 +68,7 @@ def x_from_equation(y,equation):
     if equation[0] != float('inf'):
         x = (y - equation[1]) / equation[0]
     elif equation[0] == float('inf'):
-        x = 'Undefined'
+        x = equation[1]
     return(x)
     
     
@@ -1456,7 +1456,7 @@ def break_at_bankfull(seriesX,seriesY,bkfEl,startInd):
                 p2 = (seriesX[cutIndices[i]],seriesY[cutIndices[i]])
             line = line_from_points(p1,p2)
             xInsert = x_from_equation(bkfEl,line)
-        except TypeError: #if there is the value of cutIndices[i] is None
+        except TypeError: #if the value of cutIndices[i] is None
             if i == 0:
                 xInsert = seriesX[0]
             elif i == 1:

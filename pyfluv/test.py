@@ -108,11 +108,13 @@ for i in range(len(projX)):
 """
 exes = [0,1,2,2,4,5,6,7,9,9,10]
 whys = [0,0,0,0,0,0,0,0,0,0,0]
-zees = [10,8.5,6,4,3,2.5,3,4,6,8,11]
+zees = [10,8.5,6,4,3,2.5,3,4,4,8,11]
 
-xs = strgeo.CrossSection(exes,whys,zees,name='MyXS',bkfEl = 6.5,triggerRecalc = True)
-xs.planplot(showProjections=True)
+el = 4
+xs = strgeo.CrossSection(exes,whys,zees,name='MyXS',bkfEl = el,triggerRecalc = True)
+#xs.planplot(showProjections=True)
 xs.qplot(showBkf=True,showCutSection=True)
+
 """
 plt.figure()
 plt.plot(exes,zees)
