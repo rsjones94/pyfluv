@@ -1423,6 +1423,23 @@ def find_min_index(seriesY):
     
     return(winIndex)
     
+def get_closest_index_by_value(series,value):
+    """
+    Returns the index of the value in a list that is closest to a specified value.
+    """
+    series = np.asarray(series)
+    idx = (np.abs(series - value)).argmin()
+    return idx
+
+def get_nth_closest_index_by_value(series,value,n):
+    """
+    Returns the index of the nth closest match in an array to a specified value. If there are multiple equally close matches
+    they are returned leftmost first.
+    """
+    array = np.asarray(series)
+    diffArray = np.abs(array - value)
+    return np.argpartition(diffArray,n-1)[n-1]        
+    
 def break_at_bankfull(seriesX,seriesY,bkfEl,startInd):
     """
     Take a cross section and cuts it at the bankfull elevation. XS should be free of overhangs.

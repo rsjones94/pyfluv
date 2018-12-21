@@ -34,6 +34,7 @@ class CrossSection(object):
         bElevations(float): the elevations corresponding to bStations
         _bkfEl(float): the bankfull elevation at the XS
         thwStation(float): the station of the thalweg
+        thwIndex(int): the index of the thalweg in bSta
         waterSlope(float): dimensionless slope of the water surface at the cross section
         project(bool): whether the stationing should be calculated along the XS's centerline (True) or not (False)
         hasOverhangs(bool): whether or not overhangs are present in the raw survey
@@ -194,11 +195,34 @@ class CrossSection(object):
         noOverhangs = not(sm.monotonic_increasing(self.rawSta))
         if noOverhangs:
             self.hasOverhangs = True
-            logging.warning('Overhangs present in geometry')
+            logging.warning('Overhangs present in geometry.')
         
         simplicity = sm.is_simple(self.rawSta,self.rawEl)
         if not(simplicity[0]): # if the geometry is not simple
             raise Exception('Error: geometry is self-intersecting on segments ' + str(simplicity[1]) + ' and ' + str(simplicity[2]))
+    
+    def set_thw_index(self):
+        """
+        Finds the index of the thw in bSta. If user didn't specify thwSta, then we guess it by finding the index of
+        the minimum elevation in the channel. If this value is not unique, the leftmost is selected.
+        """
+        if not(self.thwStation): # if the user didn't specify this, we need to guess it. If the min value is not unique, the leftmost value is used.
+            self.thwIndex = sm.find_min_index(self.elevations)
+        else:
+            if self.thwStation < self.stations[0] or self.thwStation > self.stations[len(self.stations)-1]:
+                logging.warning('Thalweg station specified is out of surveyed bounds. Guessing thalweg station.')
+                self.thwIndex = sm.find_min_index(self.elevations)
+            else:
+                first = sm.get_nth_closest_index_by_value(self.stations,self.thwStation,1)
+                self.thwIndex = first
+                """
+                second = sm.get_nth_closest_index_by_value(self.stations,self.thwStation,2)
+                # we want to find the two closest points to the station specified and pick the lowest one
+                if self.elevations[first] <= self.elevations[second]:
+                    self.thwIndex = first
+                else:
+                    self.thwIndex = second
+                """
     
     def set_bankfull_stations_and_elevations(self):
         """
@@ -206,10 +230,11 @@ class CrossSection(object):
         """
         if self._bkfEl:
             if self._bkfEl <= min(self.elevations):
-                raise Exception('Bankfull elevation is at or below channel bottom.')
-            if not(self.thwStation): # if the user didn't specify this, we need to guess it. If the min value is not unique, the leftmost value is used.
-                thwInd = sm.find_min_index(self.elevations)
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self._bkfEl,thwInd)
+                raise Exception('Bankfull elevation is at or below XS bottom.')
+            self.set_thw_index()
+            if self.elevations[self.thwIndex] >= self.bkfEl:
+                raise Exception('Thw index (' + str(self.thwIndex) + ') is at or above bankfull elevation.')
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self._bkfEl,self.thwIndex)
             self.bStations = broken[0]
             self.bElevations = broken[1]
         else:
