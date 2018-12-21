@@ -112,7 +112,7 @@ zees = [10,8.5,6,4,3,2.5,3,4,4,8,11,4.5,5,8]
 
 el = 7
 xs = strgeo.CrossSection(exes,whys,zees,thwStation = 10,name='MyXS',bkfEl = el,triggerRecalc = True)
-#xs.planplot(showProjections=True)
+xs.planplot(showProjections=True)
 xs.qplot(showBkf=True,showCutSection=True)
 
 """
