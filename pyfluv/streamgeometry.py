@@ -15,7 +15,7 @@ class CrossSection(object):
     
     """
     A generic geomorphic cross section.
-        Lengths are expressed in terms of feet or meters.
+        Lengths are expressed in terms of meters or feet.
         Time is expressed in terms of seconds.
         Mass is express in terms of kilograms or slugs.
         Weights are express in terms of newtons or pounds.
