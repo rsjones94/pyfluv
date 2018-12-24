@@ -107,16 +107,24 @@ class GrainDistribution(object):
         sizes = [0]
         sizes.extend(self._distr.keys())
         
-        cumFreq = [0]
-        cumFreq.extend(self.cumSum)
+        cSum = [0]
+        cSum.extend(self.normCumSum)
+        print(cSum)
         
-        for i in range(0,len()):
-            if cumFreq[i] >= x:
+        for i in range(0,len(cSum)):
+            if cSum[i] >= x:
                 overIndex = i
                 break
         
-        #### NOT DONE
+        underSize = sizes[overIndex-1]
+        underSum = cSum[overIndex-1]
         
+        overSize = sizes[overIndex]
+        overSum = cSum[overIndex]
+        
+        regression = sm.line_from_points((underSize,underSum),(overSize,overSum))
+        dx = sm.x_from_equation(x,regression)
+        return(dx)
         
         
         
