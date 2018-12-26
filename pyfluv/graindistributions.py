@@ -15,17 +15,21 @@ class GrainDistribution(object):
     
     """
     A generic grain size/particle sample.
-        Lengths are expressed in terms of meters or feet.
-        Time is expressed in terms of seconds.
-        Mass is express in terms of kilograms or slugs.
-        Weights are express in terms of newtons or pounds.
+        Lengths are expressed in terms of millimeters or inches.
     
     Attributes:
         distr(dict): the dictonary relating grain size and prevalence
         name(str): the name of the XS
         metric(bool): whether the units are inches (False) or mm (True)
         triggerRecalc(bool): whether to recalculate statistics upon modificatoin of self.dist
-        self.cumSum(:obj:'list' of :obj:'float'): the cumulative sum of the grain prevalences.
+        cumSum(:obj:'list' of :obj:'float'): the cumulative sum of the grain prevalences.
+        bins(dict): a dictionary that relates ISO size classes to their minimum size and prevalence
+        medianSize(float): the median grainsize
+        meanSize(float): the mean grainsize
+        sort(float): the sorting coefficient
+        skewness(float): the skewness coefficient
+        kurtosis(float): the kurtosis coefficient
+        stddev(float): the standard deviation of the sample
         """
     
     def __init__(self, distr, name = None, metric = False, triggerRecalc = True):
