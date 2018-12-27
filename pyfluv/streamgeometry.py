@@ -32,9 +32,9 @@ class CrossSection(object):
         elevations(float): the elevations of the cross section with overhangs removed (may be equivalent to rawEl)
         bStations(float): the stationing of the channel that is filled at bkf
         bElevations(float): the elevations corresponding to bStations
-        _bkfEl(float): the bankfull elevation at the XS
+        bkf(float): the bankfull elevation at the XS
         thwStation(float): the station of the thalweg
-        thwIndex(int): the index of the thalweg in bSta
+        thwIndex(int): the index of the thalweg in stations
         waterSlope(float): dimensionless slope of the water surface at the cross section
         project(bool): whether the stationing should be calculated along the XS's centerline (True) or not (False)
         hasOverhangs(bool): whether or not overhangs are present in the raw survey
@@ -54,10 +54,9 @@ class CrossSection(object):
         manN(float): manning's N
         sizeDist(GrainSizeDistribution): an object of the class GrainSizeDistribution
         unitDict(dict): a dictionary of unit values and conversion ratios; values depend on value of self.metric
-        triggerRecalc(bool): True if you wish for statistics to be recalculated every time you reset bkfEl, waterSlope or manN
         """
     
-    def __init__(self, exes, whys, zees, name = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, thwStation = None, triggerRecalc = True, fillFraction = 1):
+    def __init__(self, exes, whys, zees, name = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, thwStation = None, fillFraction = 1):
         """
         Method to initialize a CrossSection.
         
@@ -69,8 +68,10 @@ class CrossSection(object):
             metric: whether the survey units are feet (False) or meters (True)
             project: whether the stationing should be calculated along the XS's centerline (True) or not (False)
             bkfEl: the bankfull elevation at the XS
-            thwStation: the station of the thalweg. If not specified, the deepest point in the given XS is assumed
+            thwStation: the station of the thalweg. If not specified, the deepest point in the given XS is assumed.
                         If the XS cuts across multiple channels or the channel is raised, this assumption may not be correct.
+                        However unless you are certain you do not want to use the deepest surveyed point as the thw
+                        it is suggested that this parameter is left unspecified.
             fillFraction: float between 0 or 1 that specifies how overhangs are to be removed.
                           0 indicates that the overhangs will be cut, 1 indicates they will be filled
                           and intermediate values are some mix of cut and fill.
@@ -92,32 +93,16 @@ class CrossSection(object):
         self.manN = manN
         self.waterSlope = waterSlope
         self.fillFraction = fillFraction
-        self.triggerRecalc = triggerRecalc
 
         self.hasOverhangs = False
         
         self.create_2d_form()
         self.validate_geometry()
         self.check_sta_and_el()
+        self.set_thw_index()
         
-        self._bkfEl = bkfEl
+        self.bkfEl = bkfEl
         self.calculate_bankfull_statistics() # this calls set_bankfull_stations_and_elevations() within it
-    
-    def alter_bankfull_properties(self,value,recalculate = None):
-        """
-        This method sets the bankfull elevation, creates bStations and bElevations and recalculates statistics
-        """
-        self._bkfEl = value
-        if recalculate == None:
-            recalculate = self.triggerRecalc
-        if recalculate:
-            self.set_bankfull_stations_and_elevations()
-            self.calculate_bankfull_statistics()
-            
-    def get_bkfEl(self):
-        return(self._bkfEl)
-    
-    bkfEl = property(fget = get_bkfEl,fset = alter_bankfull_properties) # whenever a user calls (CrossSection).bkfEl, the bkfEl will be set AND statistics recalculated
     
     def __str__(self):
         """
@@ -203,7 +188,7 @@ class CrossSection(object):
     
     def set_thw_index(self):
         """
-        Finds the index of the thw in bSta. If user didn't specify thwSta, then we guess it by finding the index of
+        Finds the index of the thw in stations. If user didn't specify thwSta, then we guess it by finding the index of
         the minimum elevation in the channel. If this value is not unique, the leftmost is selected.
         """
         if not(self.thwStation): # if the user didn't specify this, we need to guess it. If the min value is not unique, the leftmost value is used.
@@ -228,13 +213,13 @@ class CrossSection(object):
         """
         Sets bStations and bElevations.
         """
-        if self._bkfEl:
-            if self._bkfEl <= min(self.elevations):
+        if self.bkfEl:
+            if self.bkfEl <= min(self.elevations):
                 raise Exception('Bankfull elevation is at or below XS bottom.')
-            self.set_thw_index()
             if self.elevations[self.thwIndex] >= self.bkfEl:
                 raise Exception('Thw index (' + str(self.thwIndex) + ') is at or above bankfull elevation.')
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self._bkfEl,self.thwIndex)
+            
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self.bkfEl,self.thwIndex)
             self.bStations = broken[0]
             self.bElevations = broken[1]
         else:
@@ -254,14 +239,24 @@ class CrossSection(object):
             self.stations = removed[0]
             self.elevations = removed[1]
     
-    def calculate_bankfull_statistics(self):
+    def set_up_bankfull_channel(self):
         """
-        Recalculate all variables dependent on bkf el
+        Sets the bankfull chanel so that statistics can be properly calculated.
         """
         self.set_bankfull_stations_and_elevations()
         
-        if self._bkfEl > self.elevations[0] or self._bkfEl > self.elevations[len(self.elevations)-1]:
-            logging.warning('Bankfull elevation exceeds surveyed channel. Some calculated statistics may represent lower bounds.')
+        if self.bkfEl:
+            if self.bkfEl > self.elevations[0] or self.bkfEl > self.elevations[len(self.elevations)-1]:
+                logging.info('Bankfull elevation exceeds surveyed channel. Some calculated statistics may represent lower bounds.')
+        else:
+            logging.info('No bankfull specified. Statistics dependent on bankfull elevation will not be calculated.')
+        
+    
+    def calculate_bankfull_statistics(self):
+        """
+        Recalculate all statistics.
+        """
+        self.set_bankfull_stations_and_elevations()
         
         self.calculate_area()
         self.calculate_mean_depth()
@@ -280,7 +275,7 @@ class CrossSection(object):
         Calculates the area under a given elevation. Only calculates area in primary channel
         (as defined by min el) by default.
         """
-        if self._bkfEl:
+        if self.bkfEl:
             area = sm.get_area(self.bStations,self.bElevations)
             self.bkfA = area
         else:
@@ -290,7 +285,7 @@ class CrossSection(object):
         """
         Calculates the wetted perimeter under a given elevation.
         """
-        if self._bkfEl:
+        if self.bkfEl:
             segmentLengths = []
             for i in range(0,len(self.bStations)-1):
                 p1 = (self.bStations[i],self.bElevations[i])
@@ -305,7 +300,7 @@ class CrossSection(object):
         """
         Calculates the hydraulic radius given an elevation.
         """
-        if self._bkfEl:
+        if self.bkfEl:
             self.bkfHydR = self.bkfA / self.bkfWetP
         else:
             self.bkfHydR = None
@@ -315,7 +310,7 @@ class CrossSection(object):
         Calculates the shear stress. If metric, units are N/m^2. If imperial, units are lbs/ft^2
         """
         
-        if self.waterSlope and self._bkfEl: # if we don't have a waterslope set, we can't calculate this.
+        if self.waterSlope and self.bkfEl: # if we don't have a waterslope set, we can't calculate this.
             gammaWater = self.unitDict('gammaWater')
             stress = gammaWater * self.bkfMeanD * self.waterSlope
             self.bkfStress = stress
@@ -344,8 +339,8 @@ class CrossSection(object):
         """
         Calculates the mean depth given a certain elevation.
         """
-        if self._bkfEl:
-            meanDepth = sm.get_mean_depth(self.bStations,self.bElevations,self._bkfEl,True)
+        if self.bkfEl:
+            meanDepth = sm.get_mean_depth(self.bStations,self.bElevations,self.bkfEl,True)
             self.bkfMeanD = meanDepth
         else:
             self.bkfMeanD = None
@@ -354,8 +349,8 @@ class CrossSection(object):
         """
         Calculates the max depth given a certain elevation.
         """
-        if self._bkfEl:
-            maxDepth = sm.max_depth(self.bElevations,self._bkfEl)
+        if self.bkfEl:
+            maxDepth = sm.max_depth(self.bElevations,self.bkfEl)
             self.bkfMaxD = maxDepth
         else:
             self.bkfMaxD = None
@@ -364,7 +359,7 @@ class CrossSection(object):
         """
         Calculates the bankfull width given a certain elevation.
         """
-        if self._bkfEl:
+        if self.bkfEl:
             self.bkfW = sm.max_width(self.bStations)
         else:
             self.bkfW = None
@@ -373,7 +368,7 @@ class CrossSection(object):
         """
         Calculates the volumetric flow given a bkf elevation, ws slope and manning's n.
         """
-        if self.waterSlope and self.manN and self._bkfEl: # need all of these to calculate this
+        if self.waterSlope and self.manN and self.bkfEl: # need all of these to calculate this
             manNum = self.unitDict['manningsNumerator']
             flow = (manNum/self.manN)*self.bkfA*self.bkfHydR**(2/3)*self.waterSlope**(1/2)
             self.bkfQ = flow
@@ -385,3 +380,76 @@ class CrossSection(object):
         Estimates the bankfull elevation by finding the elevation where the rate of flow release (dq/dh) is maximized.
         """
         pass
+    
+    def bkf_binary_search(self, attribute, target, epsilon = None, returnFailed = False):
+        """
+        Finds the most ideal bkf elevation by performing a binary-esque search, looking for a target value of a specified attribute.
+        After exiting the algorithm, bankfull statistics will be recalculated for whatever the bkfEl was when entering the algorithm.
+        
+        Args:
+            attribute: a string that references an attribute such as bkfW that is MONOTONICALLY dependent on bkf el.
+                Results are not guaranteed to be accurate if the attribute if the function that relates it to bkf elevation is not monotonic increasing.
+            target: the ideal value of attribute.
+            epsilon: the maximum acceptable absolute deviation from the target attribute.
+                
+        Returns:
+            The ideal bkf elevation.
+            
+        Raises:
+            None.
+        """
+        # first save the current bkfEl, if any
+        saveEl = self.bkfEl
+        
+        if epsilon is None:
+            epsilon = target/1000 # by default the tolerance is 0.1% of the target.
+        
+        bottom = min(self.elevations)
+        top = max(self.elevations)
+        
+        if self.thwStation:
+            thwEl = self.elevations[self.thwIndex]
+            if thwEl > bottom:
+                bottom = thwEl        
+        """
+        The above nested if is meant to handle when a secondary channel is contains the thw.
+        But if the thwInd indicates a point in the main channel that is NOT the true thw then
+        this will cause the algorithm to start with an incorrectly high bottom.
+        """
+        
+        found = False
+        foundUpperBound = False
+        n = 0
+        
+        while not found and n < 1000:
+            n += 1
+            self.bkfEl = (bottom + top)/2
+            self.calculate_bankfull_statistics()
+            calculatedValue = getattr(self, attribute)
+            if np.isclose(calculatedValue,target,atol=epsilon):
+                found = True
+            else:
+                if calculatedValue > target: # if we have overestimated the bkf el
+                    top = self.bkfEl
+                    foundUpperBound = True
+                else: # if we have underestimated the bkf el
+                    bottom = self.bkfEl
+                    if not foundUpperBound:
+                        top = top * 2 # in case the target cannot be found within the confinements of the surveyed channel
+                        if top >= max(self.elevations)*10**2:
+                            print('Target too great for channel ' + str(self) + '. Breaking.')
+                            break
+        
+        foundEl = self.bkfEl # save the best result we found       
+        self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
+        self.calculate_bankfull_statistics
+        
+        if found:
+            print('Converged in ' + str(n) + ' iterations.')
+            return(foundEl)
+        else:
+            print('Could not converge in ' + str(n) + ' iterations.')
+            if returnFailed:
+                return(foundEl)
+            else:
+                return(None)
