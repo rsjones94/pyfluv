@@ -239,22 +239,11 @@ class CrossSection(object):
             self.stations = removed[0]
             self.elevations = removed[1]
     
-    def set_up_bankfull_channel(self):
-        """
-        Sets the bankfull chanel so that statistics can be properly calculated.
-        """
-        self.set_bankfull_stations_and_elevations()
-        
-        if self.bkfEl:
-            if self.bkfEl > self.elevations[0] or self.bkfEl > self.elevations[len(self.elevations)-1]:
-                logging.info('Bankfull elevation exceeds surveyed channel. Some calculated statistics may represent lower bounds.')
-        else:
-            logging.info('No bankfull specified. Statistics dependent on bankfull elevation will not be calculated.')
-        
-    
     def calculate_bankfull_statistics(self):
         """
-        Recalculate all statistics.
+        Recalculate all statistics. Note that if bkfEl is None, then the attributes set by these methods will be done.
+        Also note that if bkfEl exceeds the maximum elevation of the surveyed channel then somme attributes
+        may represent a lower bound rather than the actual value.
         """
         self.set_bankfull_stations_and_elevations()
         
@@ -384,7 +373,7 @@ class CrossSection(object):
     def bkf_binary_search(self, attribute, target, epsilon = None, returnFailed = False):
         """
         Finds the most ideal bkf elevation by performing a binary-esque search, looking for a target value of a specified attribute.
-        After exiting the algorithm, bankfull statistics will be recalculated for whatever the bkfEl was when entering the algorithm.
+        After exiting the algorithm, bankfull statistics will be recalculated for whatever the bkfEl was when entering the method.
         
         Args:
             attribute: a string that references an attribute such as bkfW that is MONOTONICALLY dependent on bkf el.
