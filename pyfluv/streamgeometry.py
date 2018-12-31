@@ -32,7 +32,7 @@ class CrossSection(object):
         elevations(float): the elevations of the cross section with overhangs removed (may be equivalent to rawEl)
         bStations(float): the stationing of the channel that is filled at bkf
         bElevations(float): the elevations corresponding to bStations
-        bkf(float): the bankfull elevation at the XS
+        bkfEl(float): the bankfull elevation at the XS
         thwStation(float): the station of the thalweg
         thwIndex(int): the index of the thalweg in stations
         waterSlope(float): dimensionless slope of the water surface at the cross section
@@ -56,7 +56,7 @@ class CrossSection(object):
         unitDict(dict): a dictionary of unit values and conversion ratios; values depend on value of self.metric
         """
     
-    def __init__(self, exes, whys, zees, name = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, thwStation = None, fillFraction = 1):
+    def __init__(self, exes, whys, zees, name = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, tobEl = None, thwStation = None, fillFraction = 1):
         """
         Method to initialize a CrossSection.
         
@@ -101,6 +101,7 @@ class CrossSection(object):
         self.check_sta_and_el()
         self.set_thw_index()
         
+        self.tobEl = tobEl
         self.bkfEl = bkfEl
         self.calculate_bankfull_statistics() # this calls set_bankfull_stations_and_elevations() within it
     
@@ -247,6 +248,7 @@ class CrossSection(object):
         """
         self.set_bankfull_stations_and_elevations()
         
+        #note that the order you call these in DOES matter
         self.calculate_area()
         self.calculate_mean_depth()
         self.calculate_max_depth()
@@ -257,6 +259,9 @@ class CrossSection(object):
         self.calculate_max_entrained_particle()
         self.calculate_floodprone_elevation()
         self.calculate_floodprone_width()
+        self.calculate_entrenchment_ratio()
+        self.calculate_bank_height_ratio()
+        self.calculate_velocity()
         self.calculate_flow()
     
     def calculate_area(self):
@@ -314,16 +319,46 @@ class CrossSection(object):
         
     def calculate_floodprone_elevation(self):
         """
-        Calculates the elevation of the floodprone area. This elevation is twice the bkf elevation by default.
+        Calculates the elevation of the floodprone area. This elevation is at twice the bkf max depth by default.
         """
-        pass
+        if self.bkfEl:
+            minEl = min(self.bElevations)
+            self.floodproneEl = minEl + 2*self.bkfEl
+        else:
+            self.floodproneEl = None
         
     def calculate_floodprone_width(self):
         """
         Calculates the width of the floodprone area.
         """
-        pass
+        if self.bkfEl:
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self.floodproneEl,self.thwIndex)
+            floodSta = broken[0]
+            self.floodproneWidth = sm.max_width(floodSta)
+        else:
+            self.floodproneWidth = None
         
+    def calculate_entrenchment_ratio(self):
+        """
+        Calculates the entrenchment ratio - the flood prone width divided by the bankfull width
+        """
+        if self.bkfEl:
+            self.entrenchmentRatio = self.floodproneWidth / self.bkfW
+        else:
+            self.entrenchmentRatio = None
+    
+    def calculate_bank_height_ratio(self):
+        """
+        The height of the top of bank above the channel thalweg divided by the height of bankfull above the thalweg.
+        """
+        if self.bkfEl and self.tobEl:
+            minEl = min(self.bElevations)
+            bkfHeight = self.bkfEl - minEl
+            tobHeight = self.tobEl - minEl
+            self.bankHeightRatio = tobHeight / bkfHeight
+        else:
+            self.bankHeightRatio = None
+    
     def calculate_mean_depth(self):
         """
         Calculates the mean depth given a certain elevation.
@@ -353,20 +388,54 @@ class CrossSection(object):
         else:
             self.bkfW = None
         
+    def calculate_velocity(self):
+        """
+        Calculates the bkf discharge velocity, given a bkf elevation, ws slope and manning's n.
+        """
+        if self.waterSlope and self.manN and self.bkfEl: # need all of these to calculate this
+            manNum = self.unitDict['manningsNumerator']
+            vel = (manNum/self.manN)*self.bkfHydR**(2/3)*self.waterSlope**(1/2)
+            self.bkfV = vel
+        else:
+            self.bkfV = None
+    
     def calculate_flow(self):
         """
         Calculates the volumetric flow given a bkf elevation, ws slope and manning's n.
         """
         if self.waterSlope and self.manN and self.bkfEl: # need all of these to calculate this
-            manNum = self.unitDict['manningsNumerator']
-            flow = (manNum/self.manN)*self.bkfA*self.bkfHydR**(2/3)*self.waterSlope**(1/2)
+            flow = self.bkfA*self.bkfV
             self.bkfQ = flow
         else:
             self.bkfQ = None
     
     def bkf_by_flow_release(self):
         """
-        Estimates the bankfull elevation by finding the elevation where the rate of flow release (dq/dh) is maximized.
+        Estimates the bankfull elevation by finding the elevation where the rate of flow release (dq/dh, also called the incipient point of flooding) is maximized.
+        Note that the assumption that bankfull is at this point only holds for unincised channels.
+        """
+        pass
+    
+    def bkf_brute_search(self, attribute, target, delta = 0.1, epsilon = None, terminateOnSufficient = True):
+        """
+        Finds the most ideal bkf elevation by performing a brute force search, looking for a target value of a specified attribute.
+        The attribute need not increase monotonically with bkf elevation.
+        After exiting the algorithm, bankfull statistics will be recalculated for whatever the bkfEl was when entering the method.
+        
+        Args:
+            attribute: a string that references an attribute such as bkfW that is MONOTONICALLY dependent on bkf el.
+                Results are not guaranteed to be accurate if the function that relates the attribute to bkf elevation is not monotonic increasing.
+            target: the ideal value of attribute.
+            delta: the elevatoin interval between statistics calculations
+            epsilon: the desired maximum absolute deviation from the target attribute.
+            terminateOnSufficient: a boolean indicating if the first result within the tolerance should be returned
+        
+        Returns:
+            The ideal bkf elevation.
+            
+        Raises:
+            None.
+        
         """
         pass
     
@@ -374,10 +443,11 @@ class CrossSection(object):
         """
         Finds the most ideal bkf elevation by performing a binary-esque search, looking for a target value of a specified attribute.
         After exiting the algorithm, bankfull statistics will be recalculated for whatever the bkfEl was when entering the method.
+        This will run much quicker than bkf_brute_search() but is restricted to attributes that increase monotonically with bkfEl
         
         Args:
             attribute: a string that references an attribute such as bkfW that is MONOTONICALLY dependent on bkf el.
-                Results are not guaranteed to be accurate if the attribute if the function that relates it to bkf elevation is not monotonic increasing.
+                Results are not guaranteed to be accurate if the function that relates the attribute to bkf elevation is not monotonic increasing.
             target: the ideal value of attribute.
             epsilon: the maximum acceptable absolute deviation from the target attribute.
                 
