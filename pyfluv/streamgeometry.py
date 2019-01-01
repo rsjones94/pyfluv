@@ -305,7 +305,7 @@ class CrossSection(object):
         """
         
         if self.waterSlope and self.bkfEl: # if we don't have a waterslope set, we can't calculate this.
-            gammaWater = self.unitDict('gammaWater')
+            gammaWater = self.unitDict['gammaWater']
             stress = gammaWater * self.bkfMeanD * self.waterSlope
             self.bkfStress = stress
         else:
@@ -409,12 +409,98 @@ class CrossSection(object):
         else:
             self.bkfQ = None
     
-    def bkf_by_flow_release(self):
+    def _flow_release_array(self, deltaEl = 0.1, absolute = False):
+        """
+        testing only
+        """
+        if not(self.bkfEl and self.manN and self.waterSlope):
+            raise Exception('bkfEl, manN and waterSlope must be specified to find bankfull by flow release.')
+        saveEl = self.bkfEl
+        
+        elArray = []
+        dqdhArray = []
+        
+        minEl = min(self.bElevations) + deltaEl
+        self.bkfEl = minEl
+        self.calculate_bankfull_statistics()
+        
+        if absolute:
+            dqdh = (self.bkfQ-0)/deltaEl
+        else:
+            dqdh = 0
+        
+        elArray.append(self.bkfEl)
+        dqdhArray.append(dqdh)
+        
+        lastQ = self.bkfQ
+        while self.bkfEl <= max(self.elevations):
+            self.bkfEl += deltaEl
+            self.calculate_bankfull_statistics()
+            
+            if absolute:
+                dqdh = (self.bkfQ-lastQ)/deltaEl
+            else:
+                dqdh = self.bkfQ/lastQ
+            elArray.append(self.bkfEl)
+            dqdhArray.append(dqdh)
+            lastQ = self.bkfQ
+                
+        self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
+        self.calculate_bankfull_statistics()
+        
+        return(elArray,dqdhArray)
+    
+    def bkf_by_flow_release(self, deltaEl = 0.1, absolute = False):
         """
         Estimates the bankfull elevation by finding the elevation where the rate of flow release (dq/dh, also called the incipient point of flooding) is maximized.
         Note that the assumption that bankfull is at this point only holds for unincised channels.
+        
+        Args:
+            deltaEl: the granularity of the change in elevation by which dq/dh will be evaluated.
+            absolute: a boolean indicating if the flow release comparison between stages should be absolute or relative
+                      If absolute is True, the result returned will never be the first stage evaluated.
+            
+        Returns:
+            The ideal elevation where dq/dh is maximized.
+            
+        Raises:
+            None.
         """
-        pass
+        
+        if not(self.bkfEl and self.manN and self.waterSlope):
+            raise Exception('bkfEl, manN and waterSlope must be specified to find bankfull by flow release.')
+        saveEl = self.bkfEl
+        
+        minEl = min(self.bElevations) + deltaEl
+        self.bkfEl = minEl
+        self.calculate_bankfull_statistics()
+        
+        if absolute:
+            dqdh = (self.bkfQ-0)/deltaEl
+        else:
+            dqdh = 0
+        
+        maxQ = dqdh
+        bestEl = self.bkfEl
+        lastQ = self.bkfQ
+        while self.bkfEl <= max(self.elevations):
+            self.bkfEl += deltaEl
+            self.calculate_bankfull_statistics()
+            
+            if absolute:
+                dqdh = (self.bkfQ-lastQ)/deltaEl
+            else:
+                dqdh = self.bkfQ/lastQ
+                
+            if dqdh > maxQ:
+                maxQ = dqdh
+                bestEl = self.bkfEl
+            lastQ = self.bkfQ
+                
+        self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
+        self.calculate_bankfull_statistics()
+        
+        return(bestEl)
     
     def bkf_brute_search(self, attribute, target, delta = 0.1, epsilon = None, terminateOnSufficient = True):
         """
@@ -435,7 +521,6 @@ class CrossSection(object):
             
         Raises:
             None.
-        
         """
         pass
     
@@ -471,7 +556,7 @@ class CrossSection(object):
             if thwEl > bottom:
                 bottom = thwEl        
         """
-        The above nested if is meant to handle when a secondary channel is contains the thw.
+        The above nested if is meant to handle when a secondary channel contains the thw.
         But if the thwInd indicates a point in the main channel that is NOT the true thw then
         this will cause the algorithm to start with an incorrectly high bottom.
         """
