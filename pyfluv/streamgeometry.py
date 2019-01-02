@@ -54,6 +54,7 @@ class CrossSection(object):
         manN(float): manning's N
         sizeDist(GrainSizeDistribution): an object of the class GrainSizeDistribution
         unitDict(dict): a dictionary of unit values and conversion ratios; values depend on value of self.metric
+        boundTruths(dict): a dictionary that stores whether an attribute (such as bkfW) is exact or represents a minimum
         """
     
     def __init__(self, exes, whys, zees, name = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, tobEl = None, thwStation = None, fillFraction = 1):
@@ -239,6 +240,30 @@ class CrossSection(object):
             removed = sm.remove_overhangs(self.rawSta,self.rawEl,method='fill',adjustY=True) # remove_overhangs will change soon; this will need to be updated
             self.stations = removed[0]
             self.elevations = removed[1]
+            
+    def determine_bounding_truths(self):
+        """
+        Creates a dictionary that stores whether width-centered attributes are bounded on each side.
+        There are only two keys - bkfW and floodproneWidth - and they point to a tuple (bool,bool) that
+        indicates if the left and right side respectively are bound.
+        
+        If bkfW is unbounded on either side, then all values based on bkfEl are
+        minima with the exception of the entrenchment ratio which is neither a minimum nor a maximum.
+        
+        If floodproneWidth is unbounded on either side, then floodprone width, floodprone elevation 
+        and entrenchment ratio all represent minima unless bkfW is unbounded, in which case the
+        entrenchment ratio is neither a minimum nor a maximum.
+        
+        If bkfEl is None, the values in the dict will also be done.
+        """
+        leftMax = max(self.elevations[:self.thwIndex+1])
+        rightMax = max(self.elevations[self.thwIndex:])
+        
+        boundDict = {'bkfW':None,'floodproneWidth':None}
+        if self.bkfEl:
+            boundDict['bkfW'] = (self.bkfEl<=leftMax,self.bkfEl<=rightMax)
+            boundDict['floodproneWidth'] = (self.floodproneEl<=leftMax,self.floodproneEl<=rightMax)
+        self.boundTruths = boundDict
     
     def calculate_bankfull_statistics(self):
         """
@@ -263,6 +288,8 @@ class CrossSection(object):
         self.calculate_bank_height_ratio()
         self.calculate_velocity()
         self.calculate_flow()
+        
+        self.determine_bounding_truths()
     
     def calculate_area(self):
         """
@@ -411,8 +438,8 @@ class CrossSection(object):
     
     def attribute_list(self, attribute, deltaEl = 0.1):
         """
-        Returns two arrays: a list of elevations and a corresponding list of the channel attribute with bkf
-        at that elevation.
+        Returns two arrays: a list of elevations and a corresponding list of the channel attribute if bkf
+        were at that elevation.
         
         Args:
             deltaEl: the granularity of the change in elevation by which the area will be calculated.
