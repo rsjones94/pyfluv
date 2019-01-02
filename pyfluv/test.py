@@ -1,5 +1,6 @@
 # junk code for quick tests
 import matplotlib.pyplot as plt
+import numpy as np
 
 import streammath as sm
 import streamgeometry as strgeo
@@ -16,33 +17,63 @@ distr = {2:3,
 
 work = grain.GrainDistribution(distr,name ='Work')
 
-exes = [0,1,4,3,5,6,7,6,8]
-whys = [0,0,2,5,4,6,7,10,11]
-zees = [5,4,3,4,2,1,1,4,7]
+exes = [0,1,2,3,4,4,4,4,5,9,10,14,15,15,15,15,16,17,18,19]
+whys = exes
+zees = [99,99,97,95,90,85,79,72,72,55,55,72,72,79,85,90,95,97,99,99]
 
 myXS = strgeo.CrossSection(exes,whys,zees,name='TestChannel')
 
-a = myXS.bkf_binary_search('bkfA', 10)
-print(a)
-
-myXS.bkfEl = a
+newEl = myXS.find_floodplain_elevation()
+myXS.bkfEl = newEl
 myXS.calculate_bankfull_statistics()
+myXS.qplot(showBkf=True)
 
-#myXS.qplot(showBkf=True,showCutSection=True)
-
-myXS.manN = 0.03
-myXS.waterSlope = 0.02
-flowR = myXS.bkf_by_flow_release()
-
-myXS.bkfEl = flowR
-myXS.calculate_bankfull_statistics()
-#myXS.qplot(showBkf=True,showCutSection=True)
-
-res = myXS._flow_release_array(absolute = True)
+res = myXS.attribute_list('bkfA')
 els = res[0]
-dqdh = res[1]
-#plt.figure()
-#plt.plot(els,dqdh)
+atts = res[1]
+dAtts = np.diff(atts)/0.1
+ddAtts = np.diff(dAtts)/0.1
 
-thw = myXS.thwIndex
-climb = sm.get_climbing_indices(zees,thw)
+#plt.plot(atts,els)
+plt.plot(dAtts,els[:-1])
+plt.plot(ddAtts,els[1:-1])
+
+plt.figure()
+plt.plot(els,atts)
+plt.plot(els[:-1],dAtts)
+plt.plot(els[1:-1],ddAtts)
+
+"""
+res = myXS.attribute_list(attribute = 'bkfW')
+els = res[0]
+absAreas = res[1]
+
+relAreas = [1]
+for i in range(1,len(absAreas)):
+    relAreas.append(absAreas[i]/absAreas[i-1])
+
+dAbsAreas = np.diff(absAreas)/0.1 # units: sq ft / ft
+dRelAreas = np.diff(relAreas)/0.1 # units: ft^-1
+
+ddAbsAreas = np.diff(dAbsAreas) # units: sq ft / ft / ft
+
+plt.figure()
+plt.plot(els,absAreas)
+plt.title('Absolute')
+plt.figure()
+plt.plot(els[:(len(els)-1)],dAbsAreas)
+plt.title('First Derivative Absolute')
+plt.figure()
+plt.plot(els[:(len(els)-2)],ddAbsAreas)
+plt.title('Second Derivative Absolute')
+
+plt.figure()
+plt.plot(els,relAreas)
+plt.title('Relative Areas')
+plt.figure()
+plt.plot(els[:(len(els)-1)],dRelAreas)
+plt.title('First Derivative Relative Areas')
+plt.figure()
+plt.plot(els[:(len(els)-2)],ddRelAreas)
+plt.title('Second Derivative Relative Areas')  
+"""

@@ -409,98 +409,69 @@ class CrossSection(object):
         else:
             self.bkfQ = None
     
-    def _flow_release_array(self, deltaEl = 0.1, absolute = False):
+    def attribute_list(self, attribute, deltaEl = 0.1):
         """
-        testing only
-        """
-        if not(self.bkfEl and self.manN and self.waterSlope):
-            raise Exception('bkfEl, manN and waterSlope must be specified to find bankfull by flow release.')
-        saveEl = self.bkfEl
-        
-        elArray = []
-        dqdhArray = []
-        
-        minEl = min(self.bElevations) + deltaEl
-        self.bkfEl = minEl
-        self.calculate_bankfull_statistics()
-        
-        if absolute:
-            dqdh = (self.bkfQ-0)/deltaEl
-        else:
-            dqdh = 0
-        
-        elArray.append(self.bkfEl)
-        dqdhArray.append(dqdh)
-        
-        lastQ = self.bkfQ
-        while self.bkfEl <= max(self.elevations):
-            self.bkfEl += deltaEl
-            self.calculate_bankfull_statistics()
-            
-            if absolute:
-                dqdh = (self.bkfQ-lastQ)/deltaEl
-            else:
-                dqdh = self.bkfQ/lastQ
-            elArray.append(self.bkfEl)
-            dqdhArray.append(dqdh)
-            lastQ = self.bkfQ
-                
-        self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
-        self.calculate_bankfull_statistics()
-        
-        return(elArray,dqdhArray)
-    
-    def bkf_by_flow_release(self, deltaEl = 0.1, absolute = False):
-        """
-        Estimates the bankfull elevation by finding the elevation where the rate of flow release (dq/dh, also called the incipient point of flooding) is maximized.
-        Note that the assumption that bankfull is at this point only holds for unincised channels.
+        Returns two arrays: a list of elevations and a corresponding list of the channel attribute with bkf
+        at that elevation.
         
         Args:
-            deltaEl: the granularity of the change in elevation by which dq/dh will be evaluated.
-            absolute: a boolean indicating if the flow release comparison between stages should be absolute or relative
-                      If absolute is True, the result returned will never be the first stage evaluated.
-            
+            deltaEl: the granularity of the change in elevation by which the area will be calculated.
+            attribute: a string that references an attribute such as bkfW or bkfA
+
         Returns:
-            The ideal elevation where dq/dh is maximized.
+            The elevation where d(dA/dh) is maximized.
             
         Raises:
             None.
         """
+        saveEl = self.bkfEl # will use this to revert state at end of algorithm
         
-        if not(self.bkfEl and self.manN and self.waterSlope):
-            raise Exception('bkfEl, manN and waterSlope must be specified to find bankfull by flow release.')
-        saveEl = self.bkfEl
+        elArray = []
+        attrArray = []
         
-        minEl = min(self.bElevations) + deltaEl
+        minEl = self.elevations[self.thwIndex]
         self.bkfEl = minEl
-        self.calculate_bankfull_statistics()
         
-        if absolute:
-            dqdh = (self.bkfQ-0)/deltaEl
-        else:
-            dqdh = 0
-        
-        maxQ = dqdh
-        bestEl = self.bkfEl
-        lastQ = self.bkfQ
         while self.bkfEl <= max(self.elevations):
             self.bkfEl += deltaEl
             self.calculate_bankfull_statistics()
-            
-            if absolute:
-                dqdh = (self.bkfQ-lastQ)/deltaEl
-            else:
-                dqdh = self.bkfQ/lastQ
-                
-            if dqdh > maxQ:
-                maxQ = dqdh
-                bestEl = self.bkfEl
-            lastQ = self.bkfQ
+
+            elArray.append(self.bkfEl)
+            attrArray.append(getattr(self, attribute))
                 
         self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
         self.calculate_bankfull_statistics()
         
-        return(bestEl)
+        return(elArray,attrArray)
+    
+    def find_floodplain_elevation(self, deltaEl = 0.1):
+        """
+        Finds the elevation where the second derivative of the channel area with respect to bkf elevation is maximized.
+        
+        Args:
+            deltaEl: the granularity of the change in elevation by which the area will be calculated.
+
+        Returns:
+            The elevation where d(dA/dh) is maximized.
+            
+        Raises:
+            None.
+            
+        Notes:
+            The current algorithm just checks every elevation between the thalweg and highest surveyed point.
+            A much faster algorithm is possible that just checks at elevations that exist in the survey.
+        """
+        arrays = self.attribute_list(attribute = 'bkfA', deltaEl = deltaEl)
+        elevations = arrays[0]
+        areas = arrays[1]
+        
+        dAreas = np.diff(areas)/deltaEl # units: length^2 / length
+        ddAreas = np.diff(dAreas)/deltaEl # units: length^2 / length / length
+        #ddAreas[i] corresponds with elevations[i+1]
+        
+        mindex = sm.find_max_index(ddAreas)
+        floodEl = elevations[mindex+1]
+        return(floodEl)
     
     def bkf_brute_search(self, attribute, target, delta = 0.1, epsilon = None, terminateOnSufficient = True):
         """
@@ -528,7 +499,7 @@ class CrossSection(object):
         """
         Finds the most ideal bkf elevation by performing a binary-esque search, looking for a target value of a specified attribute.
         After exiting the algorithm, bankfull statistics will be recalculated for whatever the bkfEl was when entering the method.
-        This will run much quicker than bkf_brute_search() but is restricted to attributes that increase monotonically with bkfEl
+        This runs much quicker than bkf_brute_search() but is restricted to attributes that increase monotonically with bkfEl.
         
         Args:
             attribute: a string that references an attribute such as bkfW that is MONOTONICALLY dependent on bkf el.

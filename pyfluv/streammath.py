@@ -1420,8 +1420,19 @@ def find_min_index(seriesY):
         if seriesY[i] < winValue:
             winValue = seriesY[i]
             winIndex = i
-    
     return(winIndex)
+    
+def find_max_index(seriesY):
+    """
+    Finds the index of the maximum in an array.
+    """
+    winIndex = 0
+    winValue = seriesY[0]
+    for i in range(1,len(seriesY)):
+        if seriesY[i] > winValue:
+            winValue = seriesY[i]
+            winIndex = i
+    return(winIndex) 
     
 def get_climbing_indices(seriesY,startIndex):
     """
@@ -1438,17 +1449,7 @@ def get_climbing_indices(seriesY,startIndex):
     Raises:
         None.
     """
-    startEl = seriesY[startIndex]
-    climbList = []
-    
-    leftInd = startIndex
-    rightInd = startIndex
-    
-    while True:
-        pass
-    
-    return(climbList)
-            
+    pass
        
 def get_closest_index_by_value(series,value):
     """
@@ -1469,8 +1470,8 @@ def get_nth_closest_index_by_value(series,value,n):
     
 def break_at_bankfull(seriesX,seriesY,bkfEl,startInd):
     """
-    Take a cross section and cuts it at the bankfull elevation. XS should be free of overhangs.
-        If the bkf elevation is unbounded on either side, adds a point at the bkf elevation.
+    Takes a cross section and cuts it at the bankfull elevation. XS should be free of overhangs.
+        If the bkf elevation is unbounded on a side, adds a point or points at the bkf elevation.
         
     Args:
         seriesX: a list of stationing
