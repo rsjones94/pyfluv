@@ -28,7 +28,7 @@ print(a)
 myXS.bkfEl = a
 myXS.calculate_bankfull_statistics()
 
-myXS.qplot(showBkf=True,showCutSection=True)
+#myXS.qplot(showBkf=True,showCutSection=True)
 
 myXS.manN = 0.03
 myXS.waterSlope = 0.02
@@ -36,10 +36,13 @@ flowR = myXS.bkf_by_flow_release()
 
 myXS.bkfEl = flowR
 myXS.calculate_bankfull_statistics()
-myXS.qplot(showBkf=True,showCutSection=True)
+#myXS.qplot(showBkf=True,showCutSection=True)
 
 res = myXS._flow_release_array(absolute = True)
 els = res[0]
 dqdh = res[1]
-plt.figure()
-plt.plot(els,dqdh)
+#plt.figure()
+#plt.plot(els,dqdh)
+
+thw = myXS.thwIndex
+climb = sm.get_climbing_indices(zees,thw)

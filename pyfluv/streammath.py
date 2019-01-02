@@ -1372,7 +1372,7 @@ def monotonic_increasing(x):
 
 def crawl_to_elevation(seriesY,elevation,startInd):
     """
-    Find the indices of the first points the the left and right of a starting point that exceeds an elevation
+    Finds the indices of the first points to the left and right of a starting point that exceeds an elevation
     
     Args:
         seriesY: a list of elevation points (implicitly ordered by station)
@@ -1412,7 +1412,7 @@ def crawl_to_elevation(seriesY,elevation,startInd):
     
 def find_min_index(seriesY):
     """
-    Finds the index of the minimum in an array
+    Finds the index of the minimum in an array.
     """
     winIndex = 0
     winValue = seriesY[0]
@@ -1423,6 +1423,33 @@ def find_min_index(seriesY):
     
     return(winIndex)
     
+def get_climbing_indices(seriesY,startIndex):
+    """
+    Starting at a specified index in a series, builds a list of indices by finding the first point
+    to the left or right of the index with a greater value than the previous value found and repeating.
+    
+    Args:
+        seriesY: a list of elevation points
+        startIndex: the index to begin the search at
+        
+    Returns:
+        A list of ordered indices.
+        
+    Raises:
+        None.
+    """
+    startEl = seriesY[startIndex]
+    climbList = []
+    
+    leftInd = startIndex
+    rightInd = startIndex
+    
+    while True:
+        pass
+    
+    return(climbList)
+            
+       
 def get_closest_index_by_value(series,value):
     """
     Returns the index of the value in a list that is closest to a specified value.
