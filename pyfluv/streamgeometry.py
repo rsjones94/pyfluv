@@ -1,6 +1,5 @@
 """
-Contains the CrossSection class, which stores and processes stream geometry (cross sections)
-
+Contains the CrossSection class, which stores and processes stream geometry (cross sections).
 """
 import logging
 
@@ -18,7 +17,7 @@ class CrossSection(object):
         Lengths are expressed in terms of meters or feet.
         Time is expressed in terms of seconds.
         Mass is express in terms of kilograms or slugs.
-        Weights are express in terms of newtons or pounds.
+        Forces are expressed in terms of newtons or pounds.
     
     Attributes:
         name(str): the name of the XS
@@ -32,7 +31,9 @@ class CrossSection(object):
         elevations(float): the elevations of the cross section with overhangs removed (may be equivalent to rawEl)
         bStations(float): the stationing of the channel that is filled at bkf
         bElevations(float): the elevations corresponding to bStations
+        morphType(string): Denotes the morphological type of the XS - 'Ri', 'Ru', 'Po', 'Gl'
         bkfEl(float): the bankfull elevation at the XS
+        wsEl(float): the elevation of the water surface
         thwStation(float): the station of the thalweg
         thwIndex(int): the index of the thalweg in stations
         waterSlope(float): dimensionless slope of the water surface at the cross section
@@ -57,7 +58,7 @@ class CrossSection(object):
         boundTruths(dict): a dictionary that stores whether an attribute (such as bkfW) is exact or represents a minimum
         """
     
-    def __init__(self, exes, whys, zees, name = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, tobEl = None, thwStation = None, fillFraction = 1):
+    def __init__(self, exes, whys, zees, name = None, morphType = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, wsEl = None, tobEl = None, thwStation = None, fillFraction = 1):
         """
         Method to initialize a CrossSection.
         
@@ -79,11 +80,16 @@ class CrossSection(object):
                 
         Raises:
             Exception: If the geometry of the cross section is not simple (non self-intersecting)
+            Exception: If any of exes, whys or zees don't have the same length as the others
         """
+        if not(len(exes) == len(whys) == len(zees)):
+            raise Exception('exes, whys and zees must all have the same length.')
+        
         self.name = name
         self.exes = exes.copy()
         self.whys = whys.copy()
         self.zees = zees.copy()
+        self.morphType = morphType
         self.project = project
         self.metric = metric
         if self.metric:
@@ -102,6 +108,7 @@ class CrossSection(object):
         self.check_sta_and_el()
         self.set_thw_index()
         
+        self.wsEl = wsEl
         self.tobEl = tobEl
         self.bkfEl = bkfEl
         self.calculate_bankfull_statistics() # this calls set_bankfull_stations_and_elevations() within it
@@ -110,26 +117,54 @@ class CrossSection(object):
         """
         Prints the name of the CrossSection object. If the name attribute is None, prints "UNNAMED".
         """
+        attachDict = {'Ri':', Riffle','Ru':', Run','Po':', Pool','Gl':', Glide',None:''}
         if self.name:
-            return(self.name)
+            printname = self.name + attachDict[self.morphType]
+            return(printname)
         else:
             return("UNNAMED")
     
-    def qplot(self,showBkf=False,showCutSection=False):
+    def qplot(self, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
         """
         Uses matplotlib to create a quick plot of the cross section.
         """
         plt.figure()
         if showCutSection:
-            plt.plot(self.rawSta,self.rawEl, color="tomato")
+            plt.plot(self.rawSta,self.rawEl, color="tomato", linewidth = 2)
             
-        plt.plot(self.stations,self.elevations, color="black")
+        plt.plot(self.stations,self.elevations, color="black", linewidth = 2)
+        plt.title(str(self))
+        plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
+        plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
         
-        if showBkf:
-            bkfExes = [self.bStations[0],self.bStations[len(self.bStations)-1]]
-            bkfWhys = [self.bElevations[0],self.bElevations[len(self.bStations)-1]]
-            plt.plot(bkfExes,bkfWhys, color="blue")
-            plt.scatter(bkfExes,bkfWhys, color="blue")
+        
+        if showBkf and self.bkfEl:
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self.bkfEl,self.thwIndex)
+            exes = [broken[0][0],broken[0][-1]]
+            whys = [broken[1][0],broken[1][-1]]
+            plt.plot(exes,whys, color="red", linewidth = 2)
+            plt.scatter(exes,whys, color="red")
+        
+        if showWs and self.wsEl:
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self.wsEl,self.thwIndex)
+            exes = [broken[0][0],broken[0][-1]]
+            whys = [broken[1][0],broken[1][-1]]
+            plt.plot(exes,whys, "b--", linewidth = 2)
+            plt.scatter(exes,whys, color="b")
+            
+        if showTob and self.tobEl:
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self.tobEl,self.thwIndex)
+            exes = [broken[0][0],broken[0][-1]]
+            whys = [broken[1][0],broken[1][-1]]
+            plt.plot(exes,whys, color="magenta", linewidth = 2)
+            plt.scatter(exes,whys, color="magenta")
+            
+        if showFloodEl and self.floodproneEl:
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self.floodproneEl,self.thwIndex)
+            exes = [broken[0][0],broken[0][-1]]
+            whys = [broken[1][0],broken[1][-1]]
+            plt.plot(exes,whys, color="green", linewidth = 2)
+            plt.scatter(exes,whys, color="green")
             
     def planplot(self, showProjections = True):
         """
@@ -140,8 +175,11 @@ class CrossSection(object):
         """
         plt.figure()
         plt.plot(self.exes,self.whys)
+        plt.title(str(self) + ' (Planform)')
+        plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
+        plt.ylabel('Northing (' + self.unitDict['lengthUnit'] + ')')
         
-        if showProjections:
+        if showProjections and self.project:
             projected = self.get_centerline_shots()
             projX = projected[0]
             projY = projected[1]
@@ -328,7 +366,7 @@ class CrossSection(object):
     
     def calculate_shear_stress(self):
         """
-        Calculates the shear stress. If metric, units are N/m^2. If imperial, units are lbs/ft^2
+        Calculates the shear stress at bkf. If metric, units are N/m^2. If imperial, units are lbs/ft^2
         """
         
         if self.waterSlope and self.bkfEl: # if we don't have a waterslope set, we can't calculate this.
@@ -350,7 +388,7 @@ class CrossSection(object):
         """
         if self.bkfEl:
             minEl = min(self.bElevations)
-            self.floodproneEl = minEl + 2*self.bkfEl
+            self.floodproneEl = minEl + 2*self.bkfMaxD
         else:
             self.floodproneEl = None
         
@@ -418,6 +456,7 @@ class CrossSection(object):
     def calculate_velocity(self):
         """
         Calculates the bkf discharge velocity, given a bkf elevation, ws slope and manning's n.
+        Units are ft/s or meters/s.
         """
         if self.waterSlope and self.manN and self.bkfEl: # need all of these to calculate this
             manNum = self.unitDict['manningsNumerator']
@@ -429,6 +468,7 @@ class CrossSection(object):
     def calculate_flow(self):
         """
         Calculates the volumetric flow given a bkf elevation, ws slope and manning's n.
+        Units are cubic ft/s or cubic meters/s.
         """
         if self.waterSlope and self.manN and self.bkfEl: # need all of these to calculate this
             flow = self.bkfA*self.bkfV
@@ -508,7 +548,6 @@ class CrossSection(object):
         
         Args:
             attribute: a string that references an attribute such as bkfW that is MONOTONICALLY dependent on bkf el.
-                Results are not guaranteed to be accurate if the function that relates the attribute to bkf elevation is not monotonic increasing.
             target: the ideal value of attribute.
             delta: the elevatoin interval between statistics calculations
             epsilon: the desired maximum absolute deviation from the target attribute.
@@ -530,7 +569,7 @@ class CrossSection(object):
         
         Args:
             attribute: a string that references an attribute such as bkfW that is MONOTONICALLY dependent on bkf el.
-                Results are not guaranteed to be accurate if the function that relates the attribute to bkf elevation is not monotonic increasing.
+                       Results are not guaranteed to be accurate if the function that relates the attribute to bkf elevation is not monotonic increasing.
             target: the ideal value of attribute.
             epsilon: the maximum acceptable absolute deviation from the target attribute.
                 
