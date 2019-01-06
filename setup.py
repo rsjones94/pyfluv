@@ -14,7 +14,7 @@ setup(
               'analysis', 'profile', 'planform', 'geometry', 'rosgen', 'restoration'
               ],
   install_requires=[
-          'numpy'
+          'numpy',
           'matplotlib'
       ],
   classifiers=[
