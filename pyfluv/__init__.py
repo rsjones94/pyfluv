@@ -1,3 +1,3 @@
-from streamgeometry import CrossSection
-from graindistributions import GrainDistribution
-from westpineyriver import crosses
+from pyfluv.streamgeometry import CrossSection
+from pyfluv.graindistributions import GrainDistribution
+from pyfluv.westpineyriver import crosses
