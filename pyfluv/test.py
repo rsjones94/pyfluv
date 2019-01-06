@@ -8,7 +8,4 @@ import graindistributions as grain
 
 import westpineyriver as wpr
 
-
-wpr.ccXSRiffle.sizeDist.semilogplot()
-wpr.ccXSRiffle.sizeDist.cplot(normalize=False)
-wpr.ccXSRiffle.sizeDist.bplot()
+best = wpr.wprR1XSRiffle.bkf_brute_search('bkfA',30)

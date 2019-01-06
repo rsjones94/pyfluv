@@ -101,7 +101,7 @@ class CrossSection(object):
         self.waterSlope = waterSlope
         self.fillFraction = fillFraction
 
-        self.hasOverhangs = False
+        self.hasOverhangs = False # may be altered when validate_geometry() is called
         
         self.create_2d_form()
         self.validate_geometry()
@@ -486,7 +486,7 @@ class CrossSection(object):
             attribute: a string that references an attribute such as bkfW or bkfA
 
         Returns:
-            The elevation where d(dA/dh) is maximized.
+            Two lists; a list of elevations and a list that relates that elevation to the desired statistic
             
         Raises:
             None.
@@ -540,16 +540,17 @@ class CrossSection(object):
         floodEl = elevations[mindex+1]
         return(floodEl)
     
-    def bkf_brute_search(self, attribute, target, delta = 0.1, epsilon = None, terminateOnSufficient = True):
+    def bkf_brute_search(self, attribute, target, delta = 0.1):
         """
         Finds the most ideal bkf elevation by performing a brute force search, looking for a target value of a specified attribute.
         The attribute need not increase monotonically with bkf elevation.
         After exiting the algorithm, bankfull statistics will be recalculated for whatever the bkfEl was when entering the method.
+        The algorithm only checks betwee the thw elevation and the maximum surveyed elevation.
         
         Args:
-            attribute: a string that references an attribute such as bkfW that is MONOTONICALLY dependent on bkf el.
+            attribute: a string that references an attribute such as bkfW that is dependent on bkf el.
             target: the ideal value of attribute.
-            delta: the elevatoin interval between statistics calculations
+            delta: the elevation interval between statistics calculations
             epsilon: the desired maximum absolute deviation from the target attribute.
             terminateOnSufficient: a boolean indicating if the first result within the tolerance should be returned
         
@@ -559,7 +560,39 @@ class CrossSection(object):
         Raises:
             None.
         """
-        pass
+        
+        # first save the current bkfEl, if any
+        saveEl = self.bkfEl
+
+        bottom = min(self.elevations)
+        top = max(self.elevations)
+        
+        if self.thwStation:
+            thwEl = self.elevations[self.thwIndex]
+            if thwEl > bottom:
+                bottom = thwEl        
+        """
+        The above nested if is meant to handle when a secondary channel contains the thw.
+        But if the thwInd indicates a point in the main channel that is NOT the true thw then
+        this will cause the algorithm to start with an incorrectly high bottom.
+        """
+        self.bkfEl = bottom
+        best = self.bkfEl
+        bestDistance = float('inf')
+        while self.bkfEl <= top:
+            self.bkfEl += delta
+            self.calculate_bankfull_statistics()
+            calculatedValue = getattr(self, attribute)
+            distance = np.abs(calculatedValue-target)
+            if distance < bestDistance:
+                bestDistance = distance
+                best = self.bkfEl
+        
+        foundEl = best # save the best result we found       
+        self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
+        self.calculate_bankfull_statistics()
+        
+        return(foundEl)
     
     def bkf_binary_search(self, attribute, target, epsilon = None, returnFailed = False):
         """
@@ -623,7 +656,7 @@ class CrossSection(object):
         
         foundEl = self.bkfEl # save the best result we found       
         self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
-        self.calculate_bankfull_statistics
+        self.calculate_bankfull_statistics()
         
         if found:
             print('Converged in ' + str(n) + ' iterations.')
