@@ -40,7 +40,8 @@ class CrossSection(object):
         project(bool): whether the stationing should be calculated along the XS's centerline (True) or not (False)
         hasOverhangs(bool): whether or not overhangs are present in the raw survey
         fillFraction(float): a float between 0 or 1 that specifies how overhangs are to be removed.
-            0 indicates that the overhangs will be cut, 1 indicates they will be filled, and intermediate values are some mix of cut and fill.
+            0 indicates that the overhangs will be cut, 1 indicates they will be filled, and 
+            intermediate values are some mix of cut and fill (intermediate values not yet supported).
         bkfA(float): the area of the XS at bankfull
         bkfW(float): the width of the XS at the bankfull
         bkfQ(float): the flow rate of the XS at bankfull
@@ -58,7 +59,9 @@ class CrossSection(object):
         boundTruths(dict): a dictionary that stores whether an attribute (such as bkfW) is exact or represents a minimum
         """
     
-    def __init__(self, exes, whys, zees, name = None, morphType = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, wsEl = None, tobEl = None, thwStation = None, sizeDist = None, fillFraction = 1):
+    def __init__(self, exes, whys, zees, name = None, morphType = None, metric = False, manN = None, 
+                 waterSlope = None, project = True, bkfEl = None, wsEl = None, tobEl = None, 
+                 thwStation = None, sizeDist = None, fillFraction = 1):
         """
         Method to initialize a CrossSection.
         
@@ -271,11 +274,17 @@ class CrossSection(object):
         Checks the raw sta and el to make sure there are no overhangs. If there are, removes them.
             Either way this method sets self.sta and self.el.
         """
+        
+        if self.fillFraction == 1:
+            method = 'fill'
+        elif self.fillFraction == 0:
+            method = 'cut'
+        
         if not(self.hasOverhangs):
             self.stations = self.rawSta
             self.elevations = self.rawEl
         elif self.hasOverhangs:
-            removed = sm.remove_overhangs(self.rawSta,self.rawEl,method='fill',adjustY=True) # remove_overhangs will change soon; this will need to be updated
+            removed = sm.remove_overhangs(self.rawSta,self.rawEl,method=method,adjustY=True) # remove_overhangs will change soon; this will need to be updated
             self.stations = removed[0]
             self.elevations = removed[1]
             
