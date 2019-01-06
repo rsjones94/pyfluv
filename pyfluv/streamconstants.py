@@ -11,7 +11,8 @@ METRIC_CONSTANTS = {'gammaWater':9806.6500286389, # weight density of water, N/m
                     'lengthUnit':'meters',
                     'timeUnit':'seconds',
                     'forceUnit':'newtons',
-                    'massUnit':'kilograms'
+                    'massUnit':'kilograms',
+                    'smallLengthUnit':'mm'
                     }
 
 IMPERIAL_CONSTANTS = {'gammaWater':62.427961, # weight density of water, lbs/ft^3
@@ -24,5 +25,6 @@ IMPERIAL_CONSTANTS = {'gammaWater':62.427961, # weight density of water, lbs/ft^
                       'lengthUnit':'feet',
                       'timeUnit':'seconds',
                       'forceUnit':'pounds',
-                      'massUnit':'slugs'
+                      'massUnit':'slugs',
+                      'smallLengthUnit':'inches'
                       }

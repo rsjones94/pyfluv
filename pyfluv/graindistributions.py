@@ -266,10 +266,15 @@ class GrainDistribution(object):
         binned = self.extract_binned_counts()
         return(list(np.cumsum(binned)))
         
+    def extract_unbinned_cumsum(self):
+        unbinned = list(self.distr.values())
+        return(list(np.cumsum(unbinned)))
+        
     def cplot(self,normalize=True):
         """
-        A cumulative distribution plot of the particle sizes.
+        A cumulative distribution plot of the particle sizes against the size bins.
         """
+        plt.figure()
         keys = list(self.bins.keys())
         vals = self.extract_binned_cumsum()
         if normalize:
@@ -277,17 +282,39 @@ class GrainDistribution(object):
             factor = 100/max(vals)
             vals = list(vals*factor)
         plt.plot(keys,vals)
-    
-    def dplot(self):
+        
+        normalDict = {True:' (Normalized)',False:''}
+        plt.title(str(self))
+        plt.xlabel('Size Class')
+        plt.ylabel('Cumulative Count' + normalDict[normalize])
+        plt.grid()
+        
+    def semilogplot(self,normalize=True):
         """
-        A distribution plot of the particle sizes.
+        A cumulative distribution plot of the unbinned particle sizes on a logarithmic x-axis.
         """
-        pass
+        fig, ax = plt.subplots()
+
+        y = self.extract_unbinned_cumsum()
+        if normalize:
+            y = np.asarray(y)
+            factor = 100/max(y)
+            y = list(y*factor)
+        x = list(self.distr.keys())
+
+        ax.semilogx(x,y)
+        ax.grid()
+        
+        normalDict = {True:' (Normalized)',False:''}
+        plt.title(str(self))
+        plt.xlabel('Size (' + self.unitDict['smallLengthUnit'] + ')')
+        plt.ylabel('Cumulative Count' + normalDict[normalize])
     
     def bplot(self,normalize=True):
         """
-        A bar plot of of the particle sizes.
+        A bar plot of of the particle sizes against the size bins
         """
+        plt.figure()
         keys = list(self.bins.keys())
         vals = self.extract_binned_counts()
         if normalize:
@@ -295,3 +322,8 @@ class GrainDistribution(object):
             factor = 100/max(vals)
             vals = list(vals*factor)
         plt.bar(keys,vals)
+        
+        normalDict = {True:' (Normalized)',False:''}
+        plt.title(str(self))
+        plt.xlabel('Size Class')
+        plt.ylabel('Count' + normalDict[normalize])

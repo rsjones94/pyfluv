@@ -8,4 +8,7 @@ import graindistributions as grain
 
 import westpineyriver as wpr
 
-wpr.wprR1XSRiffle.qplot()
+
+wpr.ccXSRiffle.sizeDist.semilogplot()
+wpr.ccXSRiffle.sizeDist.cplot(normalize=False)
+wpr.ccXSRiffle.sizeDist.bplot()

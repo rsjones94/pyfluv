@@ -582,6 +582,8 @@ ccxspZees = [
 632.7963383
         ]
 
+
+
 wprR1XSPool = sg.CrossSection(r1xspExes,r1xspWhys,r1xspZees,name = 'WPR Reach 1', wsEl = 622.47,
                              morphType = 'Po', manN = 0.02, waterSlope = 0.001, bkfEl = 624.5, 
                              tobEl = 625.88)
@@ -593,6 +595,24 @@ wprR1XSRiffle = sg.CrossSection(r1xsrExes,r1xsrWhys,r1xsrZees,name = 'WPR Reach 
 ccXSRiffle = sg.CrossSection(ccxsrExes,ccxsrWhys,ccxsrZees,name = 'Coon Creek', wsEl = 628.368,
                              morphType = 'Ri', manN = 0.028, waterSlope = 0.03, bkfEl = 629.7, 
                              tobEl = 630.2)
+
+pebs = {
+1:5,
+2:1,
+4:3,
+5.7:4,
+8:4,
+11.3:10,
+16:12,
+22.6:14,
+32:23,
+45:12,
+64:6,
+90:4,
+128:2
+        }
+ccRifflePebble = gd.GrainDistribution(pebs, name = 'Coon Creek Riffle Pebble Count', metric = True)
+ccXSRiffle.sizeDist = ccRifflePebble
 
 ccXSPool = sg.CrossSection(ccxspExes,ccxspWhys,ccxspZees,name = 'Coon Creek', wsEl = 628.45,
                              morphType = 'Po', manN = 0.028, waterSlope = 0.002, bkfEl = 629.463, 

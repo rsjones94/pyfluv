@@ -53,12 +53,12 @@ class CrossSection(object):
         floodProneEl(float): the flood prone elevation
         floodProneWidth(float): the width of the flood prone area
         manN(float): manning's N
-        sizeDist(GrainSizeDistribution): an object of the class GrainSizeDistribution
+        sizeDist(GrainDistribution): an object of the class GrainDistribution
         unitDict(dict): a dictionary of unit values and conversion ratios; values depend on value of self.metric
         boundTruths(dict): a dictionary that stores whether an attribute (such as bkfW) is exact or represents a minimum
         """
     
-    def __init__(self, exes, whys, zees, name = None, morphType = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, wsEl = None, tobEl = None, thwStation = None, fillFraction = 1):
+    def __init__(self, exes, whys, zees, name = None, morphType = None, metric = False, manN = None, waterSlope = None, project = True, bkfEl = None, wsEl = None, tobEl = None, thwStation = None, sizeDist = None, fillFraction = 1):
         """
         Method to initialize a CrossSection.
         
