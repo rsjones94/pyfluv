@@ -570,38 +570,14 @@ class CrossSection(object):
             None.
         """
         
-        # first save the current bkfEl, if any
-        saveEl = self.bkfEl
-
-        bottom = min(self.elevations)
-        top = max(self.elevations)
+        arrays = self.attribute_list(attribute = attribute, deltaEl = delta)
+        elevations = arrays[0]
+        attributes = np.asarray(arrays[1])
+        dists = np.abs(attributes-target)
         
-        if self.thwStation:
-            thwEl = self.elevations[self.thwIndex]
-            if thwEl > bottom:
-                bottom = thwEl        
-        """
-        The above nested if is meant to handle when a secondary channel contains the thw.
-        But if the thwInd indicates a point in the main channel that is NOT the true thw then
-        this will cause the algorithm to start with an incorrectly high bottom.
-        """
-        self.bkfEl = bottom
-        best = self.bkfEl
-        bestDistance = float('inf')
-        while self.bkfEl <= top:
-            self.bkfEl += delta
-            self.calculate_bankfull_statistics()
-            calculatedValue = getattr(self, attribute)
-            distance = np.abs(calculatedValue-target)
-            if distance < bestDistance:
-                bestDistance = distance
-                best = self.bkfEl
+        bestIndex = sm.find_min_index(dists)
         
-        foundEl = best # save the best result we found       
-        self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
-        self.calculate_bankfull_statistics()
-        
-        return(foundEl)
+        return(elevations[bestIndex])
     
     def bkf_binary_search(self, attribute, target, epsilon = None, returnFailed = False):
         """
