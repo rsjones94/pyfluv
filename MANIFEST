@@ -2,6 +2,9 @@
 setup.cfg
 setup.py
 pyfluv\__init__.py
-pyfluv\mathtools.py
+pyfluv\graindistributions.py
+pyfluv\streamconstants.py
 pyfluv\streamgeometry.py
+pyfluv\streammath.py
 pyfluv\test.py
+pyfluv\westpineyriver.py
