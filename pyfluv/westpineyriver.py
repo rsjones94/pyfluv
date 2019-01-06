@@ -592,10 +592,6 @@ wprR1XSRiffle = sg.CrossSection(r1xsrExes,r1xsrWhys,r1xsrZees,name = 'WPR Reach 
                              morphType = 'Ri', manN = 0.03, waterSlope = 0.025, bkfEl = 623.01, 
                              tobEl = 625.58)
 
-ccXSRiffle = sg.CrossSection(ccxsrExes,ccxsrWhys,ccxsrZees,name = 'Coon Creek', wsEl = 628.368,
-                             morphType = 'Ri', manN = 0.028, waterSlope = 0.03, bkfEl = 629.7, 
-                             tobEl = 630.2)
-
 pebs = {
 1:5,
 2:1,
@@ -612,8 +608,12 @@ pebs = {
 128:2
         }
 ccRifflePebble = gd.GrainDistribution(pebs, name = 'Coon Creek Riffle Pebble Count', metric = True)
-ccXSRiffle.sizeDist = ccRifflePebble
+ccXSRiffle = sg.CrossSection(ccxsrExes,ccxsrWhys,ccxsrZees,name = 'Coon Creek', wsEl = 628.368,
+                             morphType = 'Ri', manN = 0.028, waterSlope = 0.03, bkfEl = 629.7, 
+                             tobEl = 630.2, sizeDist = ccRifflePebble)
 
 ccXSPool = sg.CrossSection(ccxspExes,ccxspWhys,ccxspZees,name = 'Coon Creek', wsEl = 628.45,
                              morphType = 'Po', manN = 0.028, waterSlope = 0.002, bkfEl = 629.463, 
                              tobEl = 630.2)
+
+crosses = [wprR1XSPool,wprR1XSRiffle,ccXSRiffle,ccXSPool]

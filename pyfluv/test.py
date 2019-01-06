@@ -6,6 +6,6 @@ import streammath as sm
 import streamgeometry as strgeo
 import graindistributions as grain
 
-import westpineyriver as wpr
+from westpineyriver import crosses
 
-best = wpr.wprR1XSRiffle.bkf_brute_search('bkfA',30)
+crosses[0].qplot()
