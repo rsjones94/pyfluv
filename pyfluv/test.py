@@ -6,6 +6,6 @@ import streammath as sm
 import streamgeometry as strgeo
 import graindistributions as grain
 
-from westpineyriver import crosses
 
-crosses[0].qplot()
+
+a = strgeo.CrossSection([1,2,3],[1,2,3],[1,2,3])

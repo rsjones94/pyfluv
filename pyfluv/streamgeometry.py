@@ -9,7 +9,6 @@ import numpy as np
 import streamconstants as sc
 import streammath as sm
 
-
 class CrossSection(object):
     
     """
