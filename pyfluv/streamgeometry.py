@@ -94,6 +94,7 @@ class CrossSection(object):
         self.zees = zees.copy()
         self.morphType = morphType
         self.project = project
+        self.sizeDist = sizeDist
         self.metric = metric
         if self.metric:
             self.unitDict = sc.METRIC_CONSTANTS
