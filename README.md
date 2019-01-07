@@ -2,7 +2,7 @@
 
 A python package for the analysis of stream planform, profile and cross sections with a focus on restoration and mitigation.
 
-This project is currently PRE-ALPHA. You *could* download it right now, but it wouldn't be a good use of your time. Come back later!
+This project is currently in its alpha stage. Functionality is limited and there are no promises of correctness or stability.
 
 ## Getting Started
 
@@ -36,7 +36,7 @@ import pyfluv
 
 ## Getting Started
 
-Because pyfluv is pre-alpha, it has limited functionality. At the time of writing is contains two core classes - CrossSection and GrainDistribution.
+Because pyfluv is pre-alpha, it has limited functionality. At the time of writing is contains two core classes - CrossSection and GrainDistribution. A sample of 4 CrossSection objects are available in a list, callable as pyfluv.crosses.
 
 ### CrossSection
 
