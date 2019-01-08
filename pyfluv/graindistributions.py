@@ -6,8 +6,8 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-import streamconstants as sc
-import streammath as sm
+from . import streamconstants as sc
+from . import streammath as sm
 
 
 class GrainDistribution(object):

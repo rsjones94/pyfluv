@@ -1,8 +1,8 @@
 """
 Sample data from West Piney River in middle Tennessee.
 """
-import graindistributions as gd
-import streamgeometry as sg
+from . import graindistributions as gd
+from . import streamgeometry as sg
 
 #wpr R1 pool XS survey
 r1xspExes = [
@@ -587,10 +587,25 @@ ccxspZees = [
 wprR1XSPool = sg.CrossSection(r1xspExes,r1xspWhys,r1xspZees,name = 'WPR Reach 1', wsEl = 622.47,
                              morphType = 'Po', manN = 0.02, waterSlope = 0.001, bkfEl = 624.5, 
                              tobEl = 625.88)
-
+pebs = {
+.50:12,
+1:0,
+2:0,
+4:4,
+5.7:8,
+8:3,
+11.3:19,
+16:12,
+22.6:18,
+32:10,
+45:10,
+64:0,
+90:2
+        }
+wprR1RifflePebble = gd.GrainDistribution(pebs, name = 'WPR R1 Riffle Pebble Count', metric = True)
 wprR1XSRiffle = sg.CrossSection(r1xsrExes,r1xsrWhys,r1xsrZees,name = 'WPR Reach 1', wsEl = 621.674,
                              morphType = 'Ri', manN = 0.03, waterSlope = 0.025, bkfEl = 623.01, 
-                             tobEl = 625.58)
+                             tobEl = 625.58, sizeDist = wprR1RifflePebble)
 
 pebs = {
 1:5,
