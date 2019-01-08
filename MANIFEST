@@ -6,5 +6,4 @@ pyfluv\graindistributions.py
 pyfluv\streamconstants.py
 pyfluv\streamgeometry.py
 pyfluv\streammath.py
-pyfluv\test.py
 pyfluv\westpineyriver.py
