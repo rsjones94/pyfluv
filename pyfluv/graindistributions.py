@@ -36,13 +36,18 @@ class GrainDistribution(object):
         
         Args:
             distr: a dictionary that relates a grain size to a count or % of the total distribution. Will be sorted by key on initialization.
+                A second, less preferred option is to pass distr as a list, where each entry is a grainsize.
+                This will be converted to a dictionary.
             name: the name of the grain size count
             metric: True for units of mm, False for inches
 
         Raises:
             None.
         """
-        self.distr = distr
+        if isinstance(distr,list):
+            self.distr = sm.make_countdict(distr)
+        else:
+            self.distr = distr
         self.name = name
         self.metric = metric
         if self.metric:

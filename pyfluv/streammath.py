@@ -1526,6 +1526,15 @@ def break_at_bankfull(seriesX,seriesY,bkfEl,startInd):
     
     return(cutX,cutY)
     
+def make_countdict(countlist):
+    """
+    Yes, Python has a Counter dict object in the standard library.
+    """
+    counts = dict()
+    for i in countlist:
+        counts[i] = counts.get(i, 0) + 1
+    return(counts)
+    
 def blend_polygons():
     """
     Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.
