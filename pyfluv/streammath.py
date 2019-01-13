@@ -2,6 +2,7 @@
 Simple functions for processing stream survey data
 """
 import numpy as np
+import itertools
 
 def line_from_points(p1,p2):
     """
@@ -1528,13 +1529,51 @@ def break_at_bankfull(seriesX,seriesY,bkfEl,startInd):
     
 def make_countdict(countlist):
     """
-    Yes, Python has a Counter dict object in the standard library.
+    Yes, Python has a Counter dict object in the standard library. Here's this anyway.
     """
     counts = dict()
     for i in countlist:
         counts[i] = counts.get(i, 0) + 1
     return(counts)
     
+def strip_doubles(series):
+    """
+    Returns a list based on the input list where all elements identical to the previous element are removed.
+    """
+    stripped = [i for i,_ in itertools.groupby(series)]
+    return(stripped)
+    
+def make_monotonic(series,increasing = True, removeDuplicates = False):
+    """
+    Makes a list monotonic increasing (default) or decreasing by removing subsequent elements which violate montoticity.
+    
+    Args:
+        series: a list of numbers
+        increasing: a bool; True if you want the the list to monotonic increasing, False if monotonic decreasing.
+        removeDuplicates: bool; set to True to remove an element if the element preceding it is identical.   
+        
+    Returns:
+        The list with the elements violating monoticity removed.
+        
+    Raises:
+        None.
+    """
+    newSeries = [series[0]]
+    anchor = series[0]
+    for i,_ in enumerate(series[1:],1):
+        checkVal = series[i]
+        if increasing and checkVal >= anchor:
+            newSeries.append(checkVal)
+            anchor = checkVal
+        elif not increasing and checkVal <= anchor:
+            newSeries.append(checkVal)
+            anchor = checkVal
+            
+    if removeDuplicates:
+        newSeries = strip_doubles(newSeries)
+        
+    return(newSeries)
+        
 def blend_polygons():
     """
     Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.
