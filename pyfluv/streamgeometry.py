@@ -534,71 +534,41 @@ class CrossSection(object):
         
         return(elArray,attrArray)
     
-    def attr_d1(self, attribute, el, deltaEl = 0.1):
+    def _attr_nthderiv(self,attribute,n,elevation,delta = 0.1):
         """
-        Finds the first derivative of an attribute with respect to bkf elevation at a specific elevation.
+        This is the same as attr_nthderiv(), but does not have the @bkf_savestate decorator to save
+        on computation time. Does not save the bankfull state.
+        """
+        checkList = sm.build_deriv_exes(elevation,n,delta)
+        atList = []
+        for el in checkList:
+            self.bkfEl = el
+            self.calculate_bankfull_statistics()
+            at = getattr(self,attribute)
+            atList.append(at)
+        result = sm.diffreduce(atList,delta)
+        return(result)
+      
+    @bkf_savestate
+    def attr_nthderiv(self,attribute,n,elevation,delta = 0.1):
+        """
+        Finds the nth derivative of an attribute with respect to elevation at a given elevation.
         
         Args:
-            attribute: a string pointing to the attribute you want to calculate the derivative of, e.g., 'bkfA'.
-            deltaEl: the granularity of the change in elevation by which the derivative will be calculated.
+            attribute: the attribute to find the derivative for.
+            n: the order of the derivative.
+            elevation: the elevation to find the derivative at.
+            deltaEl: the granularity of the change in elevation by which the attribute will be calculated.
 
         Returns:
-            The 1st derivative of the attribute at that point with respect to bkf elevation.
+            The elevation where d(dA/dh) is maximized.
             
         Raises:
             None.
         """
-        self.bkfEl = el
-        self.calculate_bankfull_statistics()
-        low = getattr(self,attribute)
-        
-        self.bkfEl += deltaEl
-        self.calculate_bankfull_statistics()
-        high = getattr(self,attribute)
-        
-        firstDeriv = (high-low)/deltaEl
-        return(firstDeriv)
-        
-    def attr_d2(self, attribute, el, deltaEl = 0.1):
-        """
-        Finds the second derivative of an attribute with respect to bkf elevation at a specific elevation.
-        
-        Args:
-            attribute: a string pointing to the attribute you want to calculate the derivative of, e.g., 'bkfA'.
-            deltaEl: the granularity of the change in elevation by which the derivative will be calculated.
-
-        Returns:
-            The 2nd derivative of the attribute at that point with respect to bkf elevation.
+        result = self._attr_nthderiv(attribute,n,elevation,delta = 0.1)
+        return(result)
             
-        Raises:
-            None.
-        """
-        low = self.attr_d1(attribute,el-deltaEl,deltaEl)
-        high = self.attr_d1(attribute,el,deltaEl)
-    
-        secondDeriv = (high-low)/deltaEl
-        return(secondDeriv)
-        
-    def attr_d3(self, attribute, el, deltaEl = 0.1):
-        """
-        Finds the third derivative of an attribute with respect to bkf elevation at a specific elevation.
-        
-        Args:
-            attribute: a string pointing to the attribute you want to calculate the derivative of, e.g., 'bkfA'.
-            deltaEl: the granularity of the change in elevation by which the derivative will be calculated.
-
-        Returns:
-            The 3rd derivative of the attribute at that point with respect to bkf elevation.
-            
-        Raises:
-            None.
-        """
-        low = self.attr_d2(attribute,el,deltaEl)
-        high = self.attr_d2(attribute,el+deltaEl,deltaEl)
-    
-        thirdDeriv = (high-low)/deltaEl
-        return(thirdDeriv)
-    
     def find_floodplain_elevation(self, deltaEl = 0.1):
         """
         Finds the elevation where the second derivative of the channel area with respect to bkf elevation is maximized.
@@ -631,7 +601,7 @@ class CrossSection(object):
         mindex = sm.find_max_index(ddAreas)
         floodEl = elevations[mindex+1]
         """
-        return(floodEl)
+        pass
     
     def bkf_brute_search(self, attribute, target, delta = 0.1):
         """

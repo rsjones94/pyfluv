@@ -1573,6 +1573,36 @@ def make_monotonic(series,increasing = True, removeDuplicates = False):
         newSeries = strip_doubles(newSeries)
         
     return(newSeries)
+    
+def diffreduce(series,delta=None):
+    """
+    Reduces a list with numpy.reduce until there is only one element left.
+    If delta is specified, the list is divided by delta after each iteration.
+    This is equivalent to finding the (len(series)-1)th derivative.
+    """
+    while len(series) > 1:
+        series = np.diff(series)
+        if delta:
+            series = series/delta
+        
+    return(float(series))
+    
+def build_deriv_exes(value,n,delta):
+    """
+    Intended as a helper function for attr_nthderiv() in the CrossSection class.
+    Takes in a a value, and builds a list by appending value+delta*(i+,-i) for i = 1 through n.
+    When diff reduce is called on this output, the result is the derivative at value.
+    """
+    n += 1
+    toCheck = [value]
+    flipper = 1
+    for i in range(1,n):
+        mult = np.ceil(i/2)
+        toAdd = value+(mult*delta*flipper)
+        toCheck.append(toAdd)
+        flipper = -flipper
+    toCheck.sort()
+    return(toCheck)
         
 def blend_polygons():
     """
