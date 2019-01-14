@@ -1,6 +1,7 @@
 """
 Contains the CrossSection class, which stores and processes stream geometry (cross sections).
 """
+import functools
 import logging
 
 import matplotlib.pyplot as plt
@@ -126,6 +127,26 @@ class CrossSection(object):
             return(printname)
         else:
             return("UNNAMED")
+
+    def bkf_savestate(func):
+        """
+        To be used as a decorator for functions that alter bkfEl internally.
+        Saves the bkfEl at the time of the function call, the restores it and calculates stats
+        when the function exits.
+        """
+        def wrapper(*args, **kwargs):
+            print('hey')
+            saveEl = self.bkfEl
+            result = func(*args, **kwargs)
+            self.bkfEl = saveEl
+            self.calculate_bkf_statistics()
+            return(result)
+        return(wrapper)
+        
+    @bkf_savestate
+    def wraptest(self,el):
+        self.bkfEl = el
+        return('worked')
     
     def qplot(self, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
         """
@@ -519,6 +540,22 @@ class CrossSection(object):
         self.calculate_bankfull_statistics()
         
         return(elArray,attrArray)
+    
+    def attr_d1(self, attribute, deltaEl = 0.1):
+        """
+        Finds the first derivative of an attribute with respect to bkf elevation.
+        
+        Args:
+            attribute: a string pointing to the attribute you want to calculate the derivative of, e.g., 'bkfA'.
+            deltaEl: the granularity of the change in elevation by which the derivative will be calculated.
+
+        Returns:
+            The 1st derivative of the attribute at that point with respect to bkf elevation.
+            
+        Raises:
+            None.
+        """
+        pass
     
     def find_floodplain_elevation(self, deltaEl = 0.1):
         """
