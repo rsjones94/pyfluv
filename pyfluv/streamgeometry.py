@@ -134,19 +134,14 @@ class CrossSection(object):
         Saves the bkfEl at the time of the function call, the restores it and calculates stats
         when the function exits.
         """
-        def wrapper(*args, **kwargs):
-            print('hey')
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
             saveEl = self.bkfEl
-            result = func(*args, **kwargs)
+            result = func(self, *args, **kwargs)
             self.bkfEl = saveEl
-            self.calculate_bkf_statistics()
+            self.calculate_bankfull_statistics()
             return(result)
         return(wrapper)
-        
-    @bkf_savestate
-    def wraptest(self,el):
-        self.bkfEl = el
-        return('worked')
     
     def qplot(self, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
         """
@@ -506,6 +501,7 @@ class CrossSection(object):
         else:
             self.bkfQ = None
     
+    @bkf_savestate
     def attribute_list(self, attribute, deltaEl = 0.1):
         """
         Returns two arrays: a list of elevations and a corresponding list of the channel attribute if bkf
@@ -521,8 +517,6 @@ class CrossSection(object):
         Raises:
             None.
         """
-        saveEl = self.bkfEl # will use this to revert state at end of algorithm
-        
         elArray = []
         attrArray = []
         
@@ -535,12 +529,10 @@ class CrossSection(object):
 
             elArray.append(self.bkfEl)
             attrArray.append(getattr(self, attribute))
-                
-        self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
-        self.calculate_bankfull_statistics()
         
         return(elArray,attrArray)
     
+    @bkf_savestate
     def attr_d1(self, attribute, deltaEl = 0.1):
         """
         Finds the first derivative of an attribute with respect to bkf elevation.
@@ -616,6 +608,7 @@ class CrossSection(object):
         
         return(elevations[bestIndex])
     
+    @bkf_savestate
     def bkf_binary_search(self, attribute, target, epsilon = None, returnFailed = False):
         """
         Finds the most ideal bkf elevation by performing a binary-esque search, looking for a target value of a specified attribute.
@@ -634,8 +627,6 @@ class CrossSection(object):
         Raises:
             None.
         """
-        # first save the current bkfEl, if any
-        saveEl = self.bkfEl
         
         if epsilon is None:
             epsilon = target/1000 # by default the tolerance is 0.1% of the target.
@@ -677,8 +668,6 @@ class CrossSection(object):
                             break
         
         foundEl = self.bkfEl # save the best result we found       
-        self.bkfEl = saveEl # this line and next line reverts to initial bkfEl state
-        self.calculate_bankfull_statistics()
         
         if found:
             print('Converged in ' + str(n) + ' iterations.')
