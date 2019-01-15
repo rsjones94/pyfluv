@@ -1433,7 +1433,7 @@ def find_max_index(seriesY):
         if seriesY[i] > winValue:
             winValue = seriesY[i]
             winIndex = i
-    return(winIndex) 
+    return(winIndex)
     
 def get_climbing_indices(seriesY,startIndex):
     """
@@ -1539,6 +1539,8 @@ def make_countdict(countlist):
 def strip_doubles(series):
     """
     Returns a list based on the input list where all elements identical to the previous element are removed.
+    Name is misleading; will strip every identical value that is identical to an adjacent value 
+    (so [2,2,2] --> [2])
     """
     stripped = [i for i,_ in itertools.groupby(series)]
     return(stripped)
@@ -1587,21 +1589,20 @@ def diffreduce(series,delta=None):
         
     return(float(series))
     
-def build_deriv_exes(value,n,delta):
+    
+def build_deriv_exes(value,n,interval):
     """
     Intended as a helper function for attr_nthderiv() in the CrossSection class.
-    Takes in a a value, and builds a list by appending value+delta*(i+,-i) for i = 1 through n.
-    When diff reduce is called on this output, the result is the derivative at value.
+    Takes in a a value, and builds a list that has (n+1) equally spaced values both above and below
+    value if n is odd, or n-2 on each side of value plus value itself if n is even.
+    Interval is the range that the values in the list will span.
+    When diff reduce is called on this output, the result is the nth derivative at value.
     """
-    n += 1
-    toCheck = [value]
-    flipper = 1
-    for i in range(1,n):
-        mult = np.ceil(i/2)
-        toAdd = value+(mult*delta*flipper)
-        toCheck.append(toAdd)
-        flipper = -flipper
-    toCheck.sort()
+    toCheck = []
+    delta = interval/(n)
+    startVal = value - (interval/2)
+    for i in range(n+1):
+        toCheck.append(startVal + delta*i)
     return(toCheck)
         
 def blend_polygons():

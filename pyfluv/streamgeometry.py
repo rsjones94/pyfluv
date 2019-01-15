@@ -534,7 +534,7 @@ class CrossSection(object):
         
         return(elArray,attrArray)
     
-    def _attr_nthderiv(self,attribute,n,elevation,delta = 0.1):
+    def _attr_nthderiv(self,attribute,n,elevation,delta = 0.01):
         """
         This is the same as attr_nthderiv(), but does not have the @bkf_savestate decorator to save
         on computation time. Does not save the bankfull state.
@@ -550,7 +550,7 @@ class CrossSection(object):
         return(result)
       
     @bkf_savestate
-    def attr_nthderiv(self,attribute,n,elevation,delta = 0.1):
+    def attr_nthderiv(self,attribute,n,elevation,delta = 0.01):
         """
         Finds the nth derivative of an attribute with respect to elevation at a given elevation.
         
@@ -558,7 +558,7 @@ class CrossSection(object):
             attribute: the attribute to find the derivative for.
             n: the order of the derivative.
             elevation: the elevation to find the derivative at.
-            deltaEl: the granularity of the change in elevation by which the attribute will be calculated.
+            delta: the granularity of the change in elevation by which the derivative will be calculated.
 
         Returns:
             The elevation where d(dA/dh) is maximized.
@@ -566,43 +566,71 @@ class CrossSection(object):
         Raises:
             None.
         """
-        result = self._attr_nthderiv(attribute,n,elevation,delta = 0.1)
+        result = self._attr_nthderiv(attribute,n,elevation,delta)
         return(result)
-            
-    def find_floodplain_elevation(self, deltaEl = 0.1):
+        
+    @bkf_savestate
+    def find_floodplain_elevation(self, attribute = 'bkfA', method = 'lower', delta = 0.01):
         """
-        Finds the elevation where the second derivative of the channel area with respect to bkf elevation is maximized.
+        Estimates the elevation of the floodplain by maximizing a target function that is evaluated
+        at each possible survey elevation.
         
         Args:
+            attribute: the attribute used to find flow relief. Can be 'bkfA' or 'bkfW'.
+                If bkfA, the target function is the third derivative of bankfull area with respect to bankfull elevation.
+                If bkfW, the target function is the second derivative of bankfull width with respect to bankfull elevation.
+            method: the method used to find the floodplain.
+                'left' - the left floodplain elevation is returned
+                'right' - the right floodplain elevation is returned
+                'lower' - the lower of the left and right floodplains is returned
+                'upper' - the higher of the left and right floodplains is returned
+                'mean' - the mean floodplain elevation is returned            
             deltaEl: the granularity of the change in elevation by which the area will be calculated.
-
+                Note that any points within delta/2 of the thalweg will not be evaluated
+                as the target function would not be able to be evaluated.
         Returns:
-            The elevation where d(dA/dh) is maximized.
+            The elevation where the target function is maximized.
             
         Raises:
-            None.
-            
-        Notes:
-            The current algorithm just checks every elevation between the thalweg and highest surveyed point.
-            A much faster algorithm is possible that just checks at elevations that exist in the survey.
+            None.    
         """
-        leftEls = sm.make_monotonic(self.elevations[self.thwIndex::-1],removeDuplicates=True)
-        rightEls = sm.make_monotonic(self.elevations[self.thwIndex:],removeDuplicates=True)
-        """
-        # this is the code for an algorithm that iterates with a changing bkfEl
-        arrays = self.attribute_list(attribute = 'bkfA', deltaEl = deltaEl)
-        elevations = arrays[0]
-        areas = arrays[1]
+        if method not in ['lower','upper','left','right','mean']:
+            raise Exception("Invalid method. Method must be one of 'lower','upper','left','right','mean'.")
         
-        dAreas = np.diff(areas)/deltaEl # units: length^2 / length
-        ddAreas = np.diff(dAreas)/deltaEl # units: length^2 / length / length
-        #ddAreas[i] corresponds with elevations[i+1]
+        if attribute == 'bkfA':
+            deriv = 3
+        elif attribute == 'bkfW':
+            deriv = 2
+        else:
+            raise Exception("Invalid attribute. Attribute must be 'bkfA' or 'bkfW'.")
         
-        mindex = sm.find_max_index(ddAreas)
-        floodEl = elevations[mindex+1]
-        """
-        pass
-    
+        leftEls = sm.make_monotonic(self.elevations[self.thwIndex-1::-1],removeDuplicates=True)
+        rightEls = sm.make_monotonic(self.elevations[self.thwIndex+1:],removeDuplicates=True)
+        
+        els = [None,None]
+        # we need to filter out elevations within delta/2 of the thalweg elevation
+        els[0] = [el for el in leftEls if el > (self.elevations[self.thwIndex] + delta/2)]
+        els[1] = [el for el in rightEls if el > (self.elevations[self.thwIndex] + delta/2)]
+        
+        print(els)
+        
+        funcResults = [None,None]
+        for i,side in enumerate(els):
+            funcResults[i] = [self._attr_nthderiv(attribute,deriv,el,delta) for el in side]
+        
+        print(funcResults)
+        
+        maxes = [max(funcResults[0]),max(funcResults[1])]
+        inds = [sm.find_max_index(funcResults[0]),sm.find_max_index(funcResults[1])]
+        winEls = [els[0][inds[0]],els[1][inds[1]]]
+        
+        highSide = sm.find_max_index(maxes) # 0 for left, 1 for right
+        lowSide = highSide^1 # flips the bit
+        
+        resultDict = {'lower':winEls[lowSide],'upper':winEls[highSide],'left':winEls[0],
+                      'right':winEls[1],'mean':np.mean(winEls)}
+        return(resultDict[method])
+        
     def bkf_brute_search(self, attribute, target, delta = 0.1):
         """
         Finds the most ideal bkf elevation by performing a brute force search, looking for a target value of a specified attribute.
