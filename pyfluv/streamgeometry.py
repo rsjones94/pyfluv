@@ -564,20 +564,20 @@ class CrossSection(object):
         This is the same as attr_nthderiv(), but does not have the @bkf_savestate decorator to save
         on computation time. Does not save the bankfull state.
         """
-        checkList = sm.build_deriv_exes(elevation,n,delta)
+        checkList, change = sm.build_deriv_exes(elevation,n,delta)
         atList = []
         for el in checkList:
             self.bkfEl = el
             self.calculate_bankfull_statistics()
             at = getattr(self,attribute)
             atList.append(at)
-        result = sm.diffreduce(atList,delta)
+        result = sm.diffreduce(atList,change)
         return(result)
       
     @bkf_savestate
     def attr_nthderiv(self,attribute,n,elevation,delta = 0.01):
         """
-        Finds the nth derivative of an attribute with respect to elevation at a given elevation.
+        Finds the central nth numerical derivative of an attribute with respect to elevation at a given elevation.
         
         Args:
             attribute: the attribute to find the derivative for.
@@ -604,7 +604,8 @@ class CrossSection(object):
             attribute: the attribute used to find flow relief. Can be 'bkfA' or 'bkfW'.
                 If bkfA, the target function is the third derivative of bankfull area with respect to bankfull elevation.
                 If bkfW, the target function is the second derivative of bankfull width with respect to bankfull elevation.
-                Note that bkfW seems to return the expected result more reliably.
+                Note that bkfW seems to return the expected result more reliably as the derivative is uncentered
+                    for derivatives with an odd order.
             method: the method used to find the floodplain.
                 'left' - the left floodplain elevation is returned
                 'right' - the right floodplain elevation is returned

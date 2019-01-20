@@ -1604,18 +1604,45 @@ def diffreduce(series,delta=None):
 def build_deriv_exes(value,n,interval):
     """
     Intended as a helper function for attr_nthderiv() in the CrossSection class.
-    Takes in a a value, and builds a list that has (n+1) equally spaced values both above and below
-    value if n is odd, or n-2 on each side of value plus value itself if n is even.
-    Interval is the range that the values in the list will span.
-    When diff reduce is called on this output, the result is the nth derivative at value.
+    Takes in a a value, and builds a list that has (n+1) equally spaced values centered around value
+    if n is odd. Else, has equally spaced values with n/2 values above and n/2-1 values below.
+    Reducing this with np.diff until len is one is the nth derivative.
+    
+    Interval is the MAX range of the list returned. If n is even, the range will be interval.
+    If n is odd, the range will be be somewhat smaller.
     """
-    toCheck = []
-    delta = interval/(n)
-    startVal = value - (interval/2)
-    for i in range(n+1):
-        toCheck.append(startVal + delta*i)
-    return(toCheck)
+    isOdd = (n%2 != 0)
+    if isOdd:
+        funcN = n
+    else:
+        funcN = n-1
         
+    change = interval/(funcN+1)
+        
+    toCheck = [value]
+    sign = -1
+    for i in range(1,n+1):
+        sign = -sign
+        mult = np.ceil(i/2)
+        toCheck.append(value+(mult*change*sign))
+        
+    toCheck.sort()
+    return(toCheck,change)
+    
+def _DEPR_build_deriv_exes(value,n,interval):
+    """
+    Takes value and makes a list of length (n+1) starting at value and each subsequent
+    value is the previous index plus (interval/n):
+        
+    Returns a tuple (list,interval/n)
+    If a function is evaluated at each element in the list and then reduced to len 1 with
+    np.diff, the result is the nth derivative.
+    """
+    change = interval/n
+    res = [value+change*i for i in range(n+1)]
+    
+    return(res,change)
+    
 def blend_polygons():
     """
     Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.
