@@ -4,6 +4,8 @@ Simple functions for processing stream survey data
 import numpy as np
 import itertools
 
+from . import streamexceptions
+
 def line_from_points(p1,p2):
     """
     Creates a line (slope,intercept) based on two points that fall on the line.
@@ -513,10 +515,10 @@ def remove_side(seriesX,seriesY,xVal,leftRight):
         A tuple of two lists representing the modified series.
         
     Raises:
-        Exception: if leftRight is neither 'left' nor 'right'
+        InputError: if leftRight is neither 'left' nor 'right'
     """
     if leftRight is not 'left' and leftRight is not 'right':
-        raise Exception('Invalid leftRight value. findType must be "left" or "right"')
+        raise streamexceptions.InputError('Invalid leftRight value. findType must be "left" or "right"')
         
     newX, newY = [],[]
     
@@ -727,11 +729,11 @@ def is_cut(index,seriesX,seriesY,findType):
         True if the point is the findType specified, False otherwise.
         
     Raises:
-        Exception: if findType is not "overhang" or "undercut".
+        InputError: if findType is not "overhang" or "undercut".
     """
     #print('newcall: checking index ' + str(index))
     if findType is not 'overhang' and findType is not 'undercut':
-        raise Exception('Invalid findType value. findType must be "overhang" or "undercut"')
+        raise streamexceptions.InputError('Invalid findType value. findType must be "overhang" or "undercut"')
     #print(index)
     pointX = seriesX[index]
     pointY = seriesY[index]
@@ -796,10 +798,10 @@ def get_cuts(seriesX,seriesY,findType):
         A list of indices representing which points in the series are of the findType specified.
         
     Raises:
-        Exception: If findType is not "overhang" or "undercut"
+        InputError: If findType is not "overhang" or "undercut"
     """
     if findType is not 'overhang' and findType is not 'undercut':
-        raise Exception('Invalid findType value. findType must be "overhang" or "undercut"')
+        raise streamexceptions.InputError('Invalid findType value. findType must be "overhang" or "undercut"')
     
     cuts = []
     
@@ -854,10 +856,10 @@ def pare_contiguous_sequences(sequences,seriesY,minOrMax=None):
         A list of indices that represent the highest or lowest point in each sublist of sequences.
         
     Raises:
-        Exception: If minOrMax is not "min" or "max".
+        InputError: If minOrMax is not "min" or "max".
     """
     if minOrMax is not 'min' and minOrMax is not 'max':
-        raise Exception('Invalid minOrMax value. minOrMax must be "min" or "max"')
+        raise streamexceptions.InputError('Invalid minOrMax value. minOrMax must be "min" or "max"')
     
     keepList = []
     
@@ -887,7 +889,7 @@ def remove_overhangs(seriesX,seriesY,method,adjustY=True):
         A tuple of lists representing the new x and y coordinates of the section.
         
     Raises:
-        Exception: If method is not "cut" or "fill"
+        InputError: If method is not "cut" or "fill"
     """
     if method == 'cut':
         findType = 'overhang'
@@ -896,7 +898,7 @@ def remove_overhangs(seriesX,seriesY,method,adjustY=True):
         findType = 'undercut'
         pareType = 'min'
     else:
-        raise Exception('Invalid method. Method must be "cut" or "fill"')
+        raise streamexceptions.InputError('Invalid method. Method must be "cut" or "fill"')
     
     overhangs = get_cuts(seriesX,seriesY,findType)
     contigOverhangs = find_contiguous_sequences(overhangs)

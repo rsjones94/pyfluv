@@ -7,6 +7,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
+from . import streamexceptions
 from . import streamconstants as sc
 from . import streammath as sm
 
@@ -25,6 +26,7 @@ class CrossSection(object):
         exes(:obj:'list' of :obj:'float'): the surveyed x (easting or similar) vals of the cross section
         whys(:obj:'list' of :obj:'float'): the surveyed y (northing or similar) vals of the cross sections
         zees(:obj:'list' of :obj:'float'): the surveyed z (elevation) vals of the cross section
+        desc(:obj:'list' of :obj:'str'): descriptions of each of the ith shot represented by (exes[i],whys[i],zees[i])
         rawSta(float): the stationing of the cross section
         rawEl(float): the elevations of the cross section
         stations(float): the stationing of the cross section with overhangs removed (may be equivalent to rawSta)
@@ -59,7 +61,7 @@ class CrossSection(object):
         boundTruths(dict): a dictionary that stores whether an attribute (such as bkfW) is exact or represents a minimum
         """
     
-    def __init__(self, exes, whys, zees, name = None, morphType = None, metric = False, manN = None, 
+    def __init__(self, exes, whys, zees, desc = None, name = None, morphType = None, metric = False, manN = None, 
                  waterSlope = None, project = True, bkfEl = None, wsEl = None, tobEl = None, 
                  thwStation = None, sizeDist = None, fillFraction = 1):
         """
@@ -82,16 +84,23 @@ class CrossSection(object):
                           and intermediate values are some mix of cut and fill.
                 
         Raises:
-            Exception: If the geometry of the cross section is not simple (non self-intersecting)
-            Exception: If any of exes, whys or zees don't have the same length as the others
+            GeometryError: If the geometry of the cross section is not simple (non self-intersecting)
+            ShapeAgreementError: If any of exes, whys or zees don't have the same length as the others
+                                 or desc is specified but does not match the length of exes, whys and zees
         """
         if not(len(exes) == len(whys) == len(zees)):
-            raise Exception('exes, whys and zees must all have the same length.')
+            raise streamexceptions.ShapeAgreementError('exes, whys and zees must all have the same length.')
+        if desc is not None and len(desc) != len(exes):
+            raise streamexceptions.ShapeAgreementError('If desc is specified, it must have the same length as exes, whys and zees.')
         
         self.name = name
         self.exes = exes.copy()
         self.whys = whys.copy()
         self.zees = zees.copy()
+        if desc is not None:
+            self.desc = desc.copy()
+        else:
+            self.desc = [None]*len(exes)
         self.morphType = morphType
         self.project = project
         self.sizeDist = sizeDist
@@ -148,9 +157,10 @@ class CrossSection(object):
     def qplot(self, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
         """
         Uses matplotlib to create a quick plot of the cross section.
+        If showCutSection is True but no overhangs are present, no removed overhangs will be shown.
         """
         plt.figure()
-        if showCutSection:
+        if showCutSection and self.hasOverhangs:
             plt.plot(self.rawSta,self.rawEl, color="tomato", linewidth = 2)
             
         plt.plot(self.stations,self.elevations, color="black", linewidth = 2)
@@ -158,38 +168,42 @@ class CrossSection(object):
         plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
         plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
         
-        
+        # in retrospect, this probably should have been done with a loop and a truth dict
+                
+        if showFloodEl and self.floodproneEl:
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self.floodproneEl,self.thwIndex)
+            exes = [broken[0][0],broken[0][-1]]
+            whys = [broken[1][0],broken[1][-1]]
+            plt.plot(exes,whys, color="green", linewidth = 2, label = 'Floodprone Elevation')
+            plt.scatter(exes,whys, color="green")
+            
+        if showTob and self.tobEl:
+            broken = sm.break_at_bankfull(self.stations,self.elevations,self.tobEl,self.thwIndex)
+            exes = [broken[0][0],broken[0][-1]]
+            whys = [broken[1][0],broken[1][-1]]
+            plt.plot(exes,whys, color="magenta", linewidth = 2, label = 'Top of Bank') 
+            plt.scatter(exes,whys, color="magenta")
+            
         if showBkf and self.bkfEl:
             broken = sm.break_at_bankfull(self.stations,self.elevations,self.bkfEl,self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="red", linewidth = 2)
+            plt.plot(exes,whys, color="red", linewidth = 2, label = 'Bankfull')
             plt.scatter(exes,whys, color="red")
         
         if showWs and self.wsEl:
             broken = sm.break_at_bankfull(self.stations,self.elevations,self.wsEl,self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, "b--", linewidth = 2)
+            plt.plot(exes,whys, "b--", linewidth = 2, label = 'Water Surface')
             plt.scatter(exes,whys, color="b")
             
-        if showTob and self.tobEl:
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self.tobEl,self.thwIndex)
-            exes = [broken[0][0],broken[0][-1]]
-            whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="magenta", linewidth = 2)
-            plt.scatter(exes,whys, color="magenta")
-            
-        if showFloodEl and self.floodproneEl:
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self.floodproneEl,self.thwIndex)
-            exes = [broken[0][0],broken[0][-1]]
-            whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="green", linewidth = 2)
-            plt.scatter(exes,whys, color="green")
+        plt.legend()
             
     def planplot(self, showProjections = True):
         """
         Uses matplotlib to create a quick plot of the planform of the cross section.
+        If showProjections is True but self.project is False, no projects will be shown.
         
         Args:
             showProjections: If True, shows the where each shot was projected to.
@@ -245,7 +259,7 @@ class CrossSection(object):
         
         simplicity = sm.is_simple(self.rawSta,self.rawEl)
         if not(simplicity[0]): # if the geometry is not simple
-            raise Exception('Error: geometry is self-intersecting on segments ' + str(simplicity[1]) + ' and ' + str(simplicity[2]))
+            raise streamexceptions.GeometryError('Error: geometry is self-intersecting on segments ' + str(simplicity[1]) + ' and ' + str(simplicity[2]))
     
     def set_thw_index(self):
         """
@@ -276,9 +290,9 @@ class CrossSection(object):
         """
         if self.bkfEl:
             if self.bkfEl <= min(self.elevations):
-                raise Exception('Bankfull elevation is at or below XS bottom.')
+                raise streamexceptions.PhysicsLogicError('Bankfull elevation is at or below XS bottom.')
             if self.elevations[self.thwIndex] >= self.bkfEl:
-                raise Exception('Thw index (' + str(self.thwIndex) + ') is at or above bankfull elevation.')
+                raise streamexceptions.PhysicsLogicError('Thw index (' + str(self.thwIndex) + ') is at or above bankfull elevation.')
             
             broken = sm.break_at_bankfull(self.stations,self.elevations,self.bkfEl,self.thwIndex)
             self.bStations = broken[0]
@@ -592,17 +606,17 @@ class CrossSection(object):
             The elevation where the target function is maximized.
             
         Raises:
-            None.    
+            InputError: if the arguments passed to the method or attribute parameters are invalid.     
         """
         if method not in ['lower','upper','left','right','mean']:
-            raise Exception("Invalid method. Method must be one of 'lower','upper','left','right','mean'.")
+            raise streamexceptions.InputError("Invalid method. Method must be one of 'lower','upper','left','right','mean'.")
         
         if attribute == 'bkfA':
             deriv = 3
         elif attribute == 'bkfW':
             deriv = 2
         else:
-            raise Exception("Invalid attribute. Attribute must be 'bkfA' or 'bkfW'.")
+            raise streamexceptions.InputError("Invalid attribute. Attribute must be 'bkfA' or 'bkfW'.")
         
         leftEls = sm.make_monotonic(self.elevations[self.thwIndex-1::-1],removeDuplicates=True)
         rightEls = sm.make_monotonic(self.elevations[self.thwIndex+1:],removeDuplicates=True)
@@ -612,13 +626,9 @@ class CrossSection(object):
         els[0] = [el for el in leftEls if el > (self.elevations[self.thwIndex] + delta/2)]
         els[1] = [el for el in rightEls if el > (self.elevations[self.thwIndex] + delta/2)]
         
-        print(els)
-        
         funcResults = [None,None]
         for i,side in enumerate(els):
             funcResults[i] = [self._attr_nthderiv(attribute,deriv,el,delta) for el in side]
-        
-        print(funcResults)
         
         maxes = [max(funcResults[0]),max(funcResults[1])]
         inds = [sm.find_max_index(funcResults[0]),sm.find_max_index(funcResults[1])]
@@ -630,7 +640,8 @@ class CrossSection(object):
         resultDict = {'lower':winEls[lowSide],'upper':winEls[highSide],'left':winEls[0],
                       'right':winEls[1],'mean':np.mean(winEls)}
         return(resultDict[method])
-        
+       
+    @bkf_savestate
     def bkf_brute_search(self, attribute, target, delta = 0.1):
         """
         Finds the most ideal bkf elevation by performing a brute force search, looking for a target value of a specified attribute.
