@@ -161,9 +161,10 @@ class CrossSection(object):
         """
         plt.figure()
         if showCutSection and self.hasOverhangs:
-            plt.plot(self.rawSta,self.rawEl, color="tomato", linewidth = 2)
+            plt.plot(self.rawSta,self.rawEl, "b--", color="#787878", linewidth = 2, label = 'Overhang')
             
         plt.plot(self.stations,self.elevations, color="black", linewidth = 2)
+        plt.scatter(self.stations,self.elevations, color="black")
         plt.title(str(self))
         plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
         plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
@@ -174,29 +175,29 @@ class CrossSection(object):
             broken = sm.break_at_bankfull(self.stations,self.elevations,self.floodproneEl,self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="green", linewidth = 2, label = 'Floodprone Elevation')
-            plt.scatter(exes,whys, color="green")
+            plt.plot(exes,whys, color="#06AA00", linewidth = 2, label = 'Floodprone Elevation')
+            plt.scatter(exes,whys, color="#06AA00")
             
         if showTob and self.tobEl:
             broken = sm.break_at_bankfull(self.stations,self.elevations,self.tobEl,self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="magenta", linewidth = 2, label = 'Top of Bank') 
-            plt.scatter(exes,whys, color="magenta")
+            plt.plot(exes,whys, color="#FFBD10", linewidth = 2, label = 'Top of Bank') 
+            plt.scatter(exes,whys, color="#FFBD10")
             
         if showBkf and self.bkfEl:
             broken = sm.break_at_bankfull(self.stations,self.elevations,self.bkfEl,self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="red", linewidth = 2, label = 'Bankfull')
-            plt.scatter(exes,whys, color="red")
+            plt.plot(exes,whys, color="#FF0000", linewidth = 2, label = 'Bankfull')
+            plt.scatter(exes,whys, color="#FF0000")
         
         if showWs and self.wsEl:
             broken = sm.break_at_bankfull(self.stations,self.elevations,self.wsEl,self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, "b--", linewidth = 2, label = 'Water Surface')
-            plt.scatter(exes,whys, color="b")
+            plt.plot(exes,whys, "b--", color = '#31A9FF', linewidth = 2, label = 'Water Surface')
+            plt.scatter(exes,whys, color="#31A9FF")
             
         plt.legend()
             
@@ -547,6 +548,16 @@ class CrossSection(object):
             attrArray.append(getattr(self, attribute))
         
         return(elArray,attrArray)
+      
+    @bkf_savestate
+    def get_attr(self,attribute,elevation):
+        """
+        Returns an attribute (that is a function of bkf elevation) at a given bkf elevation.
+        """
+        self.bkfEl = elevation
+        self.calculate_bankfull_statistics()
+        at = getattr(self,attribute)
+        return(at)
     
     def _attr_nthderiv(self,attribute,n,elevation,delta = 0.01):
         """
@@ -593,11 +604,14 @@ class CrossSection(object):
             attribute: the attribute used to find flow relief. Can be 'bkfA' or 'bkfW'.
                 If bkfA, the target function is the third derivative of bankfull area with respect to bankfull elevation.
                 If bkfW, the target function is the second derivative of bankfull width with respect to bankfull elevation.
+                Note that bkfW seems to return the expected result more reliably.
             method: the method used to find the floodplain.
                 'left' - the left floodplain elevation is returned
                 'right' - the right floodplain elevation is returned
                 'lower' - the lower of the left and right floodplains is returned
                 'upper' - the higher of the left and right floodplains is returned
+                'min' - the floodplain with less flow release is returned
+                'max' - the floodplain with more flow release is returned
                 'mean' - the mean floodplain elevation is returned            
             deltaEl: the granularity of the change in elevation by which the area will be calculated.
                 Note that any points within delta/2 of the thalweg will not be evaluated
@@ -608,7 +622,7 @@ class CrossSection(object):
         Raises:
             InputError: if the arguments passed to the method or attribute parameters are invalid.     
         """
-        if method not in ['lower','upper','left','right','mean']:
+        if method not in ['lower','upper','min','max','left','right','mean']:
             raise streamexceptions.InputError("Invalid method. Method must be one of 'lower','upper','left','right','mean'.")
         
         if attribute == 'bkfA':
@@ -626,19 +640,23 @@ class CrossSection(object):
         els[0] = [el for el in leftEls if el > (self.elevations[self.thwIndex] + delta/2)]
         els[1] = [el for el in rightEls if el > (self.elevations[self.thwIndex] + delta/2)]
         
+        
         funcResults = [None,None]
         for i,side in enumerate(els):
             funcResults[i] = [self._attr_nthderiv(attribute,deriv,el,delta) for el in side]
-        
         maxes = [max(funcResults[0]),max(funcResults[1])]
         inds = [sm.find_max_index(funcResults[0]),sm.find_max_index(funcResults[1])]
         winEls = [els[0][inds[0]],els[1][inds[1]]]
         
-        highSide = sm.find_max_index(maxes) # 0 for left, 1 for right
-        lowSide = highSide^1 # flips the bit
+        maxSide = sm.find_max_index(maxes) # 0 for left, 1 for right
+        minSide = maxSide^1 # flips the bit
         
-        resultDict = {'lower':winEls[lowSide],'upper':winEls[highSide],'left':winEls[0],
-                      'right':winEls[1],'mean':np.mean(winEls)}
+        highSide = sm.find_max_index(winEls) # 0 for left, 1 for right
+        lowSide = highSide^1
+        
+        resultDict = {'min':winEls[minSide],'max':winEls[maxSide],'left':winEls[0],
+                      'right':winEls[1],'lower':winEls[lowSide],'upper':winEls[highSide],
+                      'mean':np.mean(winEls)}
         return(resultDict[method])
        
     @bkf_savestate

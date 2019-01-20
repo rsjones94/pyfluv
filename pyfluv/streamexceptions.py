@@ -28,3 +28,9 @@ class GeometryError(PhysicsLogicError):
     """
     pass
 
+class NullVectorError(Exception):
+    """
+    Errors stemming from zero length vector operations.
+    """
+    pass
+

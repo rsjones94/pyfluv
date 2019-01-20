@@ -1257,7 +1257,13 @@ def project_point(a,b):
  
     Raises:
         None.
+        
+    Notes:
+        Will throw a runtime warning when either a or b is zero.
     """
+    if all(np.isclose(a,(0,0))):
+        raise streamexceptions.NullVectorError('Vector to be projected has zero magnitude.')
+    
     maga = (sum(np.multiply(a,a)))**0.5
     #print("maga = " + str(maga))
     magb = (sum(np.multiply(b,b)))**0.5
@@ -1305,7 +1311,10 @@ def centerline_series(seriesX,seriesY):
     
     for i in range(1,len(seriesX)): # running project_point() on the origin will give NaNs, so we prepopulated it
         originalPoint = (rmX[i],rmY[i])
-        projected = project_point(originalPoint,centerlinePoint)
+        try:
+            projected = project_point(originalPoint,centerlinePoint)
+        except streamexceptions.NullVectorError: # happens when the a point is directly beneath or above the first point
+            projected = originalPoint
         projX.append(projected[0])
         projY.append(projected[1])
         
