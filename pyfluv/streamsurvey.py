@@ -76,3 +76,4 @@ class StreamSurvey(object):
         """
         Parses the survey using the desc column.
         """
+        pass
