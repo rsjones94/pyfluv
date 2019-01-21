@@ -628,6 +628,7 @@ class CrossSection(object):
         
         if attribute == 'bkfA':
             deriv = 3
+            logging.warn('Floodplain estimation by the third derivative of bkfA is unstable.')
         elif attribute == 'bkfW':
             deriv = 2
         else:
