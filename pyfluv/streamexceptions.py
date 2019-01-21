@@ -34,3 +34,7 @@ class NullVectorError(Exception):
     """
     pass
 
+class NamingError(Exception):
+    """
+    Errors stemming from malformed stream survey descriptions.
+    """
