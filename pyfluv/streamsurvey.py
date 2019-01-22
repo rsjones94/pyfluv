@@ -19,8 +19,9 @@ class StreamSurvey(object):
     Attributes:
         file(str): name or filepath of the csv that contains the survey data.
         sep(str): the separating character in the file.
-        keywords(dict): a dictionayr that relates keywords in the survey descriptions to geomorphic features.
+        keywords(dict): a dictionary that relates keywords in the survey descriptions to geomorphic features.
         data(pandas.core.frame.DataFrame): pandas dataframe representing the imported survey.
+        colRelations(dict): a dictionary that relates standardized names to the column names of the survey.
     """
     
     def __init__(self,file,sep=',',keywords=None,colRelations=None):
@@ -29,7 +30,7 @@ class StreamSurvey(object):
         sep(str): the separating character in the file.
         keywords(dict): a dictionary that relates geomorphic features to how they were called out in the survey.
                         If nothing is passed, a default dictionary is used.
-        colRelations(dict): a dictionary that relates standardized names used by the parser to the column names of the survey.
+        colRelations(dict): a dictionary that relates standardized names to the column names of the survey.
                             If nothing is passed, a default dictionary is used.
         """
         self.file = file
@@ -67,22 +68,33 @@ class StreamSurvey(object):
     def importSurvey(self):
         df=pd.read_csv(self.file, sep=',')
         self.data = df
-        
-    def writeSurvey(self,name,parse = True):
-        """
-        Writes the survey data to a csv. If parsed is true, cross sections and profiles
-        will be written to separate files.
-        """
-        if parse:
-            raise NotImplementedError('Parsing not yet implemented.')
-        else:
-            self.data.to_csv(name)
             
-    def parseNames(self):
+    def pack_shots(self):
         """
-        Parses the survey using the desc column.
+        Packs each row in self.data into a Shot object and returns an array
         """
-        pass
+        packed = [Shot(shotLine,self.colRelations,self.keywords) for shotLine in self.data.itertuples()]
+        return(packed)
+        
+    def filter_survey_type(self,packedShots,surveyType):
+        """
+        Filters a list of packed shots by the 'type' key in the meaning attribute.
+        """
+        result = [pack for pack in packedShots if pack.meaning['type'] == surveyType]
+        return(result)
+        
+    def get_names(self,packedShots):
+        """
+        Takes a list of packed shots in and returns a dict relating names to count
+        """
+        names = [shot.meaning['name'] for shot in packedShots]
+        counter = {}
+        for name in names:
+            try:
+                counter[name] += 1
+            except KeyError:
+                counter[name] = 1
+        return(counter)
     
 class Parser(object):
     """
@@ -156,7 +168,62 @@ class Parser(object):
         
         return(result)
         
+class Shot(object):
+    """
+    A survey shot.
+    
+    Attributes:
+        shotline(pandas.core.frame.Pandas): A series representing the survey shot.
+        keywords(dict): a dictionary that relates keywords in the survey descriptions to geomorphic features.
+        colRelations(dict): a dictionary that relates column headers in the survey to standardized meanings.
+        shotnum(int): the shot number
+        ex(float): the x-coordinate of the shot
+        why(float): the y-coordinate of the shot
+        zee(float): the z-coordinate of the shot
+        desc(str): the description of the shot specified when it was taken
+        meaning(dict): the semantic meaning of the desc string
+        """
+    
+    def __init__(self,shotLine,colRelations,parseDict):
+        """
+        shotLine(pandas.core.frame.Pandas): A series representing the survey shot.
+        parseDict(dict): a dictionary that relates keywords in the survey descriptions to geomorphic features.
+        colRelations(dict): a dictionary that relates column headers in the survey to standardized meanings.
+        """
+        self.shotLine = shotLine
+        self.colRelations = colRelations
+        self.parseDict = parseDict
         
-    
-    
-    
+        self.set_shotnum()
+        self.set_ex()
+        self.set_why()
+        self.set_zee()
+        self.set_desc()
+        self.set_meaning()
+        
+    def __str__(self):
+        return('(Shot ' + str(self.shotnum) + ':' + str(self.desc)+')')
+        
+    def __repr__(self):
+        return('(Shot ' + str(self.shotnum) + ':' + str(self.desc)+')')
+        
+    def set_shotnum(self):
+        self.shotnum = getattr(self.shotLine,self.colRelations['shotnum'])
+        
+    def set_ex(self):
+        self.ex = getattr(self.shotLine,self.colRelations['exes'])
+        
+    def set_why(self):
+        self.why = getattr(self.shotLine,self.colRelations['whys'])
+        
+    def set_zee(self):
+        self.zee = getattr(self.shotLine,self.colRelations['zees'])
+        
+    def set_desc(self):
+        self.desc = getattr(self.shotLine,self.colRelations['desc'])
+        
+    def set_meaning(self):
+        parsed = Parser(self.parseDict)
+        meaning = parsed.get_meaning(self.desc)
+        self.meaning = meaning
+        
