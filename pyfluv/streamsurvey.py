@@ -76,11 +76,20 @@ class StreamSurvey(object):
         packed = [Shot(shotLine,self.colRelations,self.keywords) for shotLine in self.data.itertuples()]
         return(packed)
         
-    def filter_survey_type(self,packedShots,surveyType):
+    def filter_shots(self,packedShots,value,key):
         """
-        Filters a list of packed shots by the 'type' key in the meaning attribute.
+        Filters a list of packed shots by the 'type' key in the meaning attribute
+        
+        Attributes:
+            packedShots: a list of packed shots
+            attribute: the key in the meaning dict for a packed shot to filter by.
+            value: the value to filter for
+                   Valid key:value pairs are
+                       'type':'Profile' or 'type':'Cross Section'
+                       'name':<name that exists in the survey>
+                       'morphs':<morph shorthand in survey, such as 'ri' or 'tob'>
         """
-        result = [pack for pack in packedShots if pack.meaning['type'] == surveyType]
+        result = [pack for pack in packedShots if value in pack.meaning[key]]
         return(result)
         
     def get_names(self,packedShots):
@@ -202,10 +211,10 @@ class Shot(object):
         self.set_meaning()
         
     def __str__(self):
-        return('(Shot ' + str(self.shotnum) + ':' + str(self.desc)+')')
+        return(f'<shot object:{self.shotnum},{self.desc}>')
         
     def __repr__(self):
-        return('(Shot ' + str(self.shotnum) + ':' + str(self.desc)+')')
+        return(f'<shot object:{self.shotnum},{self.desc}>')
         
     def set_shotnum(self):
         self.shotnum = getattr(self.shotLine,self.colRelations['shotnum'])
