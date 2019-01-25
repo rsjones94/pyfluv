@@ -71,14 +71,22 @@ class CrossSection(object):
             exes: the surveyed x (easting or similar) vals of the cross section as a list
             whys: the surveyed y (northing or similar) vals of the cross sections as a list
             zees: the surveyed z (elevation) vals of the cross section as a list
+            desc: descriptions of each of the ith shot represented by (exes[i],whys[i],zees[i])
             name: the name of the XS
+            morphType: One of 'Riffle', 'Run', 'Pool', 'Glide' or None
             metric: whether the survey units are feet (False) or meters (True)
+            manN: manning's N at the cross section
+            waterSlope: the slope of the water at the cross section at the bankfull elevation
             project: whether the stationing should be calculated along the XS's centerline (True) or not (False)
             bkfEl: the bankfull elevation at the XS
+            wsEl: the water surface elevation at the time of survey
+            tobEl: the elevation of the top of bank
             thwStation: the station of the thalweg. If not specified, the deepest point in the given XS is assumed.
                         If the XS cuts across multiple channels or the channel is raised, this assumption may not be correct.
                         However unless you are certain you do not want to use the deepest surveyed point as the thw
                         it is suggested that this parameter is left unspecified.
+            sizeDist: an object of type GrainDistribution which represents a pebble count, sieve or other grain distribution
+                      analysis at the cross section.
             fillFraction: float between 0 or 1 that specifies how overhangs are to be removed.
                           0 indicates that the overhangs will be cut, 1 indicates they will be filled
                           and intermediate values are some mix of cut and fill.
@@ -130,9 +138,8 @@ class CrossSection(object):
         """
         Prints the name of the CrossSection object. If the name attribute is None, prints "UNNAMED".
         """
-        attachDict = {'Ri':', Riffle','Ru':', Run','Po':', Pool','Gl':', Glide',None:''}
         if self.name:
-            printname = self.name + attachDict[self.morphType]
+            printname = self.name
             return(printname)
         else:
             return("UNNAMED")

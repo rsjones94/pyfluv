@@ -9,6 +9,7 @@ import re
 import numpy as np
 import pandas as pd
 
+from . import streamgeometry as sg
 from . import streamexceptions
 
 class StreamSurvey(object):
@@ -19,20 +20,27 @@ class StreamSurvey(object):
     Attributes:
         file(str): name or filepath of the csv that contains the survey data.
         sep(str): the separating character in the file.
+        metric(bool): True if the survey units are in meters, alse if they are in feet
         keywords(dict): a dictionary that relates keywords in the survey descriptions to geomorphic features.
+                        The following keys are mandatory: 'Profile','Cross Section','Thalweg','breakChar','commentChar'
+                        Additionally, following keys have a specific meaning: 'Riffle','Run','Pool','Glide','Top of Bank',
+                            'Bankfull','Water Surface'.
         data(pandas.core.frame.DataFrame): pandas dataframe representing the imported survey.
         colRelations(dict): a dictionary that relates standardized names to the column names of the survey.
+                            The following keys are mandatory: 'shotnum','whys','exes','zees','desc'
     """
     
-    def __init__(self,file,sep=',',keywords=None,colRelations=None):
+    def __init__(self,file,sep=',',metric=False,keywords=None,colRelations=None):
         """
-        file(str): name or filepath of the csv that contains the survey data.
-        sep(str): the separating character in the file.
-        keywords(dict): a dictionary that relates geomorphic features to how they were called out in the survey.
+        file: name or filepath of the csv that contains the survey data.
+        sep: the separating character in the file.
+        metric: True if the survey units are in meters, alse if they are in feet
+        keywords: a dictionary that relates geomorphic features to how they were called out in the survey.
                         If nothing is passed, a default dictionary is used.
-        colRelations(dict): a dictionary that relates standardized names to the column names of the survey.
+        colRelations: a dictionary that relates standardized names to the column names of the survey.
                             If nothing is passed, a default dictionary is used.
         """
+        
         self.file = file
         if keywords is None:
             self.keywords = {'Profile':'pro', #mandatory
@@ -61,9 +69,22 @@ class StreamSurvey(object):
         else:
             self.colRelations = colRelations
             
+        mandatoryKeywords = ['Profile','Cross Section','Thalweg','breakChar','commentChar']
+        mandatoryCols = ['shotnum','whys','exes','zees','desc']
+        
+        hasAllKeywords = all(el in self.keywords.keys() for el in mandatoryKeywords)
+        hasAllCols = all(el in self.colRelations.keys() for el in mandatoryCols)
+            
+        if not hasAllKeywords:
+            raise streamexceptions.MissingKeyError(f'Missing keyword keys. Required keys are {mandatoryKeywords}.')
+        if not hasAllCols:
+            raise streamexceptions.MissingKeyError(f'Missing column keys. Required keys are {mandatoryCols}.')
+            
+        self.metric = metric 
         self.sep = sep
             
         self.importSurvey()
+        self.group_by_name()
         
     def importSurvey(self):
         df=pd.read_csv(self.file, sep=',')
@@ -82,7 +103,7 @@ class StreamSurvey(object):
         
         Attributes:
             packedShots: a list of packed shots
-            attribute: the key in the meaning dict for a packed shot to filter by.
+            key: the key in the meaning dict for a packed shot to filter by.
             value: the value to filter for
                    Valid key:value pairs are
                        'type':'Profile' or 'type':'Cross Section'
@@ -94,7 +115,7 @@ class StreamSurvey(object):
         
     def get_names(self,packedShots):
         """
-        Takes a list of packed shots in and returns a dict relating names to count
+        Takes a list of packed shots in and returns a dict relating names to count.
         """
         names = [shot.meaning['name'] for shot in packedShots]
         counter = {}
@@ -104,6 +125,133 @@ class StreamSurvey(object):
             except KeyError:
                 counter[name] = 1
         return(counter)
+        
+    def pack_and_separate(self):
+        """
+        Packs self.data and separates the profile shots from cross section shots, returning
+        profiles and crossSections.
+        """
+        packed = self.pack_shots()
+        profiles = self.filter_shots(packed,'Profile','type')
+        crossSections = self.filter_shots(packed,'Cross Section','type')
+        return(profiles,crossSections)
+        
+    def group_by_name(self):
+        """
+        Takes self.data, packs and separates in and then makes two lists (one each for
+        cross sections and profiles) where each list contains lists of shots with the same name
+        in the order that they appears in self.data. These lists are accessible with
+        self.profiles and self.crossSections.
+        """
+        bulkProAndCross = self.pack_and_separate()
+        proAndCross = [[],[]]
+        
+        for i,shotGroup in enumerate(bulkProAndCross):
+            nameDict = self.get_names(shotGroup)
+            names = nameDict.keys()
+            for j,name in enumerate(names):
+                proAndCross[i].append(self.filter_shots(shotGroup,name,'name'))
+                
+        self.profiles,self.crossSections = proAndCross
+        
+    def pull_xs_packgroup_atts(self,packGroup):
+        """
+        Takes a list of packed XS shots, all with the same name, and returns a
+        dictionary representing water surface, bankfull, and top of bank elevations
+        and thalweg coordinates if specified by survey keywords.
+        """
+        name = packGroup[0].meaning['name']
+        attributes = {'Water Surface':None,
+                      'Bankfull':None,
+                      'Top of Bank':None,
+                      'Thalweg':None} # all keys will be matched with an elevation (z) except Thalweg, which is given an x,y pair
+        for att in attributes:
+            """
+            4 possibilities: 
+            the attribute does not exist in the keywords dict
+            it does but the keyword doesn't show up in the packgroup so we turn the value back to None
+            it is in the dict and in the shotgroup and is unique
+            it is in dict and shotgroup and isn't unique so we average the results
+            """
+            matchShots = self.filter_shots(packGroup,att,'morphs')
+            if matchShots == []:
+                next
+            else:
+                if att == 'Thalweg':
+                    val = [[shot.ex,shot.why] for shot in matchShots]
+                    attributes[att] = list(np.mean(val,axis=0))
+                else:
+                    val = [shot.zee for shot in matchShots]
+                    attributes[att] = np.mean(val)
+        return(attributes)
+    
+    def pull_xs_packgroup_survey_coords(self,packGroup):
+        """
+        Takes a list of packed XS shots, all with the same name,
+        and returns 4 lists: exes, whys, zees and accompanying shot descs.
+        """
+        exes,whys,zees,descs = [],[],[],[]
+        for shot in packGroup:
+            exes.append(shot.ex)
+            whys.append(shot.why)
+            zees.append(shot.zee)
+            descs.append(shot.desc)
+            
+        return (exes,whys,zees,descs)
+    
+    def get_packed_cross_section_morph(self,shot):
+        """
+        Takes a packed XS shot and guesses if it's a Ri, Ru, Po, Gl or None
+        based off of keywords.
+        """
+        name = shot.meaning['name']
+        
+        morphNames = ['Riffle','Run','Pool','Glide']
+        reverseKeys = {}
+        for morph in morphNames:
+            try:
+                reverseKeys[self.keywords[morph]] = morph
+            except KeyError:
+                next
+        
+        morphType = None
+        for key in reverseKeys:
+            if key in name:
+                morphType = reverseKeys[key]
+                
+        return(morphType)
+        
+            
+    def packgroup_to_cross_section(self,packGroup,guessType=True,project=True):
+        """
+        Takes a group of packed shots representing a single cross section
+        and returns a CrossSection object.
+        """
+        name = packGroup[0].meaning['name']
+        if guessType:
+            morphType = self.get_packed_cross_section_morph(packGroup[0])
+        else:
+            morphType = None
+            
+        exes,whys,zees,descs = self.pull_xs_packgroup_survey_coords(packGroup)
+        attDict = self.pull_xs_packgroup_atts(packGroup)
+        
+        # have not implemented adding the cross section thalweg
+        cross = sg.CrossSection(exes,whys,zees,descs,name,morphType,self.metric,project=project,
+                                bkfEl = attDict['Bankfull'],tobEl = attDict['Top of Bank'],
+                                wsEl = attDict['Water Surface'])
+    
+        return(cross)  
+        
+    def make_cross_section_objects(self,guessType=True,project=True):
+        """
+        Takes self.crossSections and returns a list of CrossSection objects.
+        """
+        crosses = []
+        for name in self.crossSections:
+            crosses.append(self.packgroup_to_cross_section(name,guessType,project))
+            
+        return(crosses)
     
 class Parser(object):
     """
@@ -113,7 +261,7 @@ class Parser(object):
     def __init__(self,parseDict):
         self.parseDict = parseDict
         
-    def dictSplit(self,string):
+    def dict_split(self,string):
         """
         Breaks the desc string into its name, descriptors and comment (if any)
         """
@@ -155,14 +303,14 @@ class Parser(object):
     
     def get_meaning(self,string):
         """
-        Gets the semantic meaning of the dictionary returned by self.dictSplit.
+        Gets the semantic meaning of the dictionary returned by self.dict_split.
         """
         result = {'type':None, # profile or cross section
                   'morphs':[], # depends on if type is profile or cross section
                   'name':None,
                   'full':string
                  }
-        splitDict = self.dictSplit(string)
+        splitDict = self.dict_split(string)
         result['name'] = splitDict['name']
         
         if self.key_is_in('Profile',result['name']):
