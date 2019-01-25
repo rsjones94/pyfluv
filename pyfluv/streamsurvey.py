@@ -243,7 +243,7 @@ class StreamSurvey(object):
     
         return(cross)  
         
-    def make_cross_section_objects(self,guessType=True,project=True):
+    def get_cross_objects(self,guessType=True,project=True):
         """
         Takes self.crossSections and returns a list of CrossSection objects.
         """
