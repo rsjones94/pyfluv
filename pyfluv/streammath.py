@@ -1643,6 +1643,14 @@ def _DEPR_build_deriv_exes(value,n,interval):
     
     return(res,change)
     
+def closest_point(point, points):
+    """
+    Finds the index of the point in a list closest to an input point.
+    """
+    points = np.asarray(points)
+    dist_2 = np.sum((points - point)**2, axis=1)
+    return(np.argmin(dist_2))
+    
 def blend_polygons():
     """
     Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.

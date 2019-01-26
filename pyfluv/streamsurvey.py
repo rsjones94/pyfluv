@@ -32,13 +32,14 @@ class StreamSurvey(object):
     
     def __init__(self,file,sep=',',metric=False,keywords=None,colRelations=None):
         """
-        file: name or filepath of the csv that contains the survey data.
-        sep: the separating character in the file.
-        metric: True if the survey units are in meters, alse if they are in feet
-        keywords: a dictionary that relates geomorphic features to how they were called out in the survey.
-                        If nothing is passed, a default dictionary is used.
-        colRelations: a dictionary that relates standardized names to the column names of the survey.
+        Args:
+            file: name or filepath of the csv that contains the survey data.
+            sep: the separating character in the file.
+            metric: True if the survey units are in meters, alse if they are in feet
+            keywords: a dictionary that relates geomorphic features to how they were called out in the survey.
                             If nothing is passed, a default dictionary is used.
+            colRelations: a dictionary that relates standardized names to the column names of the survey.
+                                If nothing is passed, a default dictionary is used.
         """
         
         self.file = file
@@ -101,7 +102,7 @@ class StreamSurvey(object):
         """
         Filters a list of packed shots by the 'type' key in the meaning attribute
         
-        Attributes:
+        Args:
             packedShots: a list of packed shots
             key: the key in the meaning dict for a packed shot to filter by.
             value: the value to filter for
@@ -154,13 +155,72 @@ class StreamSurvey(object):
                 
         self.profiles,self.crossSections = proAndCross
         
-    def pull_xs_packgroup_atts(self,packGroup):
+    def get_cross_objects(self,guessType=True,project=True):
+        """
+        Takes self.crossSections and returns a list of CrossSection objects.
+            If guessType is True, the method will attempt to guess the morph type
+                (Riffle,Run,Pool,Glide) for each CrossSection.
+            If project is true, the CrossSections will use projected stationing.
+        """
+        crosses = [PackGroupCross(packGroup,self.keywords,self.metric).create_cross_object(guessType,project) for packGroup in self.crossSections]
+        return(crosses)
+        
+    def get_packgroup_coords(self,packGroup):
+        """
+        Takes a list of packed shots and returns a list of tuples containing the x,y coords for each shot.
+        """
+        coords = [[shot.ex,shot.why] for shot in packGroup]
+        return(coords)
+        
+    
+class PackGroupPro(object):
+    """
+    A profile represented by a list of packed shots.
+    """
+    
+    def __init__(self,packGroup):
+        """
+        Args:
+            packGroup: a list of packed shots representing a profile.
+        """
+        self.packGroup = packGroup
+    
+    def create_fluv_object(self,packGroup,assignMethod='backstack'):
+        """
+        Makes a pyfluv profile object
+        
+        Args:
+            packGroup: a list of packed profile shots.
+            assignMethod: 'backstack' or 'nearest'.
+                           If 'backstack', non-substrate profile shots will be assigned the station
+                               of the previous substrate shot.
+                           If 'nearest', they will be assigned the station of the nearest substrate shot.
+        """
+        pass
+    
+    
+class PackGroupCross(object):
+    """
+    A cross section represented by a list of packed shots.
+    """
+    
+    def __init__(self,packGroup,keywords=None,metric=False):
+        """
+        Args:
+            packGroup: a list of packed shots representing a profile.
+            keyWords: a dictionary relating full morph names to morph keywords
+        """
+        self.packGroup = packGroup
+        self.keywords = keywords
+        self.metric = metric
+        self.name = self.packGroup[0].meaning['name']
+    
+    def pull_atts(self): # was pull_xs_packgroup_atts
         """
         Takes a list of packed XS shots, all with the same name, and returns a
         dictionary representing water surface, bankfull, and top of bank elevations
         and thalweg coordinates if specified by survey keywords.
         """
-        name = packGroup[0].meaning['name']
         attributes = {'Water Surface':None,
                       'Bankfull':None,
                       'Top of Bank':None,
@@ -173,7 +233,7 @@ class StreamSurvey(object):
             it is in the dict and in the shotgroup and is unique
             it is in dict and shotgroup and isn't unique so we average the results
             """
-            matchShots = self.filter_shots(packGroup,att,'morphs')
+            matchShots = StreamSurvey.filter_shots(StreamSurvey,self.packGroup,att,'morphs')
             if matchShots == []:
                 next
             else:
@@ -184,27 +244,26 @@ class StreamSurvey(object):
                     val = [shot.zee for shot in matchShots]
                     attributes[att] = np.mean(val)
         return(attributes)
-    
-    def pull_xs_packgroup_survey_coords(self,packGroup):
+        
+    def pull_xs_survey_coords(self):
         """
         Takes a list of packed XS shots, all with the same name,
         and returns 4 lists: exes, whys, zees and accompanying shot descs.
         """
         exes,whys,zees,descs = [],[],[],[]
-        for shot in packGroup:
+        for shot in self.packGroup:
             exes.append(shot.ex)
             whys.append(shot.why)
             zees.append(shot.zee)
             descs.append(shot.desc)
             
-        return (exes,whys,zees,descs)
-    
-    def get_packed_cross_section_morph(self,shot):
+        return(exes,whys,zees,descs)
+        
+    def get_cross_morph(self):
         """
         Takes a packed XS shot and guesses if it's a Ri, Ru, Po, Gl or None
         based off of keywords.
         """
-        name = shot.meaning['name']
         
         morphNames = ['Riffle','Run','Pool','Glide']
         reverseKeys = {}
@@ -216,42 +275,31 @@ class StreamSurvey(object):
         
         morphType = None
         for key in reverseKeys:
-            if key in name:
+            if key in self.name:
                 morphType = reverseKeys[key]
                 
         return(morphType)
         
-            
-    def packgroup_to_cross_section(self,packGroup,guessType=True,project=True):
+    def create_cross_object(self,guessType=True,project=True):
         """
         Takes a group of packed shots representing a single cross section
         and returns a CrossSection object.
         """
-        name = packGroup[0].meaning['name']
         if guessType:
-            morphType = self.get_packed_cross_section_morph(packGroup[0])
+            morphType = self.get_cross_morph()
         else:
             morphType = None
             
-        exes,whys,zees,descs = self.pull_xs_packgroup_survey_coords(packGroup)
-        attDict = self.pull_xs_packgroup_atts(packGroup)
+        exes,whys,zees,descs = self.pull_xs_survey_coords()
+        attDict = self.pull_atts()
         
         # have not implemented adding the cross section thalweg
-        cross = sg.CrossSection(exes,whys,zees,descs,name,morphType,self.metric,project=project,
+        cross = sg.CrossSection(exes,whys,zees,descs,self.name,morphType,self.metric,project=project,
                                 bkfEl = attDict['Bankfull'],tobEl = attDict['Top of Bank'],
                                 wsEl = attDict['Water Surface'])
     
-        return(cross)  
-        
-    def get_cross_objects(self,guessType=True,project=True):
-        """
-        Takes self.crossSections and returns a list of CrossSection objects.
-        """
-        crosses = []
-        for name in self.crossSections:
-            crosses.append(self.packgroup_to_cross_section(name,guessType,project))
-            
-        return(crosses)
+        return(cross)
+    
     
 class Parser(object):
     """
@@ -325,6 +373,7 @@ class Parser(object):
         
         return(result)
         
+        
 class Shot(object):
     """
     A survey shot.
@@ -343,9 +392,10 @@ class Shot(object):
     
     def __init__(self,shotLine,colRelations,parseDict):
         """
-        shotLine(pandas.core.frame.Pandas): A series representing the survey shot.
-        parseDict(dict): a dictionary that relates keywords in the survey descriptions to geomorphic features.
-        colRelations(dict): a dictionary that relates column headers in the survey to standardized meanings.
+        Args:
+            shotLine(pandas.core.frame.Pandas): A series representing the survey shot.
+            parseDict(dict): a dictionary that relates keywords in the survey descriptions to geomorphic features.
+            colRelations(dict): a dictionary that relates column headers in the survey to standardized meanings.
         """
         self.shotLine = shotLine
         self.colRelations = colRelations
