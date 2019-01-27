@@ -28,6 +28,8 @@ class StreamSurvey(object):
         data(pandas.core.frame.DataFrame): pandas dataframe representing the imported survey.
         colRelations(dict): a dictionary that relates standardized names to the column names of the survey.
                             The following keys are mandatory: 'shotnum','whys','exes','zees','desc'
+        profiles(:obj:'list' of :obj:'Shot'): a list of lists, where each sublist is a packed profile
+        crossSections(:obj:'list' of :obj:'Shot'): a list of lists, where each sublist is a packed cross section
     """
     
     def __init__(self,file,sep=',',metric=False,keywords=None,colRelations=None):
@@ -84,10 +86,10 @@ class StreamSurvey(object):
         self.metric = metric 
         self.sep = sep
             
-        self.importSurvey()
+        self.import_survey()
         self.group_by_name()
         
-    def importSurvey(self):
+    def import_survey(self):
         df=pd.read_csv(self.file, sep=',')
         self.data = df
             
@@ -210,6 +212,10 @@ class PackGroupPro(object):
         """
         Filters the packgroup to return only substrate (thalweg, riffle, run, pool, glide) shots.
         """
+        subNames = ['Thalweg','Riffle','Run','Pool','Glide']
+        subShots = StreamSurvey.filter_shots(StreamSurvey,self.packGroup,subNames,'morphs')
+        
+        return(subShots)
         
     def make_uCols(self):
         """
