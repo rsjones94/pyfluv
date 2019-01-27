@@ -44,18 +44,18 @@ class StreamSurvey(object):
         
         self.file = file
         if keywords is None:
-            self.keywords = {'Profile':'pro', #mandatory
-                             'Cross Section':'xs', #mandatory
+            self.keywords = {'Profile':'pro',
+                             'Thalweg':'thw',
                              'Riffle':'ri',
                              'Run':'ru',
                              'Pool':'po',
                              'Glide':'gl',
-                             'Top of Bank':'tob',
-                             'Bankfull':'bkf',
                              'Water Surface':'ws',
-                             'Thalweg':'thw',
-                             'breakChar':'-', #mandatory
-                             'commentChar':'_' #mandatory
+                             'Bankfull':'bkf',
+                             'Top of Bank':'tob',
+                             'Cross Section':'xs',
+                             'breakChar':'-',
+                             'commentChar':'_'
                              }
         else:
             self.keywords = keywords
@@ -98,23 +98,33 @@ class StreamSurvey(object):
         packed = [Shot(shotLine,self.colRelations,self.keywords) for shotLine in self.data.itertuples()]
         return(packed)
         
-    def filter_shots(self,packedShots,value,key):
+    def filter_shots(self,packedShots,value,key,allMatch = False):
         """
         Filters a list of packed shots by the 'type' key in the meaning attribute
         
         Args:
             packedShots: a list of packed shots
             key: the key in the meaning dict for a packed shot to filter by.
-            value: the value to filter for
+            value: the values to filter for. Can be a single value or a list of values.
                    Valid key:value pairs are
                        'type':'Profile' or 'type':'Cross Section'
                        'name':<name that exists in the survey>
                        'morphs':<morph shorthand in survey, such as 'ri' or 'tob'>
+            allMatch: True if all values must be in the shot to match. Otherwise
+                      shots with any matching values will be returned.
         """
-        result = [pack for pack in packedShots if value in pack.meaning[key]]
+        if allMatch:
+            gen = all
+        else:
+            gen = any
+            
+        if not isinstance(value,list):
+            value = [value]
+            
+        result = [pack for pack in packedShots if gen(i in pack.meaning[key] for i in value)]
         return(result)
         
-    def get_names(self,packedShots):
+    def count_names(self,packedShots):
         """
         Takes a list of packed shots in and returns a dict relating names to count.
         """
@@ -148,7 +158,7 @@ class StreamSurvey(object):
         proAndCross = [[],[]]
         
         for i,shotGroup in enumerate(bulkProAndCross):
-            nameDict = self.get_names(shotGroup)
+            nameDict = self.count_names(shotGroup)
             names = nameDict.keys()
             for j,name in enumerate(names):
                 proAndCross[i].append(self.filter_shots(shotGroup,name,'name'))
@@ -178,14 +188,52 @@ class PackGroupPro(object):
     A profile represented by a list of packed shots.
     """
     
-    def __init__(self,packGroup):
+    def __init__(self,packGroup,keywords,colRelations,metric=False):
         """
         Args:
             packGroup: a list of packed shots representing a profile.
+            metric: bool indicating if the profile uses metric or imperial units
+            keywords: dict relating standardized names to shot keywords
+            colrelations: a dict relating direction, elevation and description names to how they appear
+                          in the raw data
         """
         self.packGroup = packGroup
+        self.metric = metric
+        self.keywords = keywords
+        self.colRelations = colRelations
+        self.name = self.packGroup[0].meaning['name']
+        
+        self.make_uCols()
+        self.make_sCols()
+        
+    def substrate_filter(self):
+        """
+        Filters the packgroup to return only substrate (thalweg, riffle, run, pool, glide) shots.
+        """
+        
+    def make_uCols(self):
+        """
+        Unique cols.
+        """
+        uCols = list(self.keywords.keys())
+        remove = ['breakChar','commentChar','Profile']
+        uCols = [col for col in uCols if col not in remove]
+        
+        self.uCols = uCols
     
-    def create_fluv_object(self,packGroup,assignMethod='backstack'):
+    def make_sCols(self):
+        """
+        Standardized cols.
+        """
+        sCols = list(self.colRelations.keys())
+        
+        self.sCols = sCols
+        
+    def make_col_lists(self):
+        pass
+        
+    
+    def create_pro_object(self,packGroup,assignMethod='backstack'):
         """
         Makes a pyfluv profile object
         
