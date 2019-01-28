@@ -56,6 +56,7 @@ class StreamSurvey(object):
                              'Bankfull':'bkf',
                              'Top of Bank':'tob',
                              'Cross Section':'xs',
+                             'Structure':'str',
                              'breakChar':'-',
                              'commentChar':'_'
                              }
@@ -122,8 +123,11 @@ class StreamSurvey(object):
             
         if not isinstance(value,list):
             value = [value]
-            
-        result = [pack for pack in packedShots if gen(i in pack.meaning[key] for i in value)]
+        
+        try: # works when trying to match a value in morphs, which is a list
+            result = [pack for pack in packedShots if gen(i in pack.meaning[key] for i in value)]
+        except TypeError: # else need to use a different expression
+            result = [pack for pack in packedShots if gen(i in [pack.meaning[key]] for i in value)]
         return(result)
         
     def count_names(self,packedShots):
@@ -354,12 +358,18 @@ class PackGroupCross(object):
         else:
             morphType = None
             
-        exes,whys,zees,descs = self.pull_xs_survey_coords()
+        exes,whys,zees,desc = self.pull_xs_survey_coords()
         attDict = self.pull_atts()
+        df = {'exes':exes,'whys':whys,'zees':zees,'desc':desc}
         
         # have not implemented adding the cross section thalweg
-        cross = sg.CrossSection(exes,whys,zees,descs,self.name,morphType,self.metric,project=project,
-                                bkfEl = attDict['Bankfull'],tobEl = attDict['Top of Bank'],
+        cross = sg.CrossSection(df = df,
+                                name = self.name,
+                                morphType = morphType,
+                                metric = self.metric,
+                                project=project,
+                                bkfEl = attDict['Bankfull'],
+                                tobEl = attDict['Top of Bank'],
                                 wsEl = attDict['Water Surface'])
     
         return(cross)

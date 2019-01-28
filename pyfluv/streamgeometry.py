@@ -111,6 +111,7 @@ class CrossSection(object):
         
         self.create_2d_form()
         self.validate_geometry()
+        
         self.check_sta_and_el()
         self.set_thw_index()
         
@@ -153,7 +154,7 @@ class CrossSection(object):
         """
         plt.figure()
         if showCutSection and self.hasOverhangs:
-            plt.plot(self.rawSta,self.rawEl, "b--", color="#787878", linewidth = 2, label = 'Overhang')
+            plt.plot(self.rawSta,self.rawEl, "b--", color="#f44e42", linewidth = 2, label = 'Overhang')
             
         plt.plot(self.stations,self.elevations, color="black", linewidth = 2)
         plt.scatter(self.stations,self.elevations, color="black")
@@ -311,10 +312,22 @@ class CrossSection(object):
             self.stations = self.rawSta
             self.elevations = self.rawEl
         elif self.hasOverhangs:
-            removed = sm.remove_overhangs(self.rawSta,self.rawEl,method=method,adjustY=True) # remove_overhangs will change soon; this will need to be updated
-            self.stations = removed[0]
-            self.elevations = removed[1]
-            
+            try:
+                removed = sm.remove_overhangs(self.rawSta,self.rawEl,method=method,adjustY=True) # remove_overhangs will change soon; this will need to be updated
+                self.stations = removed[0]
+                self.elevations = removed[1]
+            except IndexError:
+                """
+                This will get thrown when self.hasOverhangs is True, but remove_overhangs can't 
+                actually find any due to the points causing the overhang to be unusually close together.
+                When this happens, the numerical error in calculations due to leaving the points in
+                will be small, so we will just pass the raw stations and elevations.
+                HOWEVER, this is a bug and should be fixed in the future.
+                """
+                logging.warning('Overhangs detected but could not be removed.')
+                self.stations = self.rawSta
+                self.elevations = self.rawEl
+                
     def determine_bounding_truths(self):
         """
         Creates a dictionary that stores whether width-centered attributes are bounded on each side.
@@ -589,7 +602,7 @@ class CrossSection(object):
         return(result)
         
     @bkf_savestate
-    def find_floodplain_elevation(self, attribute = 'bkfA', method = 'lower', delta = 0.01):
+    def find_floodplain_elevation(self, attribute = 'bkfW', method = 'lower', delta = 0.01):
         """
         Estimates the elevation of the floodplain by maximizing a target function that is evaluated
         at each possible survey elevation.

@@ -731,18 +731,16 @@ def is_cut(index,seriesX,seriesY,findType):
     Raises:
         InputError: if findType is not "overhang" or "undercut".
     """
-    #print('newcall: checking index ' + str(index))
     if findType is not 'overhang' and findType is not 'undercut':
         raise streamexceptions.InputError('Invalid findType value. findType must be "overhang" or "undercut"')
-    #print(index)
     pointX = seriesX[index]
     pointY = seriesY[index]
     intersections = get_intersections(seriesX,seriesY,(float('inf'),pointX)) # returns the x and y coordinates of any intersections of a vertical line with h-intercept of pointX and the cross section
-    
+
     intersectionsX = intersections[0]
     intersectionsY = intersections[1]
     
-    if len(intersectionsX) == 1: # if there is only one intersection, then we know the point can not be either an overhang or an undercut
+    if len(intersectionsX) == 1: # if there is only one intersection, then we know the point cannot be either an overhang or an undercut
         return(False)
     
     for i in range(0,len(intersectionsX)): # we need to check each intersection to see if it's really an overhang/undercut
