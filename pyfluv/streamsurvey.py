@@ -225,7 +225,7 @@ class PackGroupPro(object):
         remove = ['breakChar','commentChar','Profile']
         uCols = [col for col in uCols if col not in remove]
         
-        self.uCols = uCols
+        return(uCols)
     
     def make_sCols(self):
         """
@@ -233,11 +233,21 @@ class PackGroupPro(object):
         """
         sCols = list(self.colRelations.keys())
         
-        self.sCols = sCols
+        return(sCols)
         
-    def make_col_lists(self):
-        pass
+    def backstack_data(self):
+        colnames = self.make_sCols()
+        colnames.extend(self.make_uCols())
         
+        allSubs = self.substrate_filter()
+        blankCol = [None for i in allSubs]
+        backstacked = {col:blankCol for col in colnames}
+        return(backstacked)
+        i = 0
+        for shot in self.packGroup:
+            mean = shot.meaning['morphs']
+            if any(morph in mean for morph in ['Thalweg','Riffle','Run','Pool','Glide']):
+                pass
     
     def create_pro_object(self,packGroup,assignMethod='backstack'):
         """
