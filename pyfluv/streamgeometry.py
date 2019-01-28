@@ -6,6 +6,7 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from . import streamexceptions
 from . import streamconstants as sc
@@ -23,10 +24,7 @@ class CrossSection(object):
     Attributes:
         name(str): the name of the XS
         metric(bool): whether the survey units are feet (False) or meters (True)
-        exes(:obj:'list' of :obj:'float'): the surveyed x (easting or similar) vals of the cross section
-        whys(:obj:'list' of :obj:'float'): the surveyed y (northing or similar) vals of the cross sections
-        zees(:obj:'list' of :obj:'float'): the surveyed z (elevation) vals of the cross section
-        desc(:obj:'list' of :obj:'str'): descriptions of each of the ith shot represented by (exes[i],whys[i],zees[i])
+        df(dict or Pandas dataframe): dict or dataframe with keys/columns 'exes', 'whys', 'zees' and optional 'desc'
         rawSta(float): the stationing of the cross section
         rawEl(float): the elevations of the cross section
         stations(float): the stationing of the cross section with overhangs removed (may be equivalent to rawSta)
@@ -61,17 +59,14 @@ class CrossSection(object):
         boundTruths(dict): a dictionary that stores whether an attribute (such as bkfW) is exact or represents a minimum
         """
     
-    def __init__(self, exes, whys, zees, desc = None, name = None, morphType = None, metric = False, manN = None, 
+    def __init__(self, df, name = None, morphType = None, metric = False, manN = None, 
                  waterSlope = None, project = True, bkfEl = None, wsEl = None, tobEl = None, 
                  thwStation = None, sizeDist = None, fillFraction = 1):
         """
         Method to initialize a CrossSection.
         
         Args:
-            exes: the surveyed x (easting or similar) vals of the cross section as a list
-            whys: the surveyed y (northing or similar) vals of the cross sections as a list
-            zees: the surveyed z (elevation) vals of the cross section as a list
-            desc: descriptions of each of the ith shot represented by (exes[i],whys[i],zees[i])
+            df: a dict or pandas dataframe with columns/keys 'exes','whys','zees' and optional 'desc'
             name: the name of the XS
             morphType: One of 'Riffle', 'Run', 'Pool', 'Glide' or None
             metric: whether the survey units are feet (False) or meters (True)
@@ -96,19 +91,9 @@ class CrossSection(object):
             ShapeAgreementError: If any of exes, whys or zees don't have the same length as the others
                                  or desc is specified but does not match the length of exes, whys and zees
         """
-        if not(len(exes) == len(whys) == len(zees)):
-            raise streamexceptions.ShapeAgreementError('exes, whys and zees must all have the same length.')
-        if desc is not None and len(desc) != len(exes):
-            raise streamexceptions.ShapeAgreementError('If desc is specified, it must have the same length as exes, whys and zees.')
         
         self.name = name
-        self.exes = exes.copy()
-        self.whys = whys.copy()
-        self.zees = zees.copy()
-        if desc is not None:
-            self.desc = desc.copy()
-        else:
-            self.desc = [None]*len(exes)
+        self.df = df
         self.morphType = morphType
         self.project = project
         self.sizeDist = sizeDist
@@ -217,7 +202,7 @@ class CrossSection(object):
             showProjections: If True, shows the where each shot was projected to.
         """
         plt.figure()
-        plt.plot(self.exes,self.whys)
+        plt.plot(self.df['exes'],self.df['whys'])
         plt.title(str(self) + ' (Planform)')
         plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
         plt.ylabel('Northing (' + self.unitDict['lengthUnit'] + ')')
@@ -228,8 +213,8 @@ class CrossSection(object):
             projY = projected[1]
             plt.scatter(projX,projY)
             for i in range(len(projX)):
-                px = (self.exes[i],projX[i])
-                py = (self.whys[i],projY[i])
+                px = (self.df['exes'][i],projX[i])
+                py = (self.df['whys'][i],projY[i])
                 plt.plot(px,py)
                 
     def get_centerline_shots(self):
@@ -245,15 +230,17 @@ class CrossSection(object):
         Raises:
             None
         """
-        return(sm.centerline_series(self.exes,self.whys))
+        return(sm.centerline_series(self.df['exes'],self.df['whys']))
         
     def create_2d_form(self):
         """
         Uses the survey x,y,z data to create stationing and elevation data.
             Defines rawSta and rawEl, representing stationing and elevation.
         """
-        self.rawSta = sm.get_stationing(self.exes,self.whys,project = self.project)
-        self.rawEl = self.zees
+        self.rawSta = sm.get_stationing(self.df['exes'],self.df['whys'],project = self.project)
+        self.rawEl = self.df['zees']
+        if isinstance(self.rawEl,pd.core.series.Series):
+            self.rawEl = self.rawEl.tolist()
     
     def validate_geometry(self):
         """
