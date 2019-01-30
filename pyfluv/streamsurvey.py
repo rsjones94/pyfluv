@@ -143,6 +143,19 @@ class StreamSurvey(object):
                 counter[name] = 1
         return(counter)
         
+    def get_names(self):
+        """
+        Returns a dict with two keys ('Profiles' and 'Cross Sections') where
+        each key points to a dict relating a name to a counter that indicates
+        how many times that name appears in the survey.
+        """
+        packedAndSeparated = self.pack_and_separate()
+        theDict = {'Profiles':None,'Cross Sections':None}
+        for i,key in enumerate(theDict):
+            theDict[key] = self.count_names(packedAndSeparated[i])
+            
+        return(theDict)
+        
     def pack_and_separate(self):
         """
         Packs self.data and separates the profile shots from cross section shots, returning
@@ -239,7 +252,7 @@ class PackGroupPro(object):
         
         return(sCols)
         
-    def backstack_data(self):
+    def backstack_data(self): # NOT DONE
         colnames = self.make_sCols()
         colnames.extend(self.make_uCols())
         

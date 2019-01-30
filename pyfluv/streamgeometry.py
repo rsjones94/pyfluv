@@ -369,6 +369,7 @@ class CrossSection(object):
         self.calculate_hydraulic_radius()
         self.calculate_shear_stress()
         self.calculate_max_entrained_particle()
+        self.calculate_widthDepthRatio()
         self.calculate_floodprone_elevation()
         self.calculate_floodprone_width()
         self.calculate_entrenchment_ratio()
@@ -524,6 +525,15 @@ class CrossSection(object):
             self.bkfQ = flow
         else:
             self.bkfQ = None
+            
+    def calculate_widthDepthRatio(self):
+        """
+        Calculates the ratio of the bankfull width to the mean bankfull depth.
+        """
+        if self.bkfEl:
+            self.widthDepthRatio = self.bkfW / self.bkfMeanD
+        else:
+            self.widthDepthRatio = None
     
     @bkf_savestate
     def attribute_list(self, attribute, deltaEl = 0.1):
