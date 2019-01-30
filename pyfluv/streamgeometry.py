@@ -251,7 +251,7 @@ class CrossSection(object):
         noOverhangs = not(sm.monotonic_increasing(self.rawSta))
         if noOverhangs:
             self.hasOverhangs = True
-            logging.warning('Overhangs present in geometry.')
+            logging.warning(f'Overhangs present in geometry on XS {self.name}.')
         
         simplicity = sm.is_simple(self.rawSta,self.rawEl)
         if not(simplicity[0]): # if the geometry is not simple
@@ -324,7 +324,7 @@ class CrossSection(object):
                 will be small, so we will just pass the raw stations and elevations.
                 HOWEVER, this is a bug and should be fixed in the future.
                 """
-                logging.warning('Overhangs detected but could not be removed.')
+                logging.warning(f'Overhangs detected but could not be removed on XS {self.name}.')
                 self.stations = self.rawSta
                 self.elevations = self.rawEl
                 
