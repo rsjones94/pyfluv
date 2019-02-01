@@ -125,8 +125,7 @@ class CrossSection(object):
         Prints the name of the CrossSection object. If the name attribute is None, prints "UNNAMED".
         """
         if self.name:
-            printname = self.name
-            return(printname)
+            return(self.name)
         else:
             return("UNNAMED")
 
