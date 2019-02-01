@@ -36,6 +36,7 @@ class Profile(object):
             x
         """
         self.df = df
+        self.filldf = df
         self.metric = metric
         self.name = name
         
@@ -68,8 +69,22 @@ class Profile(object):
         else:
             return("UNNAMED")
         
-    def qplot(self):
-        pass
+    def qplot(self, showWs = True, showBkf = True):
+        plt.figure()
+        plt.plot(self.filldf['Station'],self.filldf['Thalweg'], color = 'black', linewidth = 2, label = 'Thalweg')
+        plt.title(str(self))
+        plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
+        plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
+        
+        if 'Water Surface' in self.filldf and showWs:
+            plt.plot(self.filldf['Station'],self.filldf['Water Surface'], "b--",
+                     color = '#31A9FF', linewidth = 2, label = 'Water Surface')
+                     
+        if 'Bankfull' in self.filldf and showBkf:
+            plt.plot(self.filldf['Station'],self.filldf['Bankfull'],
+                     color = '#FF0000', linewidth = 2, label = 'Bankfull')
+                     
+        plt.legend()
     
     def planplot(self):
         """
@@ -83,7 +98,7 @@ class Profile(object):
 
     def generate_stationing(self):
         stations = sm.get_stationing(self.df['exes'],self.df['whys'],project = False)
-        self.df['Station'] = stations
+        self.filldf['Station'] = stations
 
 class Feature(object):
     """
