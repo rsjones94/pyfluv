@@ -24,6 +24,8 @@ class Profile(object):
         unitDict
     """
     
+    basicCols = ['exes','whys','Thalweg']
+    
     def __init__(self,df, name = None, metric = False):
         """
         Args:
@@ -48,13 +50,11 @@ class Profile(object):
         self.validate_df()
         self.generate_stationing()
         
+        
     def validate_df(self):
-        required = ['exes','whys','Thalweg']
-        if not all(x in self.df.keys() for x in required):
+        if not all(x in self.df.keys() for x in self.basicCols):
             raise streamexceptions.InputError('Input df must include keys or columns "exes", "whys", "zees", "Thalweg"')
     
-        
-        # this will fail if df is a dataframe and not a dict; add try catch
         checkLength = len(self.df['exes'])
         for key in self.df:
             if len(self.df[key]) != checkLength:
@@ -99,7 +99,8 @@ class Profile(object):
     def generate_stationing(self):
         stations = sm.get_stationing(self.df['exes'],self.df['whys'],project = False)
         self.filldf['Station'] = stations
-
+    
+    
 class Feature(object):
     """
     A subsection of a longitudinal stream profile representing a distinct substrate morphology.

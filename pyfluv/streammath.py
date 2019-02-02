@@ -74,6 +74,50 @@ def x_from_equation(y,equation):
         x = equation[1]
     return(x)
     
+def get_populated_indices(series,index):
+    """
+    Given a series and an index, find the most recent and next indices in the series that are
+    populated by a non-None value surrounding that index.
+    
+    Args:
+        series: a list which may have some None values.
+        index: the index in the list to begin the search
+        
+    Returns:
+        A list (previous,next) representing the indices of the none-None values in series that 
+        bookend the the series at index.
+    """
+    result = []
+    
+    ind = index
+    check = series[ind]
+    while check is None:
+        ind -= 1
+        check = series[ind]
+    result.append(ind)
+    
+    ind = index
+    check = series[ind]
+    while check is None:
+        ind += 1
+        check = series[ind]
+    result.append(ind)
+    
+    return(result)
+    
+def interpolate_series(seriesX,seriesY):
+    """
+    Takes a list of x-values and a list of y-values that may have some None values. Where there 
+    are none values, fills in a value using a linear interpolation. Returns the filled in list.
+    
+    Args:
+        seriesX: a list of x values. Must be fully populated.
+        seriesY: a list of y values. May have some None values.
+        
+    Returns:
+        The y-values list with None values replaced with linearly interpolated values.
+    """
+    pass
     
 def intersection_of_lines(l1,l2):
     """
