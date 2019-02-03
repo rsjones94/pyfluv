@@ -88,14 +88,14 @@ def get_populated_indices(series,index):
         bookend the the series at index.
     """
     result = []
-    
     ind = index
     check = series[ind]
     while check is None:
         ind -= 1
+        if ind < 0:
+            raise IndexError
         check = series[ind]
     result.append(ind)
-    
     ind = index
     check = series[ind]
     while check is None:
@@ -104,6 +104,61 @@ def get_populated_indices(series,index):
     result.append(ind)
     
     return(result)
+    
+def get_nearest_value(series,index):
+    """
+    Starting at an index in a list, finds the nearest (index-wise) value and returns it.
+    
+    Args:
+        series: a list of numbers
+        index: the start point of the search
+        
+    Returns:
+        The closest (index-wise) non-none value.
+    """
+    if index > len(series) - 1:
+        raise IndexError('list index out of range')
+    sign = 1
+    i = 0
+    val = None
+    while val is None:
+        i += 1
+        dist = int(np.floor(i/2))
+        sign *= -1
+        ind = index + (dist*sign)
+        if ind < 0 and ind > len(series)-1:
+            break
+        elif ind < 0 or ind > len(series)-1:
+            next
+        else:
+            val = series[ind]
+    return(val)
+    
+    
+def interpolate_value(seriesX,seriesY,index):
+    """
+    Given two lists representing X and Y values, returns the interpolated Y value at a given index.
+    
+    Args:
+        seriesX: a list of x values. Must be fully populated.
+        seriesY: a list of y values. May have some None values.
+        index: the index to get the y value at.
+        
+    Returns:
+        The the y value at seriesX[index].
+    """
+    if seriesY[index] is not None:
+        return(seriesY[index])
+    else:
+        try:
+            leftRight = get_populated_indices(seriesY,index)
+        except IndexError:
+            return(get_nearest_value(seriesY,index))
+        p1 = (seriesX[leftRight[0]],seriesY[leftRight[0]])
+        p2 = (seriesX[leftRight[1]],seriesY[leftRight[1]])
+        line = line_from_points(p1,p2)
+        val = y_from_equation(seriesX[index],line)
+        return(val)
     
 def interpolate_series(seriesX,seriesY):
     """
@@ -117,7 +172,10 @@ def interpolate_series(seriesX,seriesY):
     Returns:
         The y-values list with None values replaced with linearly interpolated values.
     """
-    pass
+    filledY = [interpolate_value(seriesX,seriesY,i) for i,_ in enumerate(seriesY)]
+    return(filledY)
+        
+            
     
 def intersection_of_lines(l1,l2):
     """

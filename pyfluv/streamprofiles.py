@@ -25,6 +25,7 @@ class Profile(object):
     """
     
     basicCols = ['exes','whys','Thalweg']
+    fillCols = ['Water Surface', 'Bankfull', 'Top of Bank']
     
     def __init__(self,df, name = None, metric = False):
         """
@@ -49,6 +50,7 @@ class Profile(object):
         
         self.validate_df()
         self.generate_stationing()
+        self.fill_columns()
         
         
     def validate_df(self):
@@ -99,6 +101,19 @@ class Profile(object):
     def generate_stationing(self):
         stations = sm.get_stationing(self.df['exes'],self.df['whys'],project = False)
         self.filldf['Station'] = stations
+        
+    def fill_name(self,name):
+        """
+        Given a column name/key, interpolates all missing values.
+        """
+        result = sm.interpolate_series(self.filldf['Station'],self.filldf[name])
+        return(result)
+        
+    def fill_columns(self):
+        for col in self.fillCols:
+            if col in self.filldf:
+                self.filldf[col] = self.fill_name(col)
+    
     
     
 class Feature(object):
