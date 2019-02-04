@@ -27,7 +27,7 @@ class Profile(object):
     basicCols = ['exes','whys','Thalweg']
     fillCols = ['Water Surface', 'Bankfull', 'Top of Bank']
     
-    def __init__(self,df, name = None, metric = False):
+    def __init__(self, df, name = None, metric = False):
         """
         Args:
             df: a dict or pandas dataframe with at least three columns/keys "exes", "whys", "Thalweg"
@@ -38,6 +38,8 @@ class Profile(object):
         Raises:
             x
         """
+        if isinstance(df,dict):
+            df = pd.DataFrame.from_dict(df)
         self.df = df
         self.filldf = df
         self.metric = metric
@@ -113,25 +115,19 @@ class Profile(object):
         for col in self.fillCols:
             if col in self.filldf:
                 self.filldf[col] = self.fill_name(col)
+                
+    def split_morphs(self):
+        pass
     
     
-    
-class Feature(object):
+class Feature(Profile):
     """
-    A subsection of a longitudinal stream profile representing a distinct substrate morphology.
+    A subsection of a longitudinal stream profile representing a distinct morphological substrate feature.
+     
     
     Attributes:
         x
     """
-    
-    def __init__(self,df,name = None,morphType = None,metric = False):
-        """
-        Args:
-            df: a dict or pandas dataframe with at least two columns/keys "Station", "Thalweg"
-                and additional optional columns/keys. Standardized col/key names include 
-                "Water Surface", "Bankfull", "Top of Bank"
-        
-        Raises:
-            x
-        """
-        pass
+    def __init__(self, df, name = None, metric = False, morphType = None):
+        Profile.__init__(self, df, name = None, metric = False)
+        self.morphType = morphType

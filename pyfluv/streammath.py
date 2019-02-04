@@ -2,6 +2,7 @@
 Simple functions for processing stream survey data
 """
 import numpy as np
+import pandas as pd
 import itertools
 
 from . import streamexceptions
@@ -90,7 +91,7 @@ def get_populated_indices(series,index):
     result = []
     ind = index
     check = series[ind]
-    while check is None:
+    while pd.isnull(check):
         ind -= 1
         if ind < 0:
             raise IndexError
@@ -98,7 +99,7 @@ def get_populated_indices(series,index):
     result.append(ind)
     ind = index
     check = series[ind]
-    while check is None:
+    while pd.isnull(check):
         ind += 1
         check = series[ind]
     result.append(ind)
@@ -121,7 +122,7 @@ def get_nearest_value(series,index):
     sign = 1
     i = 0
     val = None
-    while val is None:
+    while pd.isnull(val):
         i += 1
         dist = int(np.floor(i/2))
         sign *= -1
@@ -147,12 +148,12 @@ def interpolate_value(seriesX,seriesY,index):
     Returns:
         The the y value at seriesX[index].
     """
-    if seriesY[index] is not None:
+    if not pd.isnull(seriesY[index]):
         return(seriesY[index])
     else:
         try:
             leftRight = get_populated_indices(seriesY,index)
-        except IndexError:
+        except (IndexError, KeyError):
             return(get_nearest_value(seriesY,index))
         p1 = (seriesX[leftRight[0]],seriesY[leftRight[0]])
         p2 = (seriesX[leftRight[1]],seriesY[leftRight[1]])
