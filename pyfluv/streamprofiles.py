@@ -131,12 +131,18 @@ class Profile(object):
         Given a morph type contained in self.morphCols, returns a list of Feature objects
         representing that feature type.
         """
+        if morphType not in self.filldf:
+            return([])
         featureIndices = sm.crush_consecutive_list(sm.make_consecutive_list(self.filldf[morphType], indices = True))
         morphList = [Feature(self.filldf[sliceInd[0]:sliceInd[1]],
                              name=f'{self.name}, {morphType} {i}',
                              metric = self.metric,
                              morphType = morphType) for i,sliceInd in enumerate(featureIndices)]
         return(morphList)
+        
+    def create_features(self):
+        featDict = {morph:self.split_morph(morph) for morph in self.morphCols}
+        self.features = featDict
     
 class Feature(Profile):
     """
@@ -145,6 +151,23 @@ class Feature(Profile):
     Attributes:
         x
     """
+    
+    morphColors = {'NoMorph':'black',
+                   'Riffle':'red',
+                   'Run':'yellow',
+                   'Pool':'blue',
+                   'Glide':'green'}
+    
     def __init__(self, df, name = None, metric = False, morphType = None):
         Profile.__init__(self, df, name, metric = False)
         self.morphType = morphType
+        
+    def addplot(self):
+        """
+        Adds scatter points and lines representing the feature to a plot.
+        """
+        plt.plot(self.filldf['Station'],self.filldf[self.morphType],
+                 color = self.morphColors[self.morphType], linewidth = 2,label='_NOLABEL_')
+        plt.scatter(self.filldf['Station'],self.filldf[self.morphType],
+                    color = self.morphColors[self.morphType],label='_NOLABEL_')
+        # would like to add label if and only if it is not a duplicate label
