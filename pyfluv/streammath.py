@@ -914,7 +914,7 @@ def get_cuts(seriesX,seriesY,findType):
     
 def find_contiguous_sequences(numbers):
     """
-    Takes a list of numbers and returns a list of lists of numbers that are form contiguous always-increasing sequences in that list.
+    Takes a list of integers and returns a list of lists of numbers that are form contiguous always-increasing sequences in that list.
     
     Args:
         numbers: A list of numbers.
@@ -1752,6 +1752,33 @@ def closest_point(point, points):
     dist_2 = np.sum((points - point)**2, axis=1)
     return(np.argmin(dist_2))
     
+def make_consecutive_list(series,indices = True):
+    """
+    Returns a list of lists where each sublist is a series of consecutive non-null values.
+    If indices is true, the sublists are the indices of the non-null values. Else the values themselves
+    are returned.
+    """
+    consec = []
+    appender = []
+    for i,val in enumerate(series):
+        tackDict = {True:i,False:val}
+        if not pd.isnull(val):
+            appender.append(tackDict[indices])
+            if i == len(series)-1:
+                consec.append(appender)
+        elif appender != []:
+            consec.append(appender)
+            appender = []
+    return(consec)
+    
+def crush_consecutive_list(consecList):
+    """
+    Takes output from make_consecutive_list() and turns each sublist into a slicing tuple.
+    Only makes sense if the sublists are indices, not values.
+    """
+    crushed = [(sub[0],sub[-1]+1) for sub in consecList]
+    return(crushed)
+    
 def blend_polygons():
     """
     Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.
@@ -1765,4 +1792,5 @@ def blend_polygons():
     Todo:
         WHAT THE HELL DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
     """
+    pass
     
