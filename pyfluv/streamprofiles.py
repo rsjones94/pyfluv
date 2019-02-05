@@ -26,7 +26,7 @@ class Profile(object):
     
     basicCols = ['exes','whys','Thalweg']
     fillCols = ['Water Surface', 'Bankfull', 'Top of Bank']
-    morphCols = ['NoMorph','Riffle','Run','Pool','Glide']
+    morphCols = ['Riffle','Pool','Run','Glide','NoMorph']
     
     def __init__(self, df, name = None, metric = False):
         """
@@ -56,16 +56,13 @@ class Profile(object):
         if not 'Station' in self.df: # if there is no stationing column, generate it and interpolate the cols
             self.generate_stationing()
             self.fill_columns()
+            self.make_nomorph()
+            self.create_features()
         
         
     def validate_df(self):
         if not all(x in self.df.keys() for x in self.basicCols):
             raise streamexceptions.InputError('Input df must include keys or columns "exes", "whys", "zees", "Thalweg"')
-    
-        checkLength = len(self.df['exes'])
-        for key in self.df:
-            if len(self.df[key]) != checkLength:
-                raise streamexceptions.ShapeAgreementError(f'key {key} has length {len(self.df[key])}; expected length {checkLength}')
     
     def __str__(self):
         """
@@ -76,7 +73,7 @@ class Profile(object):
         else:
             return("UNNAMED")
         
-    def qplot(self, showWs = True, showBkf = True, showTob = True):
+    def qplot(self, showWs = True, showBkf = True, showTob = True, showFeatures = False):
         plt.figure()
         plt.plot(self.filldf['Station'],self.filldf['Thalweg'], color = 'black', linewidth = 2, label = 'Thalweg')
         plt.title(str(self))
@@ -95,7 +92,14 @@ class Profile(object):
             plt.plot(self.filldf['Station'],self.filldf['Top of Bank'],
                      color = '#FFBD10', linewidth = 2, label = 'Top of Bank')
                      
-        plt.legend()
+        if showFeatures:
+            for morph in self.features:
+                for feat in self.features[morph]:
+                    feat.addplot()
+                     
+        handles,labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels,handles))
+        plt.legend(by_label.values(),by_label.keys())
     
     def planplot(self):
         """
@@ -143,6 +147,44 @@ class Profile(object):
     def create_features(self):
         featDict = {morph:self.split_morph(morph) for morph in self.morphCols}
         self.features = featDict
+        
+    def make_nomorph(self):
+        """
+        Makes a column indicating rows that do not have a specified substrate feature.
+        
+        Current implemention not quite correct. Right now just checks if row has a morph value,
+        but this does not account for when a feature ends without a new feature beginning.
+        """
+        nomorph = []
+        allNull = True
+        for row in self.filldf.itertuples():
+            for col in self.morphCols[:-1]:
+                try:
+                    if not pd.isnull(getattr(row,col)):
+                        allNull = False
+                        break
+                    else:
+                        allNull = True
+                except AttributeError:
+                    next
+            if allNull:
+                nomorph.append(getattr(row,'Thalweg'))
+            else:
+                nomorph.append(np.nan)
+        self.filldf['NoMorph'] = nomorph
+        
+    def make_elevations_agree(self,colName):
+        """
+        Makes the corresponding col value in a row agree with the thalweg value in that row.
+        """
+        pass
+    
+    def insert_shot(self):
+        pass
+    
+    def modify_shot(self):
+        pass
+    
     
 class Feature(Profile):
     """
@@ -169,5 +211,9 @@ class Feature(Profile):
         plt.plot(self.filldf['Station'],self.filldf[self.morphType],
                  color = self.morphColors[self.morphType], linewidth = 2,label='_NOLABEL_')
         plt.scatter(self.filldf['Station'],self.filldf[self.morphType],
-                    color = self.morphColors[self.morphType],label='_NOLABEL_')
-        # would like to add label if and only if it is not a duplicate label
+                    color = self.morphColors[self.morphType])
+        
+        # code block below updates the legend, but ignores the label if it's a duplicate
+        handles,labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels,handles))
+        plt.legend(by_label.values(),by_label.keys())
