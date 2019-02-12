@@ -1771,12 +1771,28 @@ def make_consecutive_list(series,indices = True):
             appender = []
     return(consec)
     
-def crush_consecutive_list(consecList):
+def is_populated(mList):
+    """
+    Takes a list of lists where each sublist is of equal length and returns a list
+    where each index indicates if all the lists have a non-null value at that index.
+    A null value is represented by None; other values are represented by a 1.
+    """
+    result = [None]*len(mList[0])
+    for i,li in enumerate(mList):
+        for j,el in enumerate(li):
+            if not pd.isnull(el):
+                result[j] = 1
+                
+    return(result)
+    
+def crush_consecutive_list(consecList,offset=1):
     """
     Takes output from make_consecutive_list() and turns each sublist into a slicing tuple.
     Only makes sense if the sublists are indices, not values.
+    If offset is 1, the second value of the tuple is not inclusive (to account for Python slicing)
+    Otherwise set offset to 0.
     """
-    crushed = [(sub[0],sub[-1]+1) for sub in consecList]
+    crushed = [(sub[0],sub[-1]+offset) for sub in consecList]
     return(crushed)
     
 def blend_polygons():

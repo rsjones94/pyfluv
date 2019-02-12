@@ -26,14 +26,14 @@ class Profile(object):
     
     basicCols = ['exes','whys','Thalweg']
     fillCols = ['Water Surface', 'Bankfull', 'Top of Bank']
-    morphCols = ['Riffle','Pool','Run','Glide','NoMorph']
+    morphCols = ['Riffle','Run','Pool','Glide','Unclassified']
     
     def __init__(self, df, name = None, metric = False):
         """
         Args:
             df: a dict or pandas dataframe with at least three columns/keys "exes", "whys", "Thalweg"
                 and additional optional columns/keys. Standardized col/key names are 
-                "Water Surface", "Bankfull", "Top of Bank", "Riffle", "Run", "Pool", "Glide", "NoMorph".
+                "Water Surface", "Bankfull", "Top of Bank", "Riffle", "Run", "Pool", "Glide", "Unclassified".
                 If df is passed as a dict, it will be coerced to a Pandas dataframe.
             metric: a bool indicating if units are feet (False) or meters (True)
         
@@ -56,9 +56,13 @@ class Profile(object):
         if not 'Station' in self.df: # if there is no stationing column, generate it and interpolate the cols
             self.generate_stationing()
             self.fill_columns()
-            self.make_nomorph()
+            self.make_unclassified()
             self.create_features()
+            
+        self.calculate_profile_statistics()
         
+    def calculate_profile_statistics(self):
+        self.make_length()
         
     def validate_df(self):
         if not all(x in self.df.keys() for x in self.basicCols):
@@ -73,9 +77,10 @@ class Profile(object):
         else:
             return("UNNAMED")
         
-    def qplot(self, showWs = True, showBkf = True, showTob = True, showFeatures = False):
+    def qplot(self, showThw = True, showWs = True, showBkf = True, showTob = True, showFeatures = False):
         plt.figure()
-        plt.plot(self.filldf['Station'],self.filldf['Thalweg'], color = 'black', linewidth = 2, label = 'Thalweg')
+        if showThw:
+            plt.plot(self.filldf['Station'],self.filldf['Thalweg'], color = 'gray', linewidth = 2, label = 'Thalweg')
         plt.title(str(self))
         plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
         plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
@@ -134,6 +139,10 @@ class Profile(object):
         """
         Given a morph type contained in self.morphCols, returns a list of Feature objects
         representing that feature type.
+        
+        PROBLEM: if a morph is broken by another morph that is two shots long
+        then this will fail. Additionally, isolated morphs that are only two shots long
+        are swallowed by Unclassified.
         """
         if morphType not in self.filldf:
             return([])
@@ -148,30 +157,53 @@ class Profile(object):
         featDict = {morph:self.split_morph(morph) for morph in self.morphCols}
         self.features = featDict
         
-    def make_nomorph(self):
+    def make_unclassified(self):
         """
         Makes a column indicating rows that do not have a specified substrate feature.
-        
-        Current implemention not quite correct. Right now just checks if row has a morph value,
-        but this does not account for when a feature ends without a new feature beginning.
         """
-        nomorph = []
-        allNull = True
-        for row in self.filldf.itertuples():
-            for col in self.morphCols[:-1]:
-                try:
-                    if not pd.isnull(getattr(row,col)):
-                        allNull = False
-                        break
-                    else:
-                        allNull = True
-                except AttributeError:
-                    next
-            if allNull:
-                nomorph.append(getattr(row,'Thalweg'))
-            else:
-                nomorph.append(np.nan)
-        self.filldf['NoMorph'] = nomorph
+        # STILL NOT QUITE CORRECT
+        mList = []
+        for name in self.morphCols[:-1]:
+            try:
+                mList.append(sm.crush_consecutive_list(sm.make_consecutive_list(self.filldf[name]),offset=0))
+            except KeyError:
+                next
+        
+        allTogether = []
+        for inner in mList:
+            for el in inner:
+                allTogether.append(el)
+        
+        allSort = sorted(allTogether,key=lambda x:x[0]) # sort by first element in tuple
+        
+        missing = []
+        for i,_ in enumerate(allSort):
+            try:
+                tup1 = allSort[i]
+                tup2 = allSort[i+1]
+            except IndexError: # when tup1 is the last tuple
+                break
+            
+            if tup1[1] != tup2[0]:
+                rList = [i for i in range(tup1[1],tup2[0]+1)]
+                missing.append(rList)
+           
+        nShots = len(self.filldf['Thalweg'])-1
+        if allSort[-1][1] != nShots:
+            missing.append([i for i in range(allSort[-1][1],nShots+1)])
+        if allSort[0][0] != 0:
+            missing.append([i for i in range(0,allSort[0][0])+1])
+        
+        missingSorted = sorted(missing,key=lambda x:x[0])
+        missingUnpacked = []
+        for el in missingSorted:
+            missingUnpacked.extend(el)
+                
+        unclassed = [None]*len(self.filldf['Thalweg'])    
+        for i,val in enumerate(missingUnpacked):
+            unclassed[val] = self.filldf['Thalweg'][val]
+            
+        self.filldf['Unclassified'] = unclassed
         
     def make_elevations_agree(self,colName):
         """
@@ -185,6 +217,9 @@ class Profile(object):
     def modify_shot(self):
         pass
     
+    def make_length(self):
+        pass
+        
     
 class Feature(Profile):
     """
@@ -194,7 +229,7 @@ class Feature(Profile):
         x
     """
     
-    morphColors = {'NoMorph':'black',
+    morphColors = {'Unclassified':'black',
                    'Riffle':'red',
                    'Run':'yellow',
                    'Pool':'blue',
@@ -217,3 +252,5 @@ class Feature(Profile):
         handles,labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels,handles))
         plt.legend(by_label.values(),by_label.keys())
+        
+        
