@@ -42,17 +42,6 @@ class CrossSection(object):
         fillFraction(float): a float between 0 or 1 that specifies how overhangs are to be removed.
             0 indicates that the overhangs will be cut, 1 indicates they will be filled, and 
             intermediate values are some mix of cut and fill (intermediate values not yet supported).
-        bkfA(float): the area of the XS at bankfull
-        bkfW(float): the width of the XS at the bankfull
-        bkfQ(float): the flow rate of the XS at bankfull
-        bkfMeanD(float): the mean depth at bankfull
-        bkfMaxD(float): the max depth at bankfull
-        bkfWetP(float): the wetted perimeter at bankfull
-        bkfHydR(float): the hydraulic radius at bankfull
-        bkfStress(float): shear stress at bankfull
-        entrainedParticleSize(float): diameter of the biggest particles entrained at bankfull
-        floodProneEl(float): the flood prone elevation
-        floodProneWidth(float): the width of the flood prone area
         manN(float): manning's N
         sizeDist(GrainDistribution): an object of the class GrainDistribution
         unitDict(dict): a dictionary of unit values and conversion ratios; values depend on value of self.metric
@@ -118,8 +107,7 @@ class CrossSection(object):
         self.wsEl = wsEl
         self.tobEl = tobEl
         self.bkfEl = bkfEl
-        self.calculate_bankfull_statistics() # this calls set_bankfull_stations_and_elevations() within it
-    
+        
     def __str__(self):
         """
         Prints the name of the CrossSection object. If the name attribute is None, prints "UNNAMED".
@@ -142,9 +130,19 @@ class CrossSection(object):
                 result = func(self, *args, **kwargs)
             finally: # we need to clean up even if the function fails
                 self.bkfEl = saveEl
-                self.calculate_bankfull_statistics()
             return(result)
         return(wrapper)
+        
+    # use the property decorator to make it so setting bkf also recalculates the bkf stations/elevations
+    @property
+    def bkfEl(self):
+        return self._bkfEl
+
+    @bkfEl.setter
+    def bkfEl(self,value = None):
+        self._bkfEl = value
+        self.set_bankfull_stations_and_elevations()
+        self.determine_bounding_truths()
     
     def qplot(self, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
         """
@@ -163,29 +161,41 @@ class CrossSection(object):
         
         # in retrospect, this probably should have been done with a loop and a truth dict
                 
-        if showFloodEl and self.floodproneEl:
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self.floodproneEl,self.thwIndex)
+        if showFloodEl and self.bkfEl:
+            broken = sm.break_at_bankfull(self.stations,
+                                          self.elevations,
+                                          self.calculate_floodprone_elevation()
+                                          ,self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
             plt.plot(exes,whys, color="#06AA00", linewidth = 2, label = 'Floodprone Elevation')
             plt.scatter(exes,whys, color="#06AA00")
             
         if showTob and self.tobEl:
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self.tobEl,self.thwIndex)
+            broken = sm.break_at_bankfull(self.stations,
+                                          self.elevations,
+                                          self.tobEl,
+                                          self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
             plt.plot(exes,whys, color="#FFBD10", linewidth = 2, label = 'Top of Bank') 
             plt.scatter(exes,whys, color="#FFBD10")
             
         if showBkf and self.bkfEl:
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self.bkfEl,self.thwIndex)
+            broken = sm.break_at_bankfull(self.stations,
+                                          self.elevations,
+                                          self.bkfEl,
+                                          self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
             plt.plot(exes,whys, color="#FF0000", linewidth = 2, label = 'Bankfull')
             plt.scatter(exes,whys, color="#FF0000")
         
         if showWs and self.wsEl:
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self.wsEl,self.thwIndex)
+            broken = sm.break_at_bankfull(self.stations,
+                                          self.elevations,
+                                          self.wsEl,
+                                          self.thwIndex)
             exes = [broken[0][0],broken[0][-1]]
             whys = [broken[1][0],broken[1][-1]]
             plt.plot(exes,whys, "b--", color = '#31A9FF', linewidth = 2, label = 'Water Surface')
@@ -345,38 +355,12 @@ class CrossSection(object):
         leftMax = max(self.elevations[:self.thwIndex+1])
         rightMax = max(self.elevations[self.thwIndex:])
         
-        boundDict = {'bkfW':None,'floodproneWidth':None}
+        boundDict = {'bkfWidth':None,'floodproneWidth':None}
         if self.bkfEl:
-            boundDict['bkfW'] = (self.bkfEl<=leftMax,self.bkfEl<=rightMax)
-            boundDict['floodproneWidth'] = (self.floodproneEl<=leftMax,self.floodproneEl<=rightMax)
+            fpEl = self.calculate_floodprone_elevation()
+            boundDict['bkfWidth'] = (self.bkfEl<=leftMax,self.bkfEl<=rightMax)
+            boundDict['floodproneWidth'] = (fpEl<=leftMax,fpEl<=rightMax)
         self.boundTruths = boundDict
-    
-    def calculate_bankfull_statistics(self):
-        """
-        Recalculate all statistics. Note that if bkfEl is None, then the attributes set by these methods will be done.
-        Also note that if bkfEl exceeds the maximum elevation of the surveyed channel then somme attributes
-        may represent a lower bound rather than the actual value.
-        """
-        self.set_bankfull_stations_and_elevations()
-        
-        #note that the order you call these in DOES matter
-        self.calculate_area()
-        self.calculate_mean_depth()
-        self.calculate_max_depth()
-        self.calculate_width()
-        self.calculate_wetted_perimeter()
-        self.calculate_hydraulic_radius()
-        self.calculate_shear_stress()
-        self.calculate_max_entrained_particle()
-        self.calculate_widthDepthRatio()
-        self.calculate_floodprone_elevation()
-        self.calculate_floodprone_width()
-        self.calculate_entrenchment_ratio()
-        self.calculate_bank_height_ratio()
-        self.calculate_velocity()
-        self.calculate_flow()
-        
-        self.determine_bounding_truths()
     
     def calculate_area(self):
         """
@@ -385,9 +369,11 @@ class CrossSection(object):
         """
         if self.bkfEl:
             area = sm.get_area(self.bStations,self.bElevations)
-            self.bkfA = area
+            result = area
         else:
-            self.bkfA = None
+            result = None
+            
+        return(result)
     
     def calculate_wetted_perimeter(self):
         """
@@ -400,18 +386,22 @@ class CrossSection(object):
                 p2 = (self.bStations[i+1],self.bElevations[i+1])
                 length = sm.length_of_segment((p1,p2))
                 segmentLengths.append(length)
-            self.bkfWetP = sum(segmentLengths)
+            result = sum(segmentLengths)
         else:
-            self.bkfWetP = None
+            result = None
+            
+        return(result)
     
     def calculate_hydraulic_radius(self):
         """
         Calculates the hydraulic radius given an elevation.
         """
         if self.bkfEl:
-            self.bkfHydR = self.bkfA / self.bkfWetP
+            result = self.calculate_area() / self.calculate_wetted_perimeter()
         else:
-            self.bkfHydR = None
+            result = None
+            
+        return(result)
     
     def calculate_shear_stress(self):
         """
@@ -420,16 +410,18 @@ class CrossSection(object):
         
         if self.waterSlope and self.bkfEl: # if we don't have a waterslope set, we can't calculate this.
             gammaWater = self.unitDict['gammaWater']
-            stress = gammaWater * self.bkfMeanD * self.waterSlope
-            self.bkfStress = stress
+            stress = gammaWater * self.calculate_mean_depth() * self.waterSlope
+            result = stress
         else:
-            self.bkfStress = None
+            result = None
+            
+        return(result)
         
     def calculate_max_entrained_particle(self):
         """
         Calculates the diameter of the biggest particles that could be entrained at the bankfull flow.
         """
-        pass
+        raise NotImplementedError('This method has not yet been implemented.')
         
     def calculate_floodprone_elevation(self):
         """
@@ -437,41 +429,53 @@ class CrossSection(object):
         """
         if self.bkfEl:
             minEl = min(self.bElevations)
-            self.floodproneEl = minEl + 2*self.bkfMaxD
+            result = minEl + 2*self.calculate_max_depth()
         else:
-            self.floodproneEl = None
+            result = None
+            
+        return(result)
         
     def calculate_floodprone_width(self):
         """
         Calculates the width of the floodprone area.
         """
         if self.bkfEl:
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self.floodproneEl,self.thwIndex)
+            broken = sm.break_at_bankfull(self.stations,
+                                          self.elevations,
+                                          self.calculate_floodprone_elevation(),
+                                          self.thwIndex)
             floodSta = broken[0]
-            self.floodproneWidth = sm.max_width(floodSta)
+            result = sm.max_width(floodSta)
         else:
-            self.floodproneWidth = None
+            result = None
+            
+        return(result)
         
     def calculate_entrenchment_ratio(self):
         """
         Calculates the entrenchment ratio - the flood prone width divided by the bankfull width
         """
         if self.bkfEl:
-            self.entrenchmentRatio = self.floodproneWidth / self.bkfW
+            result = self.calculate_floodprone_width() / self.calculate_width()
         else:
-            self.entrenchmentRatio = None
+            result = None
+            
+        return(result)
     
     def calculate_bank_height_ratio(self):
         """
-        The height of the top of bank above the channel thalweg divided by the height of bankfull above the thalweg.
+        The height of the top of bank above the channel thalweg divided by the 
+        height of bankfull above the thalweg.
         """
         if self.bkfEl and self.tobEl:
             minEl = min(self.bElevations)
             bkfHeight = self.bkfEl - minEl
             tobHeight = self.tobEl - minEl
-            self.bankHeightRatio = tobHeight / bkfHeight
+            result = tobHeight / bkfHeight
         else:
-            self.bankHeightRatio = None
+            result = None
+            
+        return(result)
     
     def calculate_mean_depth(self):
         """
@@ -479,9 +483,11 @@ class CrossSection(object):
         """
         if self.bkfEl:
             meanDepth = sm.get_mean_depth(self.bStations,self.bElevations,self.bkfEl,True)
-            self.bkfMeanD = meanDepth
+            result = meanDepth
         else:
-            self.bkfMeanD = None
+            result = None
+            
+        return(result)
         
     def calculate_max_depth(self):
         """
@@ -489,18 +495,22 @@ class CrossSection(object):
         """
         if self.bkfEl:
             maxDepth = sm.max_depth(self.bElevations,self.bkfEl)
-            self.bkfMaxD = maxDepth
+            result = maxDepth
         else:
-            self.bkfMaxD = None
+            result = None
+            
+        return(result)
 
     def calculate_width(self):
         """
         Calculates the bankfull width given a certain elevation.
         """
         if self.bkfEl:
-            self.bkfW = sm.max_width(self.bStations)
+            result = sm.max_width(self.bStations)
         else:
-            self.bkfW = None
+            result = None
+            
+        return(result)
         
     def calculate_velocity(self):
         """
@@ -509,10 +519,12 @@ class CrossSection(object):
         """
         if self.waterSlope and self.manN and self.bkfEl: # need all of these to calculate this
             manNum = self.unitDict['manningsNumerator']
-            vel = (manNum/self.manN)*self.bkfHydR**(2/3)*self.waterSlope**(1/2)
-            self.bkfV = vel
+            vel = (manNum/self.manN)*self.calculate_hydraulic_radius()**(2/3)*self.waterSlope**(1/2)
+            result = vel
         else:
-            self.bkfV = None
+            result = None
+            
+        return(result)
     
     def calculate_flow(self):
         """
@@ -520,22 +532,26 @@ class CrossSection(object):
         Units are cubic ft/s or cubic meters/s.
         """
         if self.waterSlope and self.manN and self.bkfEl: # need all of these to calculate this
-            flow = self.bkfA*self.bkfV
-            self.bkfQ = flow
+            flow = self.calculate_area()*self.calculate_velocity()
+            result = flow
         else:
-            self.bkfQ = None
+            result = None
             
-    def calculate_widthDepthRatio(self):
+        return(result)
+            
+    def calculate_widthDepth_ratio(self):
         """
         Calculates the ratio of the bankfull width to the mean bankfull depth.
         """
         if self.bkfEl:
-            self.widthDepthRatio = self.bkfW / self.bkfMeanD
+            result = self.calculate_width() / self.calculate_mean_depth()
         else:
-            self.widthDepthRatio = None
+            result = None
+            
+        return(result)
     
     @bkf_savestate
-    def attribute_list(self, attribute, deltaEl = 0.1):
+    def attribute_list(self, attributeMethod, deltaEl = 0.1):
         """
         Returns two arrays: a list of elevations and a corresponding list of the channel attribute if bkf
         were at that elevation.
@@ -558,40 +574,38 @@ class CrossSection(object):
         
         while self.bkfEl <= max(self.elevations):
             self.bkfEl += deltaEl
-            self.calculate_bankfull_statistics()
-
             elArray.append(self.bkfEl)
-            attrArray.append(getattr(self, attribute))
+            attrArray.append(attributeMethod())
         
         return(elArray,attrArray)
       
     @bkf_savestate
-    def get_attr(self,attribute,elevation):
+    def get_attr(self,attributeMethod,elevation):
         """
         Returns an attribute (that is a function of bkf elevation) at a given bkf elevation.
+        
+        Deprecated.
         """
         self.bkfEl = elevation
-        self.calculate_bankfull_statistics()
-        at = getattr(self,attribute)
+        at = attributeMethod()
         return(at)
     
-    def _attr_nthderiv(self,attribute,n,elevation,delta = 0.01):
+    def _attr_nthderiv(self,attributeMethod,n,elevation,delta = 0.01):
         """
         This is the same as attr_nthderiv(), but does not have the @bkf_savestate decorator to save
-        on computation time. Does not save the bankfull state.
+        on computation time when called multiple times. Does not save the bankfull state.
         """
         checkList, change = sm.build_deriv_exes(elevation,n,delta)
         atList = []
         for el in checkList:
             self.bkfEl = el
-            self.calculate_bankfull_statistics()
-            at = getattr(self,attribute)
+            at = attributeMethod()
             atList.append(at)
         result = sm.diffreduce(atList,change)
         return(result)
       
     @bkf_savestate
-    def attr_nthderiv(self,attribute,n,elevation,delta = 0.01):
+    def attr_nthderiv(self,attributeMethod,n,elevation,delta = 0.01):
         """
         Finds the central nth numerical derivative of an attribute with respect to elevation at a given elevation.
         
@@ -607,22 +621,22 @@ class CrossSection(object):
         Raises:
             None.
         """
-        result = self._attr_nthderiv(attribute,n,elevation,delta)
+        result = self._attr_nthderiv(attributeMethod,n,elevation,delta)
         return(result)
         
     @bkf_savestate
-    def find_floodplain_elevation(self, attribute = 'bkfW', method = 'lower', delta = 0.01):
+    def find_floodplain_elevation(self, attribute = 'width', returns = 'lower', delta = 0.01):
         """
         Estimates the elevation of the floodplain by maximizing a target function that is evaluated
         at each possible survey elevation.
         
         Args:
-            attribute: the attribute used to find flow relief. Can be 'bkfA' or 'bkfW'.
+            attribute: the attribute used to find flow relief. Can be 'area' or 'width' (preferred)
                 If bkfA, the target function is the third derivative of bankfull area with respect to bankfull elevation.
                 If bkfW, the target function is the second derivative of bankfull width with respect to bankfull elevation.
                 Note that bkfW seems to return the expected result more reliably as the derivative is uncentered
                     for derivatives with an odd order.
-            method: the method used to find the floodplain.
+            returns: which floodplain value to return.
                 'left' - the left floodplain elevation is returned
                 'right' - the right floodplain elevation is returned
                 'lower' - the lower of the left and right floodplains is returned
@@ -639,16 +653,18 @@ class CrossSection(object):
         Raises:
             InputError: if the arguments passed to the method or attribute parameters are invalid.     
         """
-        if method not in ['lower','upper','min','max','left','right','mean']:
+        if returns not in ['lower','upper','min','max','left','right','mean']:
             raise streamexceptions.InputError("Invalid method. Method must be one of 'lower','upper','left','right','mean'.")
         
-        if attribute == 'bkfA':
+        if attribute == 'area':
+            attributeMethod = self.calculate_area
             deriv = 3
-            logging.warn('Floodplain estimation by the third derivative of bkfA is unstable.')
-        elif attribute == 'bkfW':
+            logging.warn('Floodplain estimation by the third derivative of bkf area is unstable.')
+        elif attribute == 'width':
+            attributeMethod = self.calculate_width
             deriv = 2
         else:
-            raise streamexceptions.InputError("Invalid attribute. Attribute must be 'bkfA' or 'bkfW'.")
+            raise streamexceptions.InputError("Invalid attribute. Attribute must be 'area' or 'width'.")
         
         leftEls = sm.make_monotonic(self.elevations[self.thwIndex-1::-1],removeDuplicates=True)
         rightEls = sm.make_monotonic(self.elevations[self.thwIndex+1:],removeDuplicates=True)
@@ -658,10 +674,9 @@ class CrossSection(object):
         els[0] = [el for el in leftEls if el > (self.elevations[self.thwIndex] + delta/2)]
         els[1] = [el for el in rightEls if el > (self.elevations[self.thwIndex] + delta/2)]
         
-        
         funcResults = [None,None]
         for i,side in enumerate(els):
-            funcResults[i] = [self._attr_nthderiv(attribute,deriv,el,delta) for el in side]
+            funcResults[i] = [self._attr_nthderiv(attributeMethod,deriv,el,delta) for el in side]
         maxes = [max(funcResults[0]),max(funcResults[1])]
         inds = [sm.find_max_index(funcResults[0]),sm.find_max_index(funcResults[1])]
         winEls = [els[0][inds[0]],els[1][inds[1]]]
@@ -675,10 +690,10 @@ class CrossSection(object):
         resultDict = {'min':winEls[minSide],'max':winEls[maxSide],'left':winEls[0],
                       'right':winEls[1],'lower':winEls[lowSide],'upper':winEls[highSide],
                       'mean':np.mean(winEls)}
-        return(resultDict[method])
+        return(resultDict[returns])
        
     @bkf_savestate
-    def bkf_brute_search(self, attribute, target, delta = 0.1):
+    def bkf_brute_search(self, attributeMethod, target, delta = 0.1):
         """
         Finds the most ideal bkf elevation by performing a brute force search, looking for a target value of a specified attribute.
         The attribute need not increase monotonically with bkf elevation.
@@ -699,7 +714,7 @@ class CrossSection(object):
             None.
         """
         
-        arrays = self.attribute_list(attribute = attribute, deltaEl = delta)
+        arrays = self.attribute_list(attributeMethod = attributeMethod, deltaEl = delta)
         elevations = arrays[0]
         attributes = np.asarray(arrays[1])
         dists = np.abs(attributes-target)
@@ -709,7 +724,7 @@ class CrossSection(object):
         return(elevations[bestIndex])
     
     @bkf_savestate
-    def bkf_binary_search(self, attribute, target, epsilon = None, returnFailed = False):
+    def bkf_binary_search(self, attributeMethod, target, epsilon = None, returnFailed = False):
         """
         Finds the most ideal bkf elevation by performing a binary-esque search, looking for a target value of a specified attribute.
         After exiting the algorithm, bankfull statistics will be recalculated for whatever the bkfEl was when entering the method.
@@ -729,7 +744,7 @@ class CrossSection(object):
         """
         
         if epsilon is None:
-            epsilon = target/1000 # by default the tolerance is 0.1% of the target.
+            epsilon = target/1000 # by default the tolerance is 0.1% of the target value.
         
         bottom = min(self.elevations)
         top = max(self.elevations)
@@ -751,8 +766,7 @@ class CrossSection(object):
         while not found and n < 1000:
             n += 1
             self.bkfEl = (bottom + top)/2
-            self.calculate_bankfull_statistics()
-            calculatedValue = getattr(self, attribute)
+            calculatedValue = attributeMethod()
             if np.isclose(calculatedValue,target,atol=epsilon):
                 found = True
             else:

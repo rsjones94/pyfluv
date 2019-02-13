@@ -191,6 +191,7 @@ class StreamSurvey(object):
                 (Riffle,Run,Pool,Glide) for each CrossSection.
             If project is true, the CrossSections will use projected stationing.
         """
+        print('packing crosses')
         crosses = [PackGroupCross(packGroup,self.keywords,self.metric).create_cross_object(guessType,project) for packGroup in self.crossSections]
         return(crosses)
         
@@ -374,7 +375,6 @@ class PackGroupCross(object):
         exes,whys,zees,desc = self.pull_xs_survey_coords()
         attDict = self.pull_atts()
         df = {'exes':exes,'whys':whys,'zees':zees,'desc':desc}
-        
         # have not implemented adding the cross section thalweg
         cross = sg.CrossSection(df = df,
                                 name = self.name,
