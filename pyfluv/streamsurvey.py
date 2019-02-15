@@ -191,7 +191,6 @@ class StreamSurvey(object):
                 (Riffle,Run,Pool,Glide) for each CrossSection.
             If project is true, the CrossSections will use projected stationing.
         """
-        print('packing crosses')
         crosses = [PackGroupCross(packGroup,self.keywords,self.metric).create_cross_object(guessType,project) for packGroup in self.crossSections]
         return(crosses)
         
