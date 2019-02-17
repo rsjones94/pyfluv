@@ -4,6 +4,7 @@ Simple functions for processing stream survey data
 import numpy as np
 import pandas as pd
 import itertools
+import logging
 
 from . import streamexceptions
 
@@ -1771,6 +1772,7 @@ def make_consecutive_list(series,indices = True):
             appender = []
     return(consec)
     
+    
 def is_populated(mList):
     """
     Takes a list of lists where each sublist is of equal length and returns a list
@@ -1795,6 +1797,109 @@ def crush_consecutive_list(consecList,offset=1):
     crushed = [(sub[0],sub[-1]+offset) for sub in consecList]
     return(crushed)
     
+def crack_slicing_tuple(tup,index):
+    """
+    Takes a tuple (i,j) presumably representing slicing indices and returns two tuples
+    (i,index),(index,j) as a tuple. If index is not on the inclusive interval (i+1,j-2)
+    then it returns the original tuple.
+    """
+    if not(index > tup[0] and index < tup[1]-1):
+        return(tup)
+    else:
+        tup1 = (tup[0],index)
+        tup2 = (index,tup[1])
+        return(tup1,tup2)
+
+def crack_crushed_list(crushedList,index):
+    """
+    Takes a list of crushed (slicing) tuples and splits each tuple using crack_crushed_tuple().
+    """
+    crackedList = []
+    for tup in crushedList:
+        result = crack_slicing_tuple(tup=tup,index=index)
+        if isinstance(result[0],tuple):                     
+            for el in result:
+                crackedList.append(el)
+        else:
+            crackedList.append(result)
+            
+    return(crackedList)
+    
+def twist_slicing_tuples(tup1,tup2):
+    """
+    Takes two slicing tuples with overlapping ranges and "twists" them at the overlap.
+    Beginning at the range overlap, each tuple is repeatedly cracked such that the resulting
+    tuple lists have no overlap in range and alternate their coverage of the shared range. Returns
+    two lists of cracked tuples representing the domains of tup1 and tup2.
+    
+    Some rules are enforced to make sure result makes sense for the purpose of splitting morphology
+    calls, but it is still possible to get nonsensical results e.g., if tuples passed are backwards
+    (e.g., (4,2)) or have a zero length domain (e.g., (3,4))
+    """
+    twisted1 = []
+    twisted2 = []
+    if tup1[0] == tup2[0]:
+        raise ValueError('Tuples have same start index. Domain primacy is ambigiuous.')
+    if tup1[1] == tup2[1]:
+        raise ValueError('Tuples have same end index. Domain primacy is ambigiuous.')
+    elif not(overlap(tup1,tup2)):
+        return([tup1],[tup2])
+    elif tup1[0] < tup2[0]:
+        t1,t2 = tup1,tup2
+        twist1,twist2 = twisted1,twisted2
+    else:
+        t1,t2 = tup2,tup1
+        twist1,twist2 = twisted2,twisted1
+        
+    isWithin = within(t2,t1)
+    if isWithin:
+        shareRange = (t2[0],t2[1])
+    else:
+        shareRange = (t2[0],t1[1])
+          
+    twistList = [(i,i+2) for i in range(shareRange[0],shareRange[1]-1)]
+    
+    bit = 0
+    returnList = [twist1,twist2]
+    returnList[0].append((t1[0],t2[0]+1))
+    for twist in twistList:
+        bit ^= 1
+        returnList[bit].append(twist)
+        
+    if not isWithin:
+        returnList[1].append((t1[1]-1,t2[1]))
+    elif isWithin:
+        returnList[0].append((t2[1]-1,t1[1]))
+        
+    if twisted1[0][0] != tup1[0] or twisted1[-1][1] != tup1[1]:
+        logging.warning('tup1 has an unexpected domain. Twisting results may be unexpected.')
+    if twisted2[0][0] != tup2[0] or twisted2[-1][1] != tup2[1]:
+        logging.warning('tup2 has an unexpected domain. Twisting results may be unexpected.')
+        
+    return((twisted1,twisted2))
+
+def overlap(tup1,tup2):
+    """
+    Determines if two slicing tuples share any of their domains/
+    """
+    if (tup2[0] > tup1[0] and tup2[0] < tup1[1]) or (tup2[1] > tup1[0] and tup2[1] < tup1[1]):
+        return(True)
+    else:
+        return(False)
+    
+def within(tup1,tup2):
+    """
+    Determines if a slicing tuple's tup1 domain is entirely within another slicing tuple's tup2 domain (inclusive).
+    """
+    if tup1[0] >= tup2[0] and tup1[1] <= tup2[1]:
+        return(True)
+    else:
+        return(False)
+    
+def is_odd(num):
+   return(num % 2 != 0)
+    
+    
 def blend_polygons():
     """
     Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.
@@ -1806,7 +1911,7 @@ def blend_polygons():
     Raises:
 
     Todo:
-        WHAT THE HELL DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
+        WHAT DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
     """
     pass
     

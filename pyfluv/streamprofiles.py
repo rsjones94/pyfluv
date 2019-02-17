@@ -77,13 +77,11 @@ class Profile(object):
         else:
             return("UNNAMED")
         
-    def qplot(self, showThw = True, showWs = True, showBkf = True, showTob = True, showFeatures = False):
-        plt.figure()
+    def qplot(self, labelPlot = True, showThw = True, showWs = True,
+              showBkf = True, showTob = True, showFeatures = False):
+        
         if showThw:
             plt.plot(self.filldf['Station'],self.filldf['Thalweg'], color = 'gray', linewidth = 2, label = 'Thalweg')
-        plt.title(str(self))
-        plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
-        plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
         
         if 'Water Surface' in self.filldf and showWs:
             plt.plot(self.filldf['Station'],self.filldf['Water Surface'], "b--",
@@ -100,11 +98,17 @@ class Profile(object):
         if showFeatures:
             for morph in self.features:
                 for feat in self.features[morph]:
-                    feat.addplot()
-                     
-        handles,labels = plt.gca().get_legend_handles_labels()
-        by_label = dict(zip(labels,handles))
-        plt.legend(by_label.values(),by_label.keys())
+                    feat.addplot(addLabel=False)
+                    
+        if labelPlot:
+            plt.title(str(self))
+            plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
+            plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
+            
+            handles,labels = plt.gca().get_legend_handles_labels()
+            by_label = dict(zip(labels,handles))
+            plt.legend(by_label.values(),by_label.keys())
+            
     
     def planplot(self):
         """
@@ -239,7 +243,7 @@ class Feature(Profile):
         Profile.__init__(self, df, name, metric = False)
         self.morphType = morphType
         
-    def addplot(self):
+    def addplot(self,addLabel=False):
         """
         Adds scatter points and lines representing the feature to a plot.
         """
@@ -249,8 +253,9 @@ class Feature(Profile):
                     color = self.morphColors[self.morphType])
         
         # code block below updates the legend, but ignores the label if it's a duplicate
-        handles,labels = plt.gca().get_legend_handles_labels()
-        by_label = dict(zip(labels,handles))
-        plt.legend(by_label.values(),by_label.keys())
+        if addLabel:
+            handles,labels = plt.gca().get_legend_handles_labels()
+            by_label = dict(zip(labels,handles))
+            plt.legend(by_label.values(),by_label.keys())
         
         
