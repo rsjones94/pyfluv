@@ -109,15 +109,19 @@ class Profile(object):
             plt.legend(by_label.values(),by_label.keys())
             
     
-    def planplot(self):
+    def planplot(self,labelPlot = True,equalAspect=True):
         """
         Uses matplotlib to create a quick plot of the planform of the profile.
         """
-        plt.figure()
-        plt.plot(self.df['exes'],self.df['whys'])
-        plt.title(str(self) + ' (Planform)')
-        plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
-        plt.ylabel('Northing (' + self.unitDict['lengthUnit'] + ')')
+        ax = plt.subplot()
+        plt.plot(self.df['exes'],self.df['whys'],label = 'Profile Planform')
+        if equalAspect:
+            ax.set_aspect('equal')
+        if labelPlot:
+            plt.title(str(self) + ' (Planform)')
+            plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
+            plt.ylabel('Northing (' + self.unitDict['lengthUnit'] + ')')
+            plt.legend()
 
     def generate_stationing(self):
         stations = sm.get_stationing(self.df['exes'],self.df['whys'],project = False)

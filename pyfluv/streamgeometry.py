@@ -205,7 +205,7 @@ class CrossSection(object):
             plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
             plt.legend()
             
-    def planplot(self, labelPlot = True, showProjections = True):
+    def planplot(self, labelPlot = True, showProjections = True,equalAspect=True):
         """
         Uses matplotlib to create a quick plot of the planform of the cross section.
         If showProjections is True but self.project is False, no projects will be shown.
@@ -213,6 +213,7 @@ class CrossSection(object):
         Args:
             showProjections: If True, shows the where each shot was projected to.
         """
+        ax = plt.subplot()
         plt.plot(self.df['exes'],self.df['whys'], label = 'Cross Section Planform')
         
         if showProjections and self.project:
@@ -224,7 +225,8 @@ class CrossSection(object):
                 px = (self.df['exes'][i],projX[i])
                 py = (self.df['whys'][i],projY[i])
                 plt.plot(px,py)
-            
+        if equalAspect:
+            ax.set_aspect('equal')
         if labelPlot:
             plt.title(str(self) + ' (Planform)')
             plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
