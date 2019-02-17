@@ -82,6 +82,8 @@ class CrossSection(object):
         """
         
         self.name = name
+        if isinstance(df,dict):
+            df = pd.DataFrame.from_dict(df)
         self.df = df
         self.morphType = morphType
         self.project = project
@@ -144,20 +146,16 @@ class CrossSection(object):
         self.set_bankfull_stations_and_elevations()
         self.determine_bounding_truths()
     
-    def qplot(self, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
+    def qplot(self, labelPlot = True, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
         """
         Uses matplotlib to create a quick plot of the cross section.
         If showCutSection is True but no overhangs are present, no removed overhangs will be shown.
         """
-        plt.figure()
         if showCutSection and self.hasOverhangs:
             plt.plot(self.rawSta,self.rawEl, "b--", color="#f44e42", linewidth = 2, label = 'Overhang')
             
         plt.plot(self.stations,self.elevations, color="black", linewidth = 2)
         plt.scatter(self.stations,self.elevations, color="black")
-        plt.title(str(self))
-        plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
-        plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
         
         # in retrospect, this probably should have been done with a loop and a truth dict
                 
@@ -201,9 +199,13 @@ class CrossSection(object):
             plt.plot(exes,whys, "b--", color = '#31A9FF', linewidth = 2, label = 'Water Surface')
             plt.scatter(exes,whys, color="#31A9FF")
             
-        plt.legend()
+        if labelPlot:
+            plt.title(str(self))
+            plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
+            plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
+            plt.legend()
             
-    def planplot(self, showProjections = True):
+    def planplot(self, labelPlot = True, showProjections = True):
         """
         Uses matplotlib to create a quick plot of the planform of the cross section.
         If showProjections is True but self.project is False, no projects will be shown.
@@ -211,11 +213,7 @@ class CrossSection(object):
         Args:
             showProjections: If True, shows the where each shot was projected to.
         """
-        plt.figure()
-        plt.plot(self.df['exes'],self.df['whys'])
-        plt.title(str(self) + ' (Planform)')
-        plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
-        plt.ylabel('Northing (' + self.unitDict['lengthUnit'] + ')')
+        plt.plot(self.df['exes'],self.df['whys'], label = 'Cross Section Planform')
         
         if showProjections and self.project:
             projected = self.get_centerline_shots()
@@ -226,6 +224,12 @@ class CrossSection(object):
                 px = (self.df['exes'][i],projX[i])
                 py = (self.df['whys'][i],projY[i])
                 plt.plot(px,py)
+            
+        if labelPlot:
+            plt.title(str(self) + ' (Planform)')
+            plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
+            plt.ylabel('Northing (' + self.unitDict['lengthUnit'] + ')')
+            plt.legend()
                 
     def get_centerline_shots(self):
         """
@@ -248,6 +252,7 @@ class CrossSection(object):
             Defines rawSta and rawEl, representing stationing and elevation.
         """
         self.rawSta = sm.get_stationing(self.df['exes'],self.df['whys'],project = self.project)
+        self.df['Station'] = self.rawSta
         self.rawEl = self.df['zees']
         if isinstance(self.rawEl,pd.core.series.Series):
             self.rawEl = self.rawEl.tolist()
@@ -625,7 +630,7 @@ class CrossSection(object):
         return(result)
         
     @bkf_savestate
-    def find_floodplain_elevation(self, attribute = 'width', returns = 'lower', delta = 0.01):
+    def find_floodplain_elevation(self, attribute = 'width', returns = 'lower', delta = None):
         """
         Estimates the elevation of the floodplain by maximizing a target function that is evaluated
         at each possible survey elevation.
@@ -646,13 +651,18 @@ class CrossSection(object):
                 'mean' - the mean floodplain elevation is returned            
             deltaEl: the granularity of the change in elevation by which the area will be calculated.
                 Note that any points within delta/2 of the thalweg will not be evaluated
-                as the target function would not be able to be evaluated.
+                as the target function would not be able to be evaluated. If no delta is specified,
+                then delta will be set to 10% of the difference between the lowest and highest points
+                in the survey.
         Returns:
             The elevation where the target function is maximized.
             
         Raises:
-            InputError: if the arguments passed to the method or attribute parameters are invalid.     
+            InputError: if the arguments passed to the method or attribute parameters are invalid.   
         """
+        if delta is None:
+            delta = (max(self.elevations)-min(self.elevations))*0.1
+        
         if returns not in ['lower','upper','min','max','left','right','mean']:
             raise streamexceptions.InputError("Invalid method. Method must be one of 'lower','upper','left','right','mean'.")
         
