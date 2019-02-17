@@ -1223,7 +1223,7 @@ def length_of_overlap_1d(s1,s2):
     max1 = max(s1)
     max2 = max(s2)
     overlap =  max(0, min(max1, max2) - max(min1, min2))
-    return overlap
+    return(overlap)
 
 
 def length_of_overlap_2d(s1,s2):
@@ -1850,7 +1850,7 @@ def twist_slicing_tuples(tup1,tup2):
     else:
         t1,t2 = tup2,tup1
         twist1,twist2 = twisted2,twisted1
-        
+
     isWithin = within(t2,t1)
     if isWithin:
         shareRange = (t2[0],t2[1])
@@ -1880,9 +1880,13 @@ def twist_slicing_tuples(tup1,tup2):
 
 def overlap(tup1,tup2):
     """
-    Determines if two slicing tuples share any of their domains/
+    Determines if two slicing tuples share any of their domains, except if they are the same tuple.
     """
-    if (tup2[0] > tup1[0] and tup2[0] < tup1[1]) or (tup2[1] > tup1[0] and tup2[1] < tup1[1]):
+    def innerlap(tup1,tup2):
+        if (tup2[0] >= tup1[0] and tup2[0] < tup1[1]):
+            return(True)
+    
+    if innerlap(tup1,tup2) or innerlap(tup2,tup1):
         return(True)
     else:
         return(False)

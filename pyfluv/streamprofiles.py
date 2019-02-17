@@ -56,17 +56,16 @@ class Profile(object):
         if not 'Station' in self.df: # if there is no stationing column, generate it and interpolate the cols
             self.generate_stationing()
             self.fill_columns()
-            self.make_unclassified()
-            self.create_features()
+            #self.make_unclassified()
+            #self.create_features()
             
-        self.calculate_profile_statistics()
-        
-    def calculate_profile_statistics(self):
-        self.make_length()
         
     def validate_df(self):
         if not all(x in self.df.keys() for x in self.basicCols):
             raise streamexceptions.InputError('Input df must include keys or columns "exes", "whys", "zees", "Thalweg"')
+    
+    def validate_data(self):
+        pass        
     
     def __str__(self):
         """
@@ -150,7 +149,9 @@ class Profile(object):
         """
         if morphType not in self.filldf:
             return([])
+            
         featureIndices = sm.crush_consecutive_list(sm.make_consecutive_list(self.filldf[morphType], indices = True))
+        
         morphList = [Feature(self.filldf[sliceInd[0]:sliceInd[1]],
                              name=f'{self.name}, {morphType} {i}',
                              metric = self.metric,

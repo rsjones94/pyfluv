@@ -9,8 +9,10 @@ import re
 import numpy as np
 import pandas as pd
 
-from . import streamgeometry as sg
+
 from . import streamexceptions
+from . import streamgeometry as sg
+from . import streamprofiles as sp
 
 class StreamSurvey(object):
     
@@ -194,6 +196,13 @@ class StreamSurvey(object):
         crosses = [PackGroupCross(packGroup,self.keywords,self.metric).create_cross_object(guessType,project) for packGroup in self.crossSections]
         return(crosses)
         
+    def get_profile_objects(self):
+        """
+        Takes self.crossSections and returns a list of Profile objects.
+        """
+        profiles = [PackGroupPro(packGroup,self.keywords,self.colRelations,self.metric).create_pro_object(assignMethod='backstack') for packGroup in self.profiles]
+        return(profiles)
+        
     def get_packgroup_coords(self,packGroup):
         """
         Takes a list of packed shots and returns a list of tuples containing the x,y coords for each shot.
@@ -252,21 +261,33 @@ class PackGroupPro(object):
         
         return(sCols)
         
-    def backstack_data(self): # NOT DONE
+    def backstack_data(self):
         colnames = self.make_sCols()
         colnames.extend(self.make_uCols())
         
         allSubs = self.substrate_filter()
         blankCol = [None for i in allSubs]
-        backstacked = {col:blankCol for col in colnames}
-        return(backstacked)
-        i = 0
+        backStacked = {col:blankCol.copy() for col in colnames}
+        
+        i = -1
         for shot in self.packGroup:
             mean = shot.meaning['morphs']
-            if any(morph in mean for morph in ['Thalweg','Riffle','Run','Pool','Glide']):
-                pass
+            if any(morph in mean for morph in ['Thalweg','Riffle','Run','Pool','Glide']): # if it's a substrate shot
+                i += 1
+                backStacked['Thalweg'][i] = shot.zee
+                backStacked['exes'][i] = shot.ex
+                backStacked['whys'][i] = shot.why
+                backStacked['zees'][i] = shot.zee
+                backStacked['shotnum'][i] = shot.shotnum
+            for col in mean:
+                if i < 0:
+                    logging.warning('Non-substrate shots before first substrate shot. These will not be backstacked.')
+                backStacked[col][i] = shot.zee
+            
+        backStacked = pd.DataFrame.from_dict(backStacked)
+        return(backStacked)
     
-    def create_pro_object(self,packGroup,assignMethod='backstack'):
+    def create_pro_object(self,assignMethod='backstack'):
         """
         Makes a pyfluv profile object
         
@@ -277,7 +298,12 @@ class PackGroupPro(object):
                                of the previous substrate shot.
                            If 'nearest', they will be assigned the station of the nearest substrate shot.
         """
-        pass
+        if assignMethod is 'nearest':
+            raise NotImplementedError('Nearest method not implemented yet.')
+        elif assignMethod is 'backstack':
+            df = self.backstack_data()
+        return(sp.Profile(df,name=self.name,metric=self.metric))
+        
     
     
 class PackGroupCross(object):
