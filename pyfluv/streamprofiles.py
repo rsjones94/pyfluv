@@ -27,6 +27,7 @@ class Profile(object):
     basicCols = ['exes','whys','Thalweg']
     fillCols = ['Water Surface', 'Bankfull', 'Top of Bank']
     morphCols = ['Riffle','Run','Pool','Glide','Unclassified']
+    substrateCols = ['Riffle','Run','Pool','Glide']
     
     def __init__(self, df, name = None, metric = False):
         """
@@ -64,8 +65,34 @@ class Profile(object):
         if not all(x in self.df.keys() for x in self.basicCols):
             raise streamexceptions.InputError('Input df must include keys or columns "exes", "whys", "zees", "Thalweg"')
     
-    def validate_data(self):
-        pass        
+    def validate_substrate(self):
+        """
+        For all columns Riffle, Run, Pool, Glide:
+            if an index has a value, then at least one of the next or previous indices must have a value.
+            no more than two of the columns can have a value on a given index.
+        """
+        haveCols = [col for col in self.substrateCols if col in self.filldf]
+        for i in range(len(self.filldf)):
+            # check for overpopulation
+            row = self.filldf[i:i+1][haveCols]
+            populated = [colName for colName in row.keys() if not pd.isnull(row[colName][i])]
+            if len(populated) > 2:
+                raise streamexceptions.InputError(f'More than two substrate features identified on row {i}: {populated}')
+            
+            # check for isolation
+            for col in haveCols:
+                if not pd.isnull(self.df[col][i]):
+                    neighbors = [False,False]
+                    try:
+                        neighbors[0] = not(pd.isnull(self.filldf[col][i-1]))
+                    except KeyError:
+                        pass
+                    try:
+                        neighbors[1] = not(pd.isnull(self.filldf[col][i+1]))
+                    except KeyError:
+                        pass
+                    if all(neighbor is False for neighbor in neighbors):
+                        raise streamexceptions.InputError(f'Isolated {col} call on row {i}.')
     
     def __str__(self):
         """
