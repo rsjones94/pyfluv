@@ -103,9 +103,10 @@ class Profile(object):
         else:
             return("UNNAMED")
         
-    def qplot(self, labelPlot = True, showThw = True, showWs = True,
+    def qplot(self, labelPlot = True, ve = None, showThw = True, showWs = True,
               showBkf = True, showTob = True, showFeatures = False):
         
+        ax = plt.subplot()
         if showThw:
             plt.plot(self.filldf['Station'],self.filldf['Thalweg'], color = 'gray', linewidth = 2, label = 'Thalweg')
         
@@ -125,7 +126,9 @@ class Profile(object):
             for morph in self.features:
                 for feat in self.features[morph]:
                     feat.addplot(addLabel=False)
-                    
+           
+        if ve is not None:
+            ax.set_aspect(ve)
         if labelPlot:
             plt.title(str(self))
             plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
