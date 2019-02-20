@@ -146,11 +146,12 @@ class CrossSection(object):
         self.set_bankfull_stations_and_elevations()
         self.determine_bounding_truths()
     
-    def qplot(self, labelPlot = True, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
+    def qplot(self, labelPlot = True, ve = None, showBkf=True, showWs = True, showTob = True, showFloodEl = True, showCutSection=False):
         """
         Uses matplotlib to create a quick plot of the cross section.
         If showCutSection is True but no overhangs are present, no removed overhangs will be shown.
         """
+        ax = plt.subplot()
         if showCutSection and self.hasOverhangs:
             plt.plot(self.rawSta,self.rawEl, "b--", color="#f44e42", linewidth = 2, label = 'Overhang')
             
@@ -198,7 +199,8 @@ class CrossSection(object):
             whys = [broken[1][0],broken[1][-1]]
             plt.plot(exes,whys, "b--", color = '#31A9FF', linewidth = 2, label = 'Water Surface')
             plt.scatter(exes,whys, color="#31A9FF")
-            
+        if ve is not None:
+            ax.set_aspect(ve)
         if labelPlot:
             plt.title(str(self))
             plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
