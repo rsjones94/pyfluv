@@ -579,12 +579,12 @@ class CrossSection(object):
         attrArray = []
         
         minEl = self.elevations[self.thwIndex]
-        self.bkfEl = minEl
+        self.bkfEl = minEl + deltaEl
         
         while self.bkfEl <= max(self.elevations):
-            self.bkfEl += deltaEl
             elArray.append(self.bkfEl)
             attrArray.append(attributeMethod())
+            self.bkfEl += deltaEl
         
         return(elArray,attrArray)
       
