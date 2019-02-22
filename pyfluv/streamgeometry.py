@@ -207,7 +207,7 @@ class CrossSection(object):
             plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
             plt.legend()
             
-    def planplot(self, labelPlot = True, showProjections = True,equalAspect=True):
+    def planplot(self, labelPlot = True, showProjections = True, equalAspect=True):
         """
         Uses matplotlib to create a quick plot of the planform of the cross section.
         If showProjections is True but self.project is False, no projects will be shown.
