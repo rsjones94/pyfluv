@@ -47,23 +47,30 @@ class Profile(object):
         self.filldf = df.copy()
         self.metric = metric
         self.name = name
+        self.haveCols = [col for col in self.substrateCols if col in self.filldf]
         
         if self.metric:
             self.unitDict = sc.METRIC_CONSTANTS
         elif not(self.metric):
             self.unitDict = sc.IMPERIAL_CONSTANTS
         
-        self.validate_df()
-        if not 'Station' in self.df: # if there is no stationing column, generate it and interpolate the cols
+
+        if not 'Station' in self.df: 
+            """
+            if there is no stationing column, generate it and interpolate the cols
+            actualy a janky way to keep this code from running when the subclass Feature is instantiated
+            """
             self.generate_stationing()
             self.fill_columns()
+            self.validate_df()
+            self.validate_substrate()
             #self.make_unclassified()
-            #self.create_features()
+            self.features = self.create_features()
             
         
     def validate_df(self):
         if not all(x in self.df.keys() for x in self.basicCols):
-            raise streamexceptions.InputError('Input df must include keys or columns "exes", "whys", "zees", "Thalweg"')
+            raise streamexceptions.InputError('Input df must include keys or columns "exes", "whys", "Thalweg"')
     
     def validate_substrate(self):
         """
@@ -71,16 +78,15 @@ class Profile(object):
             if an index has a value, then at least one of the next or previous indices must have a value.
             no more than two of the columns can have a value on a given index.
         """
-        haveCols = [col for col in self.substrateCols if col in self.filldf]
         for i in range(len(self.filldf)):
             # check for overpopulation
-            row = self.filldf[i:i+1][haveCols]
+            row = self.filldf[i:i+1][self.haveCols]
             populated = [colName for colName in row.keys() if not pd.isnull(row[colName][i])]
             if len(populated) > 2:
                 raise streamexceptions.InputError(f'More than two substrate features identified on row {i}: {populated}')
             
             # check for isolation
-            for col in haveCols:
+            for col in self.haveCols:
                 if not pd.isnull(self.df[col][i]):
                     neighbors = [False,False]
                     try:
@@ -171,31 +177,43 @@ class Profile(object):
         for col in self.fillCols:
             if col in self.filldf:
                 self.filldf[col] = self.fill_name(col)
-    
-    def split_morph(self, morphType):
-        """
-        Given a morph type contained in self.morphCols, returns a list of Feature objects
-        representing that feature type.
-        
-        PROBLEM: if a morph is broken by another morph that is two shots long
-        then this will fail. Additionally, isolated morphs that are only two shots long
-        are swallowed by Unclassified.
-        """
-        if morphType not in self.filldf:
-            return([])
-            
-        featureIndices = sm.crush_consecutive_list(sm.make_consecutive_list(self.filldf[morphType], indices = True))
-        
-        morphList = [Feature(self.filldf[sliceInd[0]:sliceInd[1]],
-                             name=f'{self.name}, {morphType} {i}',
-                             metric = self.metric,
-                             morphType = morphType) for i,sliceInd in enumerate(featureIndices)]
-        return(morphList)
         
     def create_features(self):
-        featDict = {morph:self.split_morph(morph) for morph in self.morphCols}
-        self.features = featDict
-        
+        featDict = {morph:[] for morph in self.haveCols}
+        currentMorph = None
+        startInd = -1
+        for i in range(len(self.filldf)):
+            try:
+                if pd.isnull(self.filldf[currentMorph][i]):
+                    #print(f'Gap switch {currentMorph} at {i}')
+                    feat = Feature(df=self.filldf[startInd:i],
+                                   name=None,
+                                   metric=self.metric,
+                                   morphType=currentMorph)
+                    featDict[currentMorph].append(feat)
+                    currentMorph = None
+                    startInd = -1
+                else:
+                    for morph in self.haveCols:
+                        if not(pd.isnull(self.filldf[morph][i])) and morph is not currentMorph:
+                            #print(f'Smooth switch {currentMorph} to {morph} at {i}')
+                            feat = Feature(df=self.filldf[startInd:i+1],
+                                           name=None,
+                                           metric=self.metric,
+                                           morphType=currentMorph)
+                            featDict[currentMorph].append(feat)
+                            currentMorph = morph
+                            startInd = i
+                            break
+            except ValueError: # if currentMorph is None
+                for morph in self.haveCols:
+                    if not(pd.isnull(self.filldf[morph][i])):
+                        currentMorph = morph
+                        startInd = i
+                        break
+            #print(f'At {i}. Current morph: {currentMorph}')
+        return(featDict)
+                        
     def make_unclassified(self):
         """
         Makes a column indicating rows that do not have a specified substrate feature.
@@ -277,6 +295,13 @@ class Feature(Profile):
     def __init__(self, df, name = None, metric = False, morphType = None):
         Profile.__init__(self, df, name, metric = False)
         self.morphType = morphType
+        
+    def __str__(self):
+        inds = self.filldf.index
+        return(f"<Feature-{self.morphType}-{inds[0]}:{inds[-1]}>")
+        
+    def __repr__(self):
+        return(self.__str__())
         
     def addplot(self,addLabel=False):
         """
