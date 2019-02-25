@@ -64,9 +64,7 @@ class Profile(object):
             self.fill_columns()
             self.validate_df()
             self.validate_substrate()
-            #self.make_unclassified()
-            self.features = self.create_features()
-            
+            self.create_features()
         
     def validate_df(self):
         if not all(x in self.df.keys() for x in self.basicCols):
@@ -83,7 +81,7 @@ class Profile(object):
             row = self.filldf[i:i+1][self.haveCols]
             populated = [colName for colName in row.keys() if not pd.isnull(row[colName][i])]
             if len(populated) > 2:
-                raise streamexceptions.InputError(f'More than two substrate features identified on row {i}: {populated}')
+                raise streamexceptions.InputError(f'More than two substrate features identified on row {i}: {populated} in Profile {self.name}.')
             
             # check for isolation
             for col in self.haveCols:
@@ -98,7 +96,7 @@ class Profile(object):
                     except KeyError:
                         pass
                     if all(neighbor is False for neighbor in neighbors):
-                        raise streamexceptions.InputError(f'Isolated {col} call on row {i}.')
+                        raise streamexceptions.InputError(f'Isolated {col} call on row {i} in Profile {self.name}')
     
     def __str__(self):
         """
@@ -143,7 +141,6 @@ class Profile(object):
             handles,labels = plt.gca().get_legend_handles_labels()
             by_label = dict(zip(labels,handles))
             plt.legend(by_label.values(),by_label.keys())
-            
     
     def planplot(self,labelPlot = True,equalAspect=True):
         """
@@ -179,13 +176,18 @@ class Profile(object):
                 self.filldf[col] = self.fill_name(col)
         
     def create_features(self):
+        """
+        Creates Feature objects based off of the morphology calls in self.filldf.
+        
+        This code is disgusting and needs to be refactored.
+        """
         featDict = {morph:[] for morph in self.haveCols}
         currentMorph = None
-        startInd = -1
+        startInd = 0
         for i in range(len(self.filldf)):
             try:
                 if pd.isnull(self.filldf[currentMorph][i]):
-                    #print(f'Gap switch {currentMorph} at {i}')
+                    #print(f'Gap switch {currentMorph} at {i-1}')
                     feat = Feature(df=self.filldf[startInd:i],
                                    name=None,
                                    metric=self.metric,
@@ -193,6 +195,11 @@ class Profile(object):
                     featDict[currentMorph].append(feat)
                     currentMorph = None
                     startInd = -1
+                    for morph in self.haveCols:
+                        if not(pd.isnull(self.filldf[morph][i])):
+                            currentMorph = morph
+                            startInd = i
+                            break
                 else:
                     for morph in self.haveCols:
                         if not(pd.isnull(self.filldf[morph][i])) and morph is not currentMorph:
@@ -206,61 +213,77 @@ class Profile(object):
                             startInd = i
                             break
             except ValueError: # if currentMorph is None
+                #print(f'Nonetype detected')
                 for morph in self.haveCols:
                     if not(pd.isnull(self.filldf[morph][i])):
                         currentMorph = morph
                         startInd = i
+                        #print(f'New morph: {currentMorph}')
                         break
-            #print(f'At {i}. Current morph: {currentMorph}')
-        return(featDict)
-                        
-    def make_unclassified(self):
-        """
-        Makes a column indicating rows that do not have a specified substrate feature.
-        """
-        # STILL NOT QUITE CORRECT
-        mList = []
-        for name in self.morphCols[:-1]:
-            try:
-                mList.append(sm.crush_consecutive_list(sm.make_consecutive_list(self.filldf[name]),offset=0))
-            except KeyError:
-                next
-        
-        allTogether = []
-        for inner in mList:
-            for el in inner:
-                allTogether.append(el)
-        
-        allSort = sorted(allTogether,key=lambda x:x[0]) # sort by first element in tuple
-        
-        missing = []
-        for i,_ in enumerate(allSort):
-            try:
-                tup1 = allSort[i]
-                tup2 = allSort[i+1]
-            except IndexError: # when tup1 is the last tuple
-                break
+            #print(f'-----At {i}. Current morph: {currentMorph}-----')
             
-            if tup1[1] != tup2[0]:
-                rList = [i for i in range(tup1[1],tup2[0]+1)]
-                missing.append(rList)
-           
-        nShots = len(self.filldf['Thalweg'])-1
-        if allSort[-1][1] != nShots:
-            missing.append([i for i in range(allSort[-1][1],nShots+1)])
-        if allSort[0][0] != 0:
-            missing.append([i for i in range(0,allSort[0][0])+1])
-        
-        missingSorted = sorted(missing,key=lambda x:x[0])
-        missingUnpacked = []
-        for el in missingSorted:
-            missingUnpacked.extend(el)
+            if i is len(self.filldf)-1 and not(pd.isnull(currentMorph)):
+                feat = Feature(df=self.filldf[startInd:i+1],
+                               name=None,
+                               metric=self.metric,
+                               morphType=currentMorph)
+                featDict[currentMorph].append(feat)
                 
-        unclassed = [None]*len(self.filldf['Thalweg'])    
-        for i,val in enumerate(missingUnpacked):
-            unclassed[val] = self.filldf['Thalweg'][val]
+        self.features = featDict
+        self._make_unclassified()
+        
+    def ordered_features(self):
+        """
+        Returns self.features as a list sorted by start index
+        """
+        orderedFeats = []
+        for key in self.features:
+            feats = [feat for feat in self.features[key]]
+            orderedFeats.extend(feats)
+        
+        orderedFeats = sorted(orderedFeats,key = lambda x:x.indices[0])
+        return(orderedFeats)
+                        
+    def _make_unclassified(self):
+        """
+        Populates self.features with a key populated by unclassified features.
+        """
+        self.features['Unclassified'] = []
+        oFeats = self.ordered_features()
+        if not oFeats: # if there are no features
+            feat = Feature(df=self.filldf[0:len(self.filldf)],
+                                          name=None,
+                                          metric=self.metric,
+                                          morphType='Unclassified')
+            self.features['Unclassified'].append(feat)
+            return(None)
             
-        self.filldf['Unclassified'] = unclassed
+        if oFeats[0].indices[0] != 0:
+            #print('unclass start')
+            feat = Feature(df=self.filldf[0:(oFeats[0].indices[0]+1)],
+                                          name=None,
+                                          metric=self.metric,
+                                          morphType='Unclassified')
+            self.features['Unclassified'].append(feat)
+        for i,_ in enumerate(oFeats):
+            try:
+                i1 = oFeats[i].indices[-1]
+                i2 = oFeats[i+1].indices[0]
+                if i1 != i2:
+                    #print(f'gap found: {i1} to {i2}')
+                    feat = Feature(df=self.filldf[i1:i2+1],
+                                   name=None,
+                                   metric=self.metric,
+                                   morphType='Unclassified')
+                    self.features['Unclassified'].append(feat)
+            except IndexError:
+                if oFeats[i].indices[-1] is not len(self.filldf)-1:
+                    #print('unclass end')
+                    feat = Feature(df=self.filldf[oFeats[i].indices[-1]:len(self.filldf)],
+                                   name=None,
+                                   metric=self.metric,
+                                   morphType='Unclassified')
+                    self.features['Unclassified'].append(feat)
         
     def make_elevations_agree(self,colName):
         """
@@ -295,10 +318,10 @@ class Feature(Profile):
     def __init__(self, df, name = None, metric = False, morphType = None):
         Profile.__init__(self, df, name, metric = False)
         self.morphType = morphType
+        self.indices = self.filldf.index
         
     def __str__(self):
-        inds = self.filldf.index
-        return(f"<Feature-{self.morphType}-{inds[0]}:{inds[-1]}>")
+        return(f"<Feature-{self.morphType}-{self.indices[0]}:{self.indices[-1]}>")
         
     def __repr__(self):
         return(self.__str__())
@@ -307,10 +330,16 @@ class Feature(Profile):
         """
         Adds scatter points and lines representing the feature to a plot.
         """
-        plt.plot(self.filldf['Station'],self.filldf[self.morphType],
+        if self.morphType in self.filldf:
+            col = self.morphType
+            label = self.morphType
+        else:
+            col = 'Thalweg'
+            label = 'Unclassified'
+        plt.plot(self.filldf['Station'],self.filldf[col],
                  color = self.morphColors[self.morphType], linewidth = 2,label='_NOLABEL_')
-        plt.scatter(self.filldf['Station'],self.filldf[self.morphType],
-                    color = self.morphColors[self.morphType])
+        plt.scatter(self.filldf['Station'],self.filldf[col],
+                    color = self.morphColors[self.morphType],label=label)
         
         # code block below updates the legend, but ignores the label if it's a duplicate
         if addLabel:

@@ -1877,39 +1877,7 @@ def twist_slicing_tuples(tup1,tup2):
     if twisted2[0][0] != tup2[0] or twisted2[-1][1] != tup2[1]:
         logging.warning('tup2 has an unexpected domain. Twisting results may be unexpected.')
         
-    return((twisted1,twisted2))
-  
-def twist_slicing_tuple_with_slicing_list(tup,li):
-    """
-    Twists a slicing tuple with a list.
-    """
-    pass
-    
-def twist_slicing_lists(l1,l2):
-    """
-    Takes two lists comprised of slicing tuples (always increasing) and twists/cracks them.
-    Returns two lists representing the twisting of l1 and l2 respectively.
-    """
-    allTwists1,allTwists2 = [],[]
-    
-    for el1 in l1:
-        for el2 in l2:
-            allTwists1.append(twist_slicing_tuples(el1,el2)[0])
-    for el2 in l2:
-        for el1 in l1:
-            allTwists2.append(twist_slicing_tuples(el2,el1)[0])
-            
-    flat1 = [item for sublist in allTwists1 for item in sublist]
-    flat2 = [item for sublist in allTwists2 for item in sublist]
-    
-    sortFlat1 = sorted(flat1,key=lambda x: x[0])
-    sortFlat2 = sorted(flat2,key=lambda x: x[0])    
-    
-    dupRemove1 = list(OrderedDict.fromkeys(sortFlat1))
-    dupRemove2 = list(OrderedDict.fromkeys(sortFlat2))
-    
-    return(dupRemove1,dupRemove2)
-            
+    return((twisted1,twisted2))            
 
 def overlap(tup1,tup2):
     """
