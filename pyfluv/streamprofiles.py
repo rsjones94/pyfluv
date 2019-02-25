@@ -59,9 +59,7 @@ class Profile(object):
             if there is no stationing column, generate it and interpolate the cols
             actualy a janky way to keep this code from running when the subclass Feature is instantiated
             """
-            self.generate_stationing()
-            self.fill_columns()
-            self.create_diffcols()
+            self.update_filldf()
             self.validate_df()
             self.validate_substrate()
             self.create_features()
@@ -186,9 +184,16 @@ class Profile(object):
         """
         # interesting diffs is a dict where the keys are the name of the column to be and
         # the values are the two columns that are used to create it (order matters)
-        interestingDiffs = {
-                }
-        pass
+        interestingDiffs = {'Water Depth':['Water Surface','Thalweg'],
+                            'Bankfull Height':['Bankfull','Thalweg'],
+                            'Bankfull to Water':['Bankfull','Water Surface'],
+                            'Top of Bank Height':['Top of Bank','Thalweg']
+                            }
+        for key,value in interestingDiffs.items():
+            try:
+                self.filldf[key] = self.create_diff(value[0],value[1])
+            except KeyError:
+                next
         
     def create_features(self):
         """
