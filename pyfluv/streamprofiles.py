@@ -62,6 +62,10 @@ class Profile(object):
             """
             self.generate_stationing()
             self.fill_columns()
+            if 'Water Surface' in self.filldf:
+                self.filldf['Water Depth'] = self.create_diff('Water Surface','Thalweg')
+            if 'Bankfull' in self.filldf:
+                self.filldf['Bankfull Depth'] = self.create_diff('Bankfull','Thalweg')
             self.validate_df()
             self.validate_substrate()
             self.create_features()
@@ -297,8 +301,18 @@ class Profile(object):
     def modify_shot(self):
         pass
     
-    def make_length(self):
-        pass
+    def get_length(self):
+        beginSta = self.filldf['Station'].iloc[0]
+        endSta = self.filldf['Station'].iloc[-1]
+        length = endSta - beginSta
+        return(length)
+        
+    def create_diff(self,c1,c2):
+        """
+        Takes two df columns and returns a columns of the difference at each index.
+        """
+        return(self.filldf[c1]-self.filldf[c2])
+        
         
     
 class Feature(Profile):
