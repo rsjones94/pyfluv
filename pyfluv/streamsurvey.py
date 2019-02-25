@@ -118,6 +118,7 @@ class StreamSurvey(object):
             allMatch: True if all values must be in the shot to match. Otherwise
                       shots with any matching values will be returned.
         """
+        #print(f'Filtering. value:{value},key:{key},allMatch:{allMatch}')
         if allMatch:
             gen = all
         else:
@@ -125,11 +126,14 @@ class StreamSurvey(object):
             
         if not isinstance(value,list):
             value = [value]
-        
-        try: # works when trying to match a value in morphs, which is a list
+            
+        if key is 'morphs': # works when trying to match a value in morphs, which is a list
             result = [pack for pack in packedShots if gen(i in pack.meaning[key] for i in value)]
-        except TypeError: # else need to use a different expression
+        elif key is 'name':
+            result = [pack for pack in packedShots if pack.meaning[key] == value[0]]
+        elif key is 'type': # else need to use a different expression
             result = [pack for pack in packedShots if gen(i in [pack.meaning[key]] for i in value)]
+            
         return(result)
         
     def count_names(self,packedShots):
@@ -267,7 +271,9 @@ class PackGroupPro(object):
         
         allSubs = self.substrate_filter()
         blankCol = [None for i in allSubs]
+        listCol = [[] for i in allSubs]
         backStacked = {col:blankCol.copy() for col in colnames}
+        backStacked['Shots'] = listCol
         
         i = -1
         for shot in self.packGroup:
@@ -282,7 +288,9 @@ class PackGroupPro(object):
             for col in mean:
                 if i < 0:
                     logging.warning('Non-substrate shots before first substrate shot. These will not be backstacked.')
+                    break
                 backStacked[col][i] = shot.zee
+                backStacked['Shots'][i].append(shot.desc)
             
         backStacked = pd.DataFrame.from_dict(backStacked)
         return(backStacked)
