@@ -53,7 +53,6 @@ class Profile(object):
             self.unitDict = sc.METRIC_CONSTANTS
         elif not(self.metric):
             self.unitDict = sc.IMPERIAL_CONSTANTS
-        
 
         if not 'Station' in self.df: 
             """
@@ -62,10 +61,7 @@ class Profile(object):
             """
             self.generate_stationing()
             self.fill_columns()
-            if 'Water Surface' in self.filldf:
-                self.filldf['Water Depth'] = self.create_diff('Water Surface','Thalweg')
-            if 'Bankfull' in self.filldf:
-                self.filldf['Bankfull Depth'] = self.create_diff('Bankfull','Thalweg')
+            self.create_diffcols()
             self.validate_df()
             self.validate_substrate()
             self.create_features()
@@ -178,6 +174,21 @@ class Profile(object):
         for col in self.fillCols:
             if col in self.filldf:
                 self.filldf[col] = self.fill_name(col)
+                
+    def update_filldf(self):
+        self.generate_stationing()
+        self.fill_columns()
+        self.create_diffcols()
+        
+    def create_diffcols(self):
+        """
+        Creates columns of interest that are the difference of two other columns.
+        """
+        # interesting diffs is a dict where the keys are the name of the column to be and
+        # the values are the two columns that are used to create it (order matters)
+        interestingDiffs = {
+                }
+        pass
         
     def create_features(self):
         """
