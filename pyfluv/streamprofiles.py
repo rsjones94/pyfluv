@@ -329,6 +329,33 @@ class Profile(object):
         """
         return(self.filldf[c1]-self.filldf[c2])
         
+    def repair_flow_direction(self,method = 'raise'):
+        """
+        Makes sure the water surface slope is always 0 or negative.
+        
+        If method is 'raise', then water surface points are raised up until the slope is 0.
+        If method is 'lower', then water surface points are lowered until the slope is 0.
+        """
+        controlDict = {'raise':reversed(range(len(self.filldf['Water Surface']))),
+                       'lower':range(len(self.filldf['Water Surface']))}
+        
+        for i in controlDict[method]:
+            try:
+                if self.filldf['Water Surface'].iloc[i] < self.filldf['Water Surface'].iloc[i+1]:
+                    if method == 'raise':
+                        self.filldf['Water Surface'].iloc[i] = self.filldf['Water Surface'].iloc[i+1]
+                    elif method == 'lower':
+                        self.filldf['Water Surface'].iloc[i+1] = self.filldf['Water Surface'].iloc[i]
+            except IndexError:
+                pass
+            
+    def force_water_above_thalweg(self):
+        """
+        Does what is says.
+        """
+        for i,_ in enumerate(self.filldf['Water Surface']):
+            if self.filldf['Water Surface'].iloc[i] < self.filldf['Thalweg'].iloc[i]:
+                self.filldf['Water Surface'].iloc[i] = self.filldf['Thalweg'].iloc[i]
         
     
 class Feature(Profile):

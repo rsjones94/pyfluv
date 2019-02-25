@@ -273,7 +273,7 @@ class PackGroupPro(object):
         blankCol = [None for i in allSubs]
         listCol = [[] for i in allSubs]
         backStacked = {col:blankCol.copy() for col in colnames}
-        backStacked['Shots'] = listCol
+        backStacked['desc'] = listCol
         
         i = -1
         for shot in self.packGroup:
@@ -290,7 +290,7 @@ class PackGroupPro(object):
                     logging.warning('Non-substrate shots before first substrate shot. These will not be backstacked.')
                     break
                 backStacked[col][i] = shot.zee
-                backStacked['Shots'][i].append(shot.desc)
+                backStacked['desc'][i].append(shot.desc)
             
         backStacked = pd.DataFrame.from_dict(backStacked)
         return(backStacked)
