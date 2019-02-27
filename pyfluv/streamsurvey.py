@@ -274,7 +274,6 @@ class PackGroupPro(object):
         listCol = [[] for i in allSubs]
         backStacked = {col:blankCol.copy() for col in colnames}
         backStacked['desc'] = listCol
-        
         i = -1
         for shot in self.packGroup:
             mean = shot.meaning['morphs']
@@ -291,7 +290,6 @@ class PackGroupPro(object):
                     break
                 backStacked[col][i] = shot.zee
                 backStacked['desc'][i].append(shot.desc)
-            
         backStacked = pd.DataFrame.from_dict(backStacked)
         return(backStacked)
     

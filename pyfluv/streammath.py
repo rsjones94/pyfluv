@@ -119,12 +119,15 @@ def get_nearest_value(series,index):
     Returns:
         The closest (index-wise) non-none value.
     """
-    if index > len(series) - 1:
+    n = len(series)
+    if index > n - 1:
         raise IndexError('list index out of range')
     sign = 1
     i = 0
     val = None
     while pd.isnull(val):
+        if i > n-1:
+            raise streamexceptions.InputError('List is all null')
         i += 1
         dist = int(np.floor(i/2))
         sign *= -1
@@ -156,7 +159,10 @@ def interpolate_value(seriesX,seriesY,index):
         try:
             leftRight = get_populated_indices(seriesY,index)
         except (IndexError, KeyError):
-            return(get_nearest_value(seriesY,index))
+            try:
+                return(get_nearest_value(seriesY,index))
+            except streamexceptions.InputError: #happens when seriesY is all null values
+                return(seriesY[index])
         p1 = (seriesX[leftRight[0]],seriesY[leftRight[0]])
         p2 = (seriesX[leftRight[1]],seriesY[leftRight[1]])
         line = line_from_points(p1,p2)

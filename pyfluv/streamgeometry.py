@@ -217,7 +217,7 @@ class CrossSection(object):
         """
         ax = plt.subplot()
         plt.plot(self.df['exes'],self.df['whys'], label = 'Cross Section Planform')
-        
+        plt.ticklabel_format(useOffset=False)
         if showProjections and self.project:
             projected = self.get_centerline_shots()
             projX = projected[0]

@@ -53,14 +53,14 @@ class Profile(object):
             self.unitDict = sc.METRIC_CONSTANTS
         elif not(self.metric):
             self.unitDict = sc.IMPERIAL_CONSTANTS
-
+            
         if not 'Station' in self.df: 
             """
             if there is no stationing column, generate it and interpolate the cols
             actualy a janky way to keep this code from running when the subclass Feature is instantiated
             """
-            self.update_filldf()
             self.validate_df()
+            self.update_filldf()
             self.validate_substrate()
             self.create_features()
         
@@ -94,8 +94,12 @@ class Profile(object):
                     except KeyError:
                         pass
                     if all(neighbor is False for neighbor in neighbors):
-                        raise streamexceptions.InputError(f'Isolated {col} call on row {i} in Profile {self.name}')
-    
+                        logging.warning(f'Isolated {col} call on row {i} in Profile {self.name}. Call will be deleted.')
+                        pd.options.mode.chained_assignment = None
+                        self.df[col][i] = np.NaN
+                        self.filldf[col][i] = np.NaN
+                        pd.options.mode.chained_assignment = 'warn'
+                        
     def __str__(self):
         """
         Prints the name of the Profile object. If the name attribute is None, prints "UNNAMED".
@@ -113,16 +117,19 @@ class Profile(object):
             plt.plot(self.filldf['Station'],self.filldf['Thalweg'], color = 'gray', linewidth = 2, label = 'Thalweg')
         
         if 'Water Surface' in self.filldf and showWs:
-            plt.plot(self.filldf['Station'],self.filldf['Water Surface'], "b--",
-                     color = '#31A9FF', linewidth = 2, label = 'Water Surface')
+            if not self.filldf['Water Surface'].isnull().all():
+                plt.plot(self.filldf['Station'],self.filldf['Water Surface'], "b--",
+                         color = '#31A9FF', linewidth = 2, label = 'Water Surface')
                      
         if 'Bankfull' in self.filldf and showBkf:
-            plt.plot(self.filldf['Station'],self.filldf['Bankfull'],
-                     color = '#FF0000', linewidth = 2, label = 'Bankfull')
+            if not self.filldf['Bankfull'].isnull().all():
+                plt.plot(self.filldf['Station'],self.filldf['Bankfull'],
+                         color = '#FF0000', linewidth = 2, label = 'Bankfull')
                      
         if 'Top of Bank' in self.filldf and showTob:
-            plt.plot(self.filldf['Station'],self.filldf['Top of Bank'],
-                     color = '#FFBD10', linewidth = 2, label = 'Top of Bank')
+            if not self.filldf['Top of Bank'].isnull().all():
+                plt.plot(self.filldf['Station'],self.filldf['Top of Bank'],
+                         color = '#FFBD10', linewidth = 2, label = 'Top of Bank')
                      
         if showFeatures:
             for morph in self.features:
@@ -146,6 +153,7 @@ class Profile(object):
         """
         ax = plt.subplot()
         plt.plot(self.df['exes'],self.df['whys'],label = 'Profile Planform')
+        plt.ticklabel_format(useOffset=False)
         if equalAspect:
             ax.set_aspect('equal')
         if labelPlot:
@@ -336,6 +344,7 @@ class Profile(object):
         If method is 'raise', then water surface points are raised up until the slope is 0.
         If method is 'lower', then water surface points are lowered until the slope is 0.
         """
+        pd.options.mode.chained_assignment = None
         controlDict = {'raise':reversed(range(len(self.filldf['Water Surface']))),
                        'lower':range(len(self.filldf['Water Surface']))}
         
@@ -348,15 +357,17 @@ class Profile(object):
                         self.filldf['Water Surface'].iloc[i+1] = self.filldf['Water Surface'].iloc[i]
             except IndexError:
                 pass
+        pd.options.mode.chained_assignment = 'warn'
             
     def force_water_above_thalweg(self):
         """
         Does what is says.
         """
+        pd.options.mode.chained_assignment = None
         for i,_ in enumerate(self.filldf['Water Surface']):
             if self.filldf['Water Surface'].iloc[i] < self.filldf['Thalweg'].iloc[i]:
                 self.filldf['Water Surface'].iloc[i] = self.filldf['Thalweg'].iloc[i]
-        
+        pd.options.mode.chained_assignment = 'warn'
     
 class Feature(Profile):
     """
