@@ -368,6 +368,9 @@ class Profile(object):
             if self.filldf['Water Surface'].iloc[i] < self.filldf['Thalweg'].iloc[i]:
                 self.filldf['Water Surface'].iloc[i] = self.filldf['Thalweg'].iloc[i]
         pd.options.mode.chained_assignment = 'warn'
+        
+    def length(self):
+        return(self.filldf['Station'].iloc[-1] - self.filldf['Station'].iloc[0])
     
 class Feature(Profile):
     """
