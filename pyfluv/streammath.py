@@ -1531,6 +1531,24 @@ def crawl_to_elevation(seriesY,elevation,startInd):
             indices.append(None)
     return(indices)
     
+def get_first(series):
+    """
+    Only works for pandas dataseries
+    """
+    return(series.iloc[0])
+
+def get_last(series):
+    """
+    Only works for pandas dataseries
+    """
+    return(series.iloc[-1])
+    
+def get_middle(series):
+    """
+    Only works for pandas dataseries
+    """
+    return((get_last(series)-get_first(series))/2)
+    
 def find_min_index(seriesY):
     """
     Finds the index of the minimum in an array.

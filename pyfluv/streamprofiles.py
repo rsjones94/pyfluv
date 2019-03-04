@@ -364,13 +364,38 @@ class Profile(object):
         straightLength = sm.segment_length(start,end)
         return(self.length()/straightLength)
         
-    def spacing(featureType,spacingFrom,spacingTo,deepType=None):
+    def deepest(self,deepType):
+        """
+        Returns the station, index and depth or elevation
+        (depending on deepType) of the deepest point as a tuple.
+        
+        Args:
+            deepType: Specifies how the deepest point should be calculated.
+                      Can be 'Water Depth', 'Bankfull Height', or 'Thalweg'.
+        """
+        if deepType == 'Thalweg':
+            func = sm.find_min_index
+        else:
+            func = sm.find_max_index
+            
+        ind = func(self.filldf[deepType])
+        return(self.filldf['Station'].iloc[ind],ind,self.filldf[deepType].iloc[ind])
+        
+    def _deepsta(self,deepType):
+        """
+        Wrapper for deepest(). Just returns the station.
+        """
+        return(deepest(deepType)[0])
+        
+        
+    def spacing(self,featureType,spacingFrom,spacingTo,deepType=None):
         """
         Returns a list of the spacing between each specified feature.
         
         Args:
             featureType: a string specifying the type of feature for which
-                         spacing is to be calculated
+                         spacing is to be calculated. Can be 'Riffle', 'Run',
+                         'Pool', 'Glide' or 'Unclassified'
             spacingFrom: the spot in the feature that spacing should be
                          calculated from. Can be 'start', 'end', 'middle', or
                          'deepest'.
@@ -385,7 +410,19 @@ class Profile(object):
         Returns:
             a list of spacings between each feature.
         """
-        pass
+        raise NotImplementedError('spacing not implemented yet')
+        spacingDict = {'start':sm.get_first,
+                       'end':sm.get_last,
+                       'middle':sm.get_middle,
+                       'deepest':self._deepsta
+                       }
+        
+        spacings = []
+        for i,feature in enumerate(self.features[featureType]):
+            try:
+                pass
+            except IndexError: # when we get to the last feature
+                pass
         
     def make_elevations_agree(self,colName):
         """
