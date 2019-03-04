@@ -19,6 +19,7 @@ class Profile(object):
     
     Attributes:
         df
+        filldf
         metric
         name
         unitDict
@@ -132,12 +133,12 @@ class Profile(object):
                          color = '#FFBD10', linewidth = 2, label = 'Top of Bank')
                      
         if showFeatures:
-            for morph in self.features:
-                for feat in self.features[morph]:
-                    feat.addplot(addLabel=False)
+            for feature in self.ordered_features():
+                feature.addplot(addLabel=False)
            
         if ve is not None:
             ax.set_aspect(ve)
+            
         if labelPlot:
             plt.title(str(self))
             plt.xlabel('Station (' + self.unitDict['lengthUnit'] + ')')
@@ -313,24 +314,6 @@ class Profile(object):
                                    morphType='Unclassified')
                     self.features['Unclassified'].append(feat)
         
-    def make_elevations_agree(self,colName):
-        """
-        Makes the corresponding col value in a row agree with the thalweg value in that row.
-        """
-        pass
-    
-    def insert_shot(self):
-        pass
-    
-    def modify_shot(self):
-        pass
-    
-    def get_length(self):
-        beginSta = self.filldf['Station'].iloc[0]
-        endSta = self.filldf['Station'].iloc[-1]
-        length = endSta - beginSta
-        return(length)
-        
     def create_diff(self,c1,c2):
         """
         Takes two df columns and returns a columns of the difference at each index.
@@ -371,6 +354,51 @@ class Profile(object):
         
     def length(self):
         return(self.filldf['Station'].iloc[-1] - self.filldf['Station'].iloc[0])
+        
+    def mean_water_slope(self):
+        return((self.filldf['Water Surface'].iloc[0] - self.filldf['Water Surface'].iloc[-1])/self.length())
+    
+    def sinuosity(self):
+        start = (self.filldf['exes'].iloc[0],self.filldf['whys'].iloc[0])
+        end = (self.filldf['exes'].iloc[-1],self.filldf['whys'].iloc[-1])
+        straightLength = sm.segment_length(start,end)
+        return(self.length()/straightLength)
+        
+    def spacing(featureType,spacingFrom,spacingTo,deepType=None):
+        """
+        Returns a list of the spacing between each specified feature.
+        
+        Args:
+            featureType: a string specifying the type of feature for which
+                         spacing is to be calculated
+            spacingFrom: the spot in the feature that spacing should be
+                         calculated from. Can be 'start', 'end', 'middle', or
+                         'deepest'.
+            spacingTo: the spot in the feature that spacing should be
+                         calculated to. Can be 'start', 'end', 'middle', or
+                         'deepest'.
+            deepType: if either spacingFrom or spacingTo is 'deepest', this
+                      must be specified. Specifies how the deepest point should
+                      be calculated. Can be 'Water Depth', 'Bankfull Height',
+                      or 'Thalweg'.
+                      
+        Returns:
+            a list of spacings between each feature.
+        """
+        pass
+        
+    def make_elevations_agree(self,colName):
+        """
+        Makes the corresponding col value in a row agree with the thalweg value in that row.
+        """
+        pass
+    
+    def insert_shot(self):
+        pass
+    
+    def modify_shot(self):
+        pass
+    
     
 class Feature(Profile):
     """

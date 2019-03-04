@@ -403,11 +403,24 @@ class CrossSection(object):
     
     def shear_stress(self):
         """
-        Calculates the shear stress at bkf. If metric, units are N/m^2. If imperial, units are lbs/ft^2
+        Calculates the shear stress at bkf. If metric, units are N/m^2.
+        If imperial, units are lbs/ft^2
         """
-        return(self.unitDict['gammaWater'] * self.mean_depth() * self.waterSlope)
+        return(self.unitDict['gammaWater']*self.mean_depth()*self.waterSlope)
         
-    def max_entrained_particle(self):
+    def shear_velocity(self):
+        """
+        Calculates the shear velocity at bkf.
+        """
+        return((self.unitDict['g']*self.hydraulic_radius()*self.waterSlope)**(1/2))
+        
+    def stream_power(self):
+        """
+        Calculates the stream power at bkf.
+        """
+        return(self.unitDict['gammaWater']*self.discharge_rate()*self.waterSlope*self.width())
+        
+    def threshhold_particle(self):
         """
         Calculates the diameter of the biggest particles that could be entrained at the bankfull flow.
         """
@@ -470,8 +483,7 @@ class CrossSection(object):
         Units are ft/s or meters/s.
         """
         manNum = self.unitDict['manningsNumerator']
-        return(manNum/self.manN)*self.hydraulic_radius()**(2/3)*self.waterSlope**(1/2)
-
+        return((manNum/self.manN)*self.hydraulic_radius()**(2/3)*self.waterSlope**(1/2))
     
     def discharge_rate(self):
         """
@@ -485,6 +497,12 @@ class CrossSection(object):
         Calculates the ratio of the bankfull width to the mean bankfull depth.
         """
         return(self.width() / self.mean_depth())
+        
+    def froude(self):
+        """
+        Calculates the Froude number at the cross section.
+        """
+        return(self.flow_velocity()/(self.unitDict['g']*self.mean_depth())**(1/2))
     
     @_bkf_savestate
     def attribute_list(self, attributeMethod, deltaEl = 0.1):
