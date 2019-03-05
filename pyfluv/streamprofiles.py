@@ -129,7 +129,7 @@ class Profile(object):
                      
         if 'Top of Bank' in self.filldf and showTob:
             if not self.filldf['Top of Bank'].isnull().all():
-                plt.plot(self.filldf['Station'],self.filldf['Top of Bank'],
+                plt.plot(self.filldf['Station'],self.filldf['Top of Bank'], "b--",
                          color = '#FFBD10', linewidth = 2, label = 'Top of Bank')
                      
         if showFeatures:
@@ -162,6 +162,54 @@ class Profile(object):
             plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
             plt.ylabel('Northing (' + self.unitDict['lengthUnit'] + ')')
             plt.legend()
+            
+    def trend(self,col,order=1,updateLegend=True):
+        """
+        Adds a trendline to a plot.
+        """
+        x = np.linspace(self.filldf['Station'].iloc[0],self.filldf['Station'].iloc[-1]
+                           ,self.length())
+        eq = self.fit(col,order)
+        y = np.polyval(eq,x)
+        
+        if order == 1:
+            addon = ', Linear Fit'
+        elif order == 0:
+            addon = ', Constant Fit'
+        else:
+            addon = f', Polynomial Fit (Order {order})'
+        plt.plot(x,y,linewidth=1,label=col+addon)
+        plt.legend()
+        
+    def _make_poly_string(self,poly):
+        """
+        Takes a list coefs in descending order and makes a string representing
+        the equation.
+        """
+        poly = list(poly)
+        poly.reverse()
+        eq = 'y ='
+        order = 0
+        for coef in poly:
+            space = ' '
+            if coef >= 0:
+                func = '+'
+            else:
+                func = '-'
+            num = str(round(np.abs(coef),2))
+            if order > 1:
+                ex = f'x^{order}'
+            elif order == 1:
+                ex = 'x'
+            elif order == 0:
+                ex = ''
+                func = ''
+                space = ''
+            
+            appender = f'{space}{func} {num}{ex}'
+            eq = eq+appender
+            order += 1
+        return(eq)
 
     def generate_stationing(self):
         stations = sm.get_stationing(self.df['exes'],self.df['whys'],project = False)
@@ -355,8 +403,8 @@ class Profile(object):
     def length(self):
         return(self.filldf['Station'].iloc[-1] - self.filldf['Station'].iloc[0])
         
-    def mean_water_slope(self):
-        return((self.filldf['Water Surface'].iloc[0] - self.filldf['Water Surface'].iloc[-1])/self.length())
+    def mean_slope(self,col):
+        return((self.filldf[col].iloc[-1] - self.filldf[col].iloc[0])/self.length())
     
     def sinuosity(self):
         start = (self.filldf['exes'].iloc[0],self.filldf['whys'].iloc[0])
@@ -386,7 +434,8 @@ class Profile(object):
         """
         return(self.deepest(deepType)[0])
         
-    def spacing(self,featureType,spacingFrom,spacingTo,deepType=None):
+    def spacing(self,featureType,spacingFrom='deepest',spacingTo='deepest',
+                deepType='Water Depth'):
         """
         Returns a list of the spacing between each specified feature.
         
@@ -419,6 +468,25 @@ class Profile(object):
                                                      deepType=deepType)
             spacings.append(sta2-sta1)
         return(spacings)
+        
+    def fit(self,col,order=1):
+        """
+        Takes a column in filldf and finds the best polynomial regression
+        against Station.
+        
+        Args:
+            col: a string that exists as a column name in filldf
+            order: the order of the polynomial regression. For a linear
+            regression, set order to 1. Noninteger inputs are floored.
+            
+        Returns:
+            numpy array representing the equation of the regression. The last
+            entry is the intercept, and each previous entry is a coefficient
+            of increasing order. There will be order+1 entries.
+        """
+        x = self.filldf['Station']
+        y = self.filldf[col]
+        return(np.polyfit(x,y,order))
         
     def make_elevations_agree(self,colName):
         """
