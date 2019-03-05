@@ -374,19 +374,17 @@ class Profile(object):
                       Can be 'Water Depth', 'Bankfull Height', or 'Thalweg'.
         """
         if deepType == 'Thalweg':
-            func = sm.find_min_index
+            ind = self.filldf['Station'].idxmin()
         else:
-            func = sm.find_max_index
+            ind = self.filldf['Station'].idxmax()
             
-        ind = func(self.filldf[deepType])
-        return(self.filldf['Station'].iloc[ind],ind,self.filldf[deepType].iloc[ind])
+        return(self.filldf['Station'][ind],ind,self.filldf[deepType][ind])
         
     def _deepsta(self,deepType):
         """
         Wrapper for deepest(). Just returns the station.
         """
-        return(deepest(deepType)[0])
-        
+        return(self.deepest(deepType)[0])
         
     def spacing(self,featureType,spacingFrom,spacingTo,deepType=None):
         """
@@ -409,20 +407,18 @@ class Profile(object):
                       
         Returns:
             a list of spacings between each feature.
-        """
-        raise NotImplementedError('spacing not implemented yet')
-        spacingDict = {'start':sm.get_first,
-                       'end':sm.get_last,
-                       'middle':sm.get_middle,
-                       'deepest':self._deepsta
-                       }
-        
+        """        
         spacings = []
+        length = len(self.features[featureType])
         for i,feature in enumerate(self.features[featureType]):
-            try:
-                pass
-            except IndexError: # when we get to the last feature
-                pass
+            if i == length-1:
+                break
+            sta1 = self.features[featureType][i]._feature_measurepoint(measureType=spacingFrom,
+                                                     deepType=deepType)
+            sta2 = self.features[featureType][i+1]._feature_measurepoint(measureType=spacingTo,
+                                                     deepType=deepType)
+            spacings.append(sta2-sta1)
+        return(spacings)
         
     def make_elevations_agree(self,colName):
         """
@@ -482,5 +478,19 @@ class Feature(Profile):
             handles,labels = plt.gca().get_legend_handles_labels()
             by_label = dict(zip(labels,handles))
             plt.legend(by_label.values(),by_label.keys())
+            
+    def _feature_measurepoint(self,measureType,deepType=None):
+        """
+        Gets the station that a feature should be measured from/to for spacing
+        calculations.
+        """
+        measureDict = {'start':sm.get_first,
+                       'end':sm.get_last,
+                       'middle':sm.get_middle
+                       }
+        if measureType != 'deepest':
+            return(measureDict[measureType](self.filldf['Station']))
+        elif measureType == 'deepest':
+            return(self._deepsta(deepType=deepType))
         
         

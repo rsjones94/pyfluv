@@ -1533,21 +1533,21 @@ def crawl_to_elevation(seriesY,elevation,startInd):
     
 def get_first(series):
     """
-    Only works for pandas dataseries
+    Only works for pandas dataseries. Intended to work on stationing.
     """
     return(series.iloc[0])
 
 def get_last(series):
     """
-    Only works for pandas dataseries
+    Only works for pandas dataseries. Intended to work on stationing.
     """
     return(series.iloc[-1])
     
 def get_middle(series):
     """
-    Only works for pandas dataseries
+    Only works for pandas dataseries. Intended to work on stationing.
     """
-    return((get_last(series)-get_first(series))/2)
+    return((get_last(series)+get_first(series))/2)
     
 def find_min_index(seriesY):
     """
