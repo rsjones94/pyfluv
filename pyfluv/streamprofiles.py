@@ -179,8 +179,12 @@ class Profile(object):
         else:
             addon = f', Polynomial Fit (Order {order})'
         plt.plot(x,y,linewidth=1,label=col+addon)
-        plt.legend()
         
+        if updateLegend:
+            handles,labels = plt.gca().get_legend_handles_labels()
+            by_label = dict(zip(labels,handles))
+            plt.legend(by_label.values(),by_label.keys())
+            
     def _make_poly_string(self,poly):
         """
         Takes a list coefs in descending order and makes a string representing
