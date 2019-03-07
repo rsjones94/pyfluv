@@ -260,7 +260,7 @@ class Profile(object):
         """
         Creates Feature objects based off of the morphology calls in self.filldf.
         
-        This code is disgusting and needs to be refactored.
+        This code is gross and needs to be refactored.
         """
         featDict = {morph:[] for morph in self.haveCols}
         currentMorph = None
@@ -312,6 +312,8 @@ class Profile(object):
                 
         self.features = featDict
         self._make_unclassified()
+        for feat in self.ordered_features(): # updating the view so Unclassified column shows. Ugly.
+            feat.filldf = self.filldf[feat.indices[0]:feat.indices[-1]]
         
     def ordered_features(self):
         """
@@ -365,6 +367,15 @@ class Profile(object):
                                    metric=self.metric,
                                    morphType='Unclassified')
                     self.features['Unclassified'].append(feat)
+                    
+        self._make_unclassified_column()
+                    
+    def _make_unclassified_column(self):
+        unclassed = [np.nan for i in range(len(self.filldf))]
+        for feat in self.features['Unclassified']:
+            for i in feat.indices:
+                unclassed[i] = self.filldf['Thalweg'][i]
+        self.filldf['Unclassified'] = unclassed
         
     def create_diff(self,c1,c2):
         """
@@ -491,6 +502,25 @@ class Profile(object):
         x = self.filldf['Station']
         y = self.filldf[col]
         return(np.polyfit(x,y,order))
+        
+    def _reclassify_feature(self,feature,newMorph):
+        """
+        Reclassifies a Feature and change filldf to reflect this change. Note
+        that this does not reclassify *all* features. For example, if a run
+        that directly follows a riffle is changed to a riffle, then there will
+        be an end riffle concurrent with a begin riffle. To rectify this, call
+        self.create_features(). Additionally, self.features will no longer
+        contain the correct features under the correct key and they will not
+        necessarily be in order by station and the filldf in the Feature will
+        not be updated.
+        """
+        morphCheck = {morph:morph for morph in self.morphCols} # validate morph
+        oldMorph = feature.morphType
+        feature.morphType = morphCheck[newMorph]
+        for i in feature.indices:
+            self.filldf[oldMorph].iloc[i] = np.NaN
+            self.filldf[newMorph].iloc[i] = self.filldf['Thalweg'][i]
+            # THIS GENERATES A SETTINGWITHCOPY WARNING. FIX
         
     def make_elevations_agree(self,colName):
         """
