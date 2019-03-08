@@ -777,3 +777,14 @@ class CrossSection(object):
                 return(foundEl)
             else:
                 return(None)
+                
+    def _crossseg(self):
+        """
+        Returns a tuple representing the centerline of the cross section as
+        a 2d line segment.
+        """
+        row1 = self.df.iloc[1,:]
+        row2 = self.df.iloc[-1,:]
+        start = (row1['exes'],row1['whys'])
+        end = (row2['exes'],row2['whys'])
+        return(start,end)

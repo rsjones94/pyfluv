@@ -34,7 +34,12 @@ class StreamSurvey(object):
         crossSections(:obj:'list' of :obj:'Shot'): a list of lists, where each sublist is a packed cross section
     """
     
-    def __init__(self,file,sep=',',metric=False,keywords=None,colRelations=None):
+    def __init__(self,
+                 file,
+                 sep=',',
+                 metric=False,
+                 keywords=None,
+                 colRelations=None):
         """
         Args:
             file: name or filepath of the csv that contains the survey data.
@@ -93,7 +98,7 @@ class StreamSurvey(object):
         self.group_by_name()
         
     def import_survey(self):
-        df=pd.read_csv(self.file, sep=',')
+        df=pd.read_csv(self.file, sep=self.sep)
         self.data = df
             
     def pack_shots(self):
@@ -190,21 +195,21 @@ class StreamSurvey(object):
                 
         self.profiles,self.crossSections = proAndCross
         
-    def get_cross_objects(self,guessType=True,project=True):
+    def get_cross_objects(self,guessType=True,project=True,stripName=False):
         """
         Takes self.crossSections and returns a list of CrossSection objects.
             If guessType is True, the method will attempt to guess the morph type
                 (Riffle,Run,Pool,Glide) for each CrossSection.
             If project is true, the CrossSections will use projected stationing.
         """
-        crosses = [PackGroupCross(packGroup,self.keywords,self.metric).create_cross_object(guessType,project) for packGroup in self.crossSections]
+        crosses = [PackGroupCross(packGroup,self.keywords,self.metric,stripName=stripName).create_cross_object(guessType,project) for packGroup in self.crossSections]
         return(crosses)
         
-    def get_profile_objects(self):
+    def get_profile_objects(self,stripName=False):
         """
         Takes self.crossSections and returns a list of Profile objects.
         """
-        profiles = [PackGroupPro(packGroup,self.keywords,self.colRelations,self.metric).create_pro_object(assignMethod='backstack') for packGroup in self.profiles]
+        profiles = [PackGroupPro(packGroup,self.keywords,self.colRelations,self.metric,stripName=stripName).create_pro_object(assignMethod='backstack') for packGroup in self.profiles]
         return(profiles)
         
     def get_packgroup_coords(self,packGroup):
@@ -220,7 +225,7 @@ class PackGroupPro(object):
     A profile represented by a list of packed shots.
     """
     
-    def __init__(self,packGroup,keywords,colRelations,metric=False):
+    def __init__(self,packGroup,keywords,colRelations,metric=False,stripName=False):
         """
         Args:
             packGroup: a list of packed shots representing a profile.
@@ -234,6 +239,8 @@ class PackGroupPro(object):
         self.keywords = keywords
         self.colRelations = colRelations
         self.name = self.packGroup[0].meaning['name']
+        if stripName:
+            self.name = self.name.replace(self.keywords['Profile'],'')
         
         self.make_uCols()
         self.make_sCols()
@@ -317,7 +324,7 @@ class PackGroupCross(object):
     A cross section represented by a list of packed shots.
     """
     
-    def __init__(self,packGroup,keywords=None,metric=False):
+    def __init__(self,packGroup,keywords,metric=False,stripName=False):
         """
         Args:
             packGroup: a list of packed shots representing a profile.
@@ -327,6 +334,8 @@ class PackGroupCross(object):
         self.keywords = keywords
         self.metric = metric
         self.name = self.packGroup[0].meaning['name']
+        if stripName:
+            self.name = self.name.replace(self.keywords['Cross Section'],'')
     
     def pull_atts(self): # was pull_xs_packgroup_atts
         """

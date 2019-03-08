@@ -23,6 +23,7 @@ class Profile(object):
         metric
         name
         unitDict
+        features
     """
     
     basicCols = ['exes','whys','Thalweg']
@@ -521,6 +522,45 @@ class Profile(object):
             self.filldf[oldMorph].iloc[i] = np.NaN
             self.filldf[newMorph].iloc[i] = self.filldf['Thalweg'][i]
             # THIS GENERATES A SETTINGWITHCOPY WARNING. FIX
+            
+    def _segment(self,i):
+        """
+        Returns a 2d line segment representing the connection between
+        the ith and i+1th shot in filldf.
+        """
+        row1 = self.filldf.iloc[i,:]
+        row2 = self.filldf.iloc[i+1,:]
+        start = (row1['exes'],row1['whys'])
+        end = (row2['exes'],row2['whys'])
+        return(start,end)
+    
+    def _xsind(self,CrossSection):
+        """
+        Returns that index that a cross section crosses at. If the
+        CrossSection does not intersect, returns None.
+        
+        Right now just returns index of segment where it crosses. CrossSection
+        may cross closer to i+1 though. Need to add test for this.
+        """
+        crossseg = CrossSection._crossseg()
+        for index,row in self.filldf.iterrows():
+            try:
+                segment = self._segment(index)
+                if sm.does_intersect(segment,crossseg) or sm.does_intersect(crossseg,segment):
+                    return(index)
+            except IndexError:
+                return(None)
+            
+    def xssta(self,CrossSection):
+        """
+        Returns that station that a cross section crosses at. If the
+        CrossSection does not intersect, returns None.
+        """
+        ind = self._xsind(CrossSection)
+        if ind is None:
+            return(None)
+        else:
+            return(self.filldf.loc[ind,'Station'])
         
     def make_elevations_agree(self,colName):
         """
@@ -594,5 +634,4 @@ class Feature(Profile):
             return(measureDict[measureType](self.filldf['Station']))
         elif measureType == 'deepest':
             return(self._deepsta(deepType=deepType))
-        
-        
+            

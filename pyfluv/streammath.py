@@ -1,7 +1,6 @@
 """
 Simple functions for processing stream survey data
 """
-from collections import OrderedDict
 import logging
 import itertools
 
@@ -183,8 +182,6 @@ def interpolate_series(seriesX,seriesY):
     """
     filledY = [interpolate_value(seriesX,seriesY,i) for i,_ in enumerate(seriesY)]
     return(filledY)
-        
-            
     
 def intersection_of_lines(l1,l2):
     """
@@ -234,6 +231,8 @@ def intersection_of_lines(l1,l2):
     return(x,y)
 
 
+# NOT ROBUST. SOMETIMES RETURNS FALSE IF s1 AND s2 ARE SWAPPED EVEN WHEN THEY
+# DO INTERSECT AND OCCASIONALLY DOES NOT WORK AT ALL
 def does_intersect(s1,s2):
     """
     Determines if two line segments intersect.
