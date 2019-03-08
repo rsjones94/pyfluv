@@ -595,8 +595,8 @@ class CrossSection(object):
                 'right' - the right floodplain elevation is returned
                 'lower' - the lower of the left and right floodplains is returned
                 'upper' - the higher of the left and right floodplains is returned
-                'min' - the floodplain with less flow release is returned
-                'max' - the floodplain with more flow release is returned
+                'min' - the floodplain where less flow release is returned
+                'max' - the floodplain where more flow release is returned
                 'mean' - the mean floodplain elevation is returned            
             deltaEl: the granularity of the change in elevation by which the area will be calculated.
                 Note that any points within delta/2 of the thalweg will not be evaluated
@@ -608,6 +608,11 @@ class CrossSection(object):
             
         Raises:
             InputError: if the arguments passed to the method or attribute parameters are invalid.   
+        
+        TODO: Right now the whole cross section is tested for flow release.
+        However if eg there are two points on opposing sides with similar els,
+        The same floodplain could be returned even if each side has a different
+        true fp el.
         """
         if delta is None:
             delta = (max(self.elevations)-min(self.elevations))*0.1
@@ -616,11 +621,11 @@ class CrossSection(object):
             raise streamexceptions.InputError("Invalid method. Method must be one of 'lower','upper','left','right','mean'.")
         
         if attribute == 'area':
-            attributeMethod = self.calculate_area
+            attributeMethod = self.area
             deriv = 3
             logging.warn('Floodplain estimation by the third derivative of bkf area is unstable.')
         elif attribute == 'width':
-            attributeMethod = self.calculate_width
+            attributeMethod = self.width
             deriv = 2
         else:
             raise streamexceptions.InputError("Invalid attribute. Attribute must be 'area' or 'width'.")

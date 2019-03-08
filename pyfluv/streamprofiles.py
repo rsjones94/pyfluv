@@ -44,7 +44,7 @@ class Profile(object):
         """
         if isinstance(df,dict):
             df = pd.DataFrame.from_dict(df)
-        self.df = df
+        self.df = df.copy()
         self.filldf = df.copy()
         self.metric = metric
         self.name = name
@@ -312,8 +312,8 @@ class Profile(object):
                 
         self.features = featDict
         self._make_unclassified()
-        for feat in self.ordered_features(): # updating the view so Unclassified column shows. Ugly.
-            feat.filldf = self.filldf[feat.indices[0]:feat.indices[-1]]
+        #as of right now calling in this order means the Unclassified column
+        #does not show up in Features. Need to fix this
         
     def ordered_features(self):
         """
