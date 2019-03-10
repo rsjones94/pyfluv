@@ -8,6 +8,8 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.signal
+from sklearn import cluster
 
 from . import streamexceptions
 from . import streamconstants as sc
@@ -597,18 +599,15 @@ class Profile(object):
         reclassification is made. This only happens when you reclassify
         features to unclassified and don't resort features after.
         """
+        morphRelations = {'Riffle':'Run',
+                          'Run':'Pool',
+                          'Pool':'Glide',
+                          'Glide':'Riffle'}
         if priority is 'next':
             priStep = 1
-            morphRelations = {'Run':'Riffle',
-                            'Pool':'Run',
-                            'Glide':'Pool',
-                            'Riffle':'Glide'}
+            morphRelations = {val:key for key,val in morphRelations.items()}
         elif priority is 'previous':
             priStep = -1
-            morphRelations = {'Riffle':'Run',
-                            'Run':'Pool',
-                            'Pool':'Glide',
-                            'Glide':'Riffle'}
             
         feats = self.ordered_features()
         for i,feat in enumerate(feats):
@@ -624,8 +623,40 @@ class Profile(object):
                     self.reclassify_feature(feat,morphRelations[compareMorph],resort=False)
                     morphRelations = {val:key for key,val in morphRelations.items()}
         self.resort_features()
-                
         
+    def blind_classify(self,smoothwindow=1,smoothorder=0):
+        self.filldf['TEMPSMOOTHTHAL'] = self.smooth('Thalweg',window=smoothwindow,order=smoothorder)
+        self.filldf['TEMPWATERDEPTH'] = self.filldf['Water Surface']-self.filldf['TEMPSMOOTHTHAL']
+        self.filldf['TEMPWATERSLOPE'] = self.slopes('Water Surface')
+        res = cluster.k_means(self.filldf[['TEMPWATERDEPTH','TEMPWATERSLOPE']],2)
+        plt.figure()
+        plt.scatter(self.filldf['TEMPWATERDEPTH'],self.filldf['TEMPWATERSLOPE'],c=res[1])
+        plt.xlabel('Depth')
+        plt.ylabel('Slope')
+        del self.filldf['TEMPSMOOTHTHAL']
+        del self.filldf['TEMPWATERDEPTH']
+        del self.filldf['TEMPWATERSLOPE']
+        return(res)
+        
+    def slopes(self,col):
+        """
+        Makes a list of slopes based on a column in filldf
+        """
+        slopeCol = []
+        for i,val in enumerate(self.filldf[col]):
+            try:
+                diff = self.filldf.loc[i+1,col] - self.filldf.loc[i,col]
+                dist = self.filldf.loc[i+1,'Station'] - self.filldf.loc[i,'Station']
+                slopeCol.append(diff/dist)
+            except KeyError:
+                slopeCol.append(slopeCol[-1])
+        return(slopeCol)
+        
+    def smooth(self,col,window=7,order=3):
+        data = self.filldf[col]
+        smoothed = scipy.signal.savgol_filter(data, window_length = window, polyorder = order)
+        return(smoothed)
+            
     def make_elevations_agree(self,colName):
         """
         Makes the corresponding col value in a row agree with the thalweg value in that row.
@@ -649,7 +680,7 @@ class Feature(Profile):
     
     morphColors = {'Unclassified':'black',
                    'Riffle':'red',
-                   'Run':'yellow',
+                   'Run':'orange',
                    'Pool':'blue',
                    'Glide':'green'}
     

@@ -1943,7 +1943,7 @@ def within(tup1,tup2):
     
 def is_odd(num):
    return(num % 2 != 0)
-    
+
     
 def blend_polygons():
     """
