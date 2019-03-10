@@ -549,8 +549,8 @@ class Profile(object):
                 if sm.does_intersect(segment,crossseg) or sm.does_intersect(crossseg,segment):
                     return(index)
             except IndexError:
-                return(None)
-            
+                pass
+                    
     def xssta(self,CrossSection):
         """
         Returns that station that a cross section crosses at. If the

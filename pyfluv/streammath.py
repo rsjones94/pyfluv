@@ -230,11 +230,30 @@ def intersection_of_lines(l1,l2):
             return(None)
     return(x,y)
 
+def ccw(A,B,C):
+    """
+    Companion to does_intersect()
+    """
+    
+    return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+
+# Return true if line segments AB and CD intersect
+def does_intersect(s1,s2):
+    """
+    Modified from user Grumdrig via https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect.
+    Does not handle colinearity.
+    """
+    A = s1[0]
+    B = s1[1]
+    C = s2[0]
+    D = s2[1]
+    return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
 # NOT ROBUST. SOMETIMES RETURNS FALSE IF s1 AND s2 ARE SWAPPED EVEN WHEN THEY
 # DO INTERSECT AND OCCASIONALLY DOES NOT WORK AT ALL
-def does_intersect(s1,s2):
+def _does_intersect(s1,s2):
     """
+    OUTMODED
     Determines if two line segments intersect.
     
     Args:
@@ -288,13 +307,11 @@ def does_intersect(s1,s2):
     
     l1 = line_from_points(s1[0],s1[1])
     l2 = line_from_points(s2[0],s2[1])
-    
     if intersects_on_interval(yRange,l1,l2,vertical=True) and intersects_on_interval(xRange,l1,l2,vertical=False):
         return(True)
     else:
         return(False)
     
-
 def intersects_on_interval(interval,l1,l2,vertical=False):
     """
     Determines if two lines intersect on a given interval (inclusive).
