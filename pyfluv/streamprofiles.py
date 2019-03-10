@@ -135,7 +135,7 @@ class Profile(object):
                      
         if showFeatures:
             for feature in self.ordered_features():
-                feature.addplot(addLabel=False)
+                feature.qplot_feature(plotType='quick',addLabel=False)
            
         if ve is not None:
             ax.set_aspect(ve)
@@ -149,20 +149,29 @@ class Profile(object):
             by_label = dict(zip(labels,handles))
             plt.legend(by_label.values(),by_label.keys())
     
-    def planplot(self,labelPlot = True,equalAspect=True):
+    def planplot(self,labelPlot = True,equalAspect=True,showFeatures=False):
         """
         Uses matplotlib to create a quick plot of the planform of the profile.
         """
         ax = plt.subplot()
         plt.plot(self.df['exes'],self.df['whys'],label = 'Profile Planform')
         plt.ticklabel_format(useOffset=False)
+        
         if equalAspect:
             ax.set_aspect('equal')
+            
+        if showFeatures:
+            for feature in self.ordered_features():
+                feature.qplot_feature(plotType='plan',addLabel=False)
+        
         if labelPlot:
             plt.title(str(self) + ' (Planform)')
             plt.xlabel('Easting (' + self.unitDict['lengthUnit'] + ')')
             plt.ylabel('Northing (' + self.unitDict['lengthUnit'] + ')')
-            plt.legend()
+            
+            handles,labels = plt.gca().get_legend_handles_labels()
+            by_label = dict(zip(labels,handles))
+            plt.legend(by_label.values(),by_label.keys())
             
     def trend(self,col,order=1,updateLegend=True):
         """
@@ -313,8 +322,6 @@ class Profile(object):
                 
         self.features = featDict
         self._make_unclassified()
-        #as of right now calling in this order means the Unclassified column
-        #does not show up in Features. Need to fix this
         
     def ordered_features(self):
         """
@@ -368,15 +375,15 @@ class Profile(object):
                                    metric=self.metric,
                                    morphType='Unclassified')
                     self.features['Unclassified'].append(feat)
-                    
-        self._make_unclassified_column()
-                    
+        
+    """
     def _make_unclassified_column(self):
         unclassed = [np.nan for i in range(len(self.filldf))]
         for feat in self.features['Unclassified']:
             for i in feat.indices:
                 unclassed[i] = self.filldf['Thalweg'][i]
         self.filldf['Unclassified'] = unclassed
+    """
         
     def create_diff(self,c1,c2):
         """
@@ -504,24 +511,37 @@ class Profile(object):
         y = self.filldf[col]
         return(np.polyfit(x,y,order))
         
-    def _reclassify_feature(self,feature,newMorph):
+    def reclassify_feature(self,feature,newMorph,resort = True):
         """
-        Reclassifies a Feature and change filldf to reflect this change. Note
-        that this does not reclassify *all* features. For example, if a run
-        that directly follows a riffle is changed to a riffle, then there will
-        be an end riffle concurrent with a begin riffle. To rectify this, call
-        self.create_features(). Additionally, self.features will no longer
-        contain the correct features under the correct key and they will not
-        necessarily be in order by station and the filldf in the Feature will
-        not be updated.
+        Reclassifies a Feature and changes filldf to reflect this change. If
+        you intend to reclassify many features then set resort to False.
+        After you are done reclassifying then call self.resort_features().
+        Otherwise entries in self.features may not be sorted and may have
+        incorrect morphtypes in eahc entry.
         """
-        morphCheck = {morph:morph for morph in self.morphCols} # validate morph
+        if newMorph not in self.morphCols:
+            raise Exception('Invalid newMorph')
         oldMorph = feature.morphType
-        feature.morphType = morphCheck[newMorph]
-        for i in feature.indices:
-            self.filldf[oldMorph].iloc[i] = np.NaN
-            self.filldf[newMorph].iloc[i] = self.filldf['Thalweg'][i]
-            # THIS GENERATES A SETTINGWITHCOPY WARNING. FIX
+        feature.morphType = newMorph
+        featIndStart = feature.indices[0]
+        featIndEnd = feature.indices[-1] # inclusive
+        
+        feature.filldf[newMorph] = self.filldf['Thalweg']
+        self.filldf.loc[featIndStart:featIndEnd,oldMorph] = self.filldf['Thalweg']
+        if oldMorph is not 'Unclassified':
+            blanker = [np.NaN for i,index in feature.filldf.iterrows()]
+            feature.filldf[oldMorph] = blanker
+            self.filldf.loc[featIndStart:featIndEnd,oldMorph] = blanker
+            
+        if resort:
+            self.resort_features()
+            
+    def resort_features(self):
+        featDict = {morph:[] for morph in self.morphCols}
+        feats = self.ordered_features()
+        for feat in feats:
+            featDict[feat.morphType].append(feat)
+        self.features = featDict
             
     def _segment(self,i):
         """
@@ -541,6 +561,9 @@ class Profile(object):
         
         Right now just returns index of segment where it crosses. CrossSection
         may cross closer to i+1 though. Need to add test for this.
+        
+        Could be way sped up by checking if crossseg has a bounding box that overlaps
+        the bounding box of the profile
         """
         crossseg = CrossSection._crossseg()
         for index,row in self.filldf.iterrows():
@@ -600,9 +623,11 @@ class Feature(Profile):
     def __repr__(self):
         return(self.__str__())
         
-    def addplot(self,addLabel=False):
+    def qplot_feature(self,plotType,addLabel=False):
         """
         Adds scatter points and lines representing the feature to a plot.
+        
+        plottype can be 'plan' or 'quick'
         """
         if self.morphType in self.filldf:
             col = self.morphType
@@ -610,9 +635,17 @@ class Feature(Profile):
         else:
             col = 'Thalweg'
             label = 'Unclassified'
-        plt.plot(self.filldf['Station'],self.filldf[col],
+            
+        if plotType is 'plan':
+            x = 'exes'
+            y = 'whys'
+        elif plotType is 'quick':
+            x = 'Station'
+            y = col
+        
+        plt.plot(self.filldf[x],self.filldf[y],
                  color = self.morphColors[self.morphType], linewidth = 2,label='_NOLABEL_')
-        plt.scatter(self.filldf['Station'],self.filldf[col],
+        plt.scatter(self.filldf[x],self.filldf[y],
                     color = self.morphColors[self.morphType],label=label)
         
         # code block below updates the legend, but ignores the label if it's a duplicate
