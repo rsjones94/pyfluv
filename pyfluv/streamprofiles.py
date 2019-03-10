@@ -585,6 +585,46 @@ class Profile(object):
             return(None)
         else:
             return(self.filldf.loc[ind,'Station'])
+            
+    def classify_by_adjacency(self,priority='next'):
+        """
+        Reclassifies unclassified features based on what other features are
+        around it. If priority is 'next' is is classified based on the next
+        feature. If priority is 'previous' it is classified based on the
+        previous feature. If there is no next (or previous) feature then
+        then feature is classified based on the previous (or next) feature.
+        If the feature used to classify is itself unclassified, then no
+        reclassification is made. This only happens when you reclassify
+        features to unclassified and don't resort features after.
+        """
+        if priority is 'next':
+            priStep = 1
+            morphRelations = {'Run':'Riffle',
+                            'Pool':'Run',
+                            'Glide':'Pool',
+                            'Riffle':'Glide'}
+        elif priority is 'previous':
+            priStep = -1
+            morphRelations = {'Riffle':'Run',
+                            'Run':'Pool',
+                            'Pool':'Glide',
+                            'Glide':'Riffle'}
+            
+        feats = self.ordered_features()
+        for i,feat in enumerate(feats):
+            if feat.morphType is 'Unclassified':
+                try:
+                    if i+priStep < 0:
+                        raise IndexError
+                    compareMorph = feats[i+priStep].morphType
+                    self.reclassify_feature(feat,morphRelations[compareMorph],resort=False)
+                except IndexError:
+                    morphRelations = {val:key for key,val in morphRelations.items()}
+                    compareMorph = feats[i-priStep].morphType
+                    self.reclassify_feature(feat,morphRelations[compareMorph],resort=False)
+                    morphRelations = {val:key for key,val in morphRelations.items()}
+        self.resort_features()
+                
         
     def make_elevations_agree(self,colName):
         """
