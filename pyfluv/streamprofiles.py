@@ -65,14 +65,14 @@ class Profile(object):
             """
             self.validate_df()
             self.update_filldf()
-            self.validate_substrate()
+            self.validate_substrate(modifyfilldf=True,modifydf=True)
             self.create_features()
         
     def validate_df(self):
         if not all(x in self.df.keys() for x in self.basicCols):
             raise streamexceptions.InputError('Input df must include keys or columns "exes", "whys", "Thalweg"')
     
-    def validate_substrate(self):
+    def validate_substrate(self,modifyfilldf=True,modifydf=True):
         """
         For all columns Riffle, Run, Pool, Glide:
             if an index has a value, then at least one of the next or previous indices must have a value.
@@ -87,7 +87,7 @@ class Profile(object):
             
             # check for isolation
             for col in self.haveCols:
-                if not pd.isnull(self.df[col][i]):
+                if not pd.isnull(self.filldf[col][i]):
                     neighbors = [False,False]
                     try:
                         neighbors[0] = not(pd.isnull(self.filldf[col][i-1]))
@@ -98,10 +98,17 @@ class Profile(object):
                     except KeyError:
                         pass
                     if all(neighbor is False for neighbor in neighbors):
-                        logging.warning(f'Isolated {col} call on row {i} in Profile {self.name}. Call will be deleted.')
                         pd.options.mode.chained_assignment = None
-                        self.df[col][i] = np.NaN
-                        self.filldf[col][i] = np.NaN
+                        if modifydf and modifyfilldf:
+                            self.df[col][i] = np.NaN
+                            self.filldf[col][i] = np.NaN
+                            logging.warning(f'Isolated {col} call on row {i} in Profile {self.name}. Call will be deleted from df and filldf.')
+                        elif modifydf:
+                            self.df[col][i] = np.NaN
+                            logging.warning(f'Isolated {col} call on row {i} in Profile {self.name}. Call will be deleted from df.')
+                        elif modifyfilldf:
+                            self.filldf[col][i] = np.NaN
+                            logging.warning(f'Isolated {col} call on row {i} in Profile {self.name}. Call will be deleted from filldf.')
                         pd.options.mode.chained_assignment = 'warn'
                         
     def __str__(self):
@@ -624,20 +631,82 @@ class Profile(object):
                     morphRelations = {val:key for key,val in morphRelations.items()}
         self.resort_features()
         
-    def blind_classify(self,smoothwindow=1,smoothorder=0):
-        self.filldf['TEMPSMOOTHTHAL'] = self.smooth('Thalweg',window=smoothwindow,order=smoothorder)
-        self.filldf['TEMPWATERDEPTH'] = self.filldf['Water Surface']-self.filldf['TEMPSMOOTHTHAL']
-        self.filldf['TEMPWATERSLOPE'] = self.slopes('Water Surface')
-        res = cluster.k_means(self.filldf[['TEMPWATERDEPTH','TEMPWATERSLOPE']],2)
-        plt.figure()
-        plt.scatter(self.filldf['TEMPWATERDEPTH'],self.filldf['TEMPWATERSLOPE'],c=res[1])
-        plt.xlabel('Depth')
-        plt.ylabel('Slope')
+    def _water_kmeans(self,nClass=2,thalwegSmooth=(1,0),waterSmooth=(1,0),showPlot=False):
+        """
+        Classifies each shot based on kmeans using water depth and slope. Thalweg and water surfaces
+        can be smoothed before classification. Generally nClass = 2 to classify
+        riffle and pools; nClass = 3 to classify riffle, pools and runs+glides.
+        """
+        self.filldf['TEMPSMOOTHTHAL'] = self.smooth('Thalweg',window=thalwegSmooth[0],order=thalwegSmooth[1])
+        self.filldf['TEMPSMOOTHWAT'] = self.smooth('Water Surface',window=waterSmooth[0],order=waterSmooth[1])
+        self.filldf['TEMPWATERDEPTH'] = self.filldf['TEMPSMOOTHWAT']-self.filldf['TEMPSMOOTHTHAL']
+        self.filldf['TEMPWATERSLOPE'] = self.slopes('TEMPSMOOTHWAT')
+        res = cluster.k_means(self.filldf[['TEMPWATERDEPTH','TEMPWATERSLOPE']],nClass)
+        if showPlot:
+            plt.scatter(self.filldf['TEMPWATERDEPTH'],self.filldf['TEMPWATERSLOPE'],c=res[1])
+            plt.xlabel('Depth')
+            plt.ylabel('Slope')
         del self.filldf['TEMPSMOOTHTHAL']
+        del self.filldf['TEMPSMOOTHWAT']
         del self.filldf['TEMPWATERDEPTH']
         del self.filldf['TEMPWATERSLOPE']
         return(res)
         
+    def _interpret_water_kmeans(self,res):
+        """
+        Interpret the output from _blind_kmeans.
+        """
+        centroidDepths = [entry[0] for entry in res[0]]
+        riffleIndex = np.argmin(centroidDepths)
+        poolIndex = np.argmax(centroidDepths)
+        interpretation = {riffleIndex:'Riffle',
+                          poolIndex:'Pool'}
+        return(interpretation)
+        
+    def clear_substrate(self):
+        blank = [np.NaN for i,index in self.filldf.iterrows()]
+        for col in self.substrateCols:
+            self.filldf[col] = blank
+        
+    def blind_classify(self,nClass=2,thalwegSmooth=(1,0),waterSmooth=(1,0),
+                       expandPools = False,expandRiffles=False,showPlot=False):
+        """
+        Classifies substrate morphology with no field knowledge (i.e., shot calls)
+        """
+        res = self._water_kmeans(nClass=nClass,thalwegSmooth=thalwegSmooth,
+                                 waterSmooth=waterSmooth,showPlot=showPlot)
+        interpretation = self._interpret_water_kmeans(res)
+        morphs = [ interpretation[val] if val in interpretation else 'Unclassified' for val in res[1] ]
+        self.clear_substrate()
+        for i,row in self.filldf.iterrows():
+            morph = morphs[i]
+            self.filldf.loc[i,morph] = self.filldf.loc[i,'Thalweg']
+            
+        expandDict = {'Pool':expandPools,
+                      'Riffle':expandRiffles}
+        
+        # expands each morph by one on each side (begin and end)
+        for col,truth in expandDict.items():
+            if truth:
+                morphCopy = self.filldf[col].copy()
+                for i,row in self.filldf.iterrows():
+                    try:
+                        isMorphNextRow = not(pd.isnull(morphCopy[i+1]))
+                        if isMorphNextRow:
+                            self.filldf.loc[i,col] = self.filldf.loc[i,'Thalweg']
+                    except KeyError:
+                        pass
+                    try:
+                        isMorphPreviousRow = not(pd.isnull(morphCopy[i-1]))
+                        if isMorphPreviousRow:
+                            self.filldf.loc[i,col] = self.filldf.loc[i,'Thalweg']
+                    except KeyError:
+                        pass
+        
+        self.validate_substrate(modifyfilldf=True,modifydf=False)
+        self.create_features()
+        self.classify_by_adjacency(priority='next')
+            
     def slopes(self,col):
         """
         Makes a list of slopes based on a column in filldf
