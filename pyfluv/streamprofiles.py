@@ -391,36 +391,37 @@ class Profile(object):
         """
         return(self.filldf[c1]-self.filldf[c2])
         
-    def repair_flow_direction(self,method = 'raise'):
+    def repair_slope(self,col,method = 'raise'):
         """
-        Makes sure the water surface slope is always 0 or negative.
+        Makes sure a column's slope is always 0 or negative.
         
-        If method is 'raise', then water surface points are raised up until the slope is 0.
-        If method is 'lower', then water surface points are lowered until the slope is 0.
+        If method is 'raise', then points are raised up until the slope is 0.
+        If method is 'lower', then points are lowered until the slope is 0.
         """
         pd.options.mode.chained_assignment = None
-        controlDict = {'raise':reversed(range(len(self.filldf['Water Surface']))),
-                       'lower':range(len(self.filldf['Water Surface']))}
+        controlDict = {'raise':reversed(range(len(self.filldf[col]))),
+                       'lower':range(len(self.filldf[col]))}
         
         for i in controlDict[method]:
             try:
-                if self.filldf['Water Surface'].iloc[i] < self.filldf['Water Surface'].iloc[i+1]:
+                if self.filldf[col].iloc[i] < self.filldf[col].iloc[i+1]:
                     if method == 'raise':
-                        self.filldf['Water Surface'].iloc[i] = self.filldf['Water Surface'].iloc[i+1]
+                        self.filldf[col].iloc[i] = self.filldf[col].iloc[i+1]
                     elif method == 'lower':
-                        self.filldf['Water Surface'].iloc[i+1] = self.filldf['Water Surface'].iloc[i]
+                        self.filldf[col].iloc[i+1] = self.filldf[col].iloc[i]
             except IndexError:
                 pass
         pd.options.mode.chained_assignment = 'warn'
             
-    def force_water_above_thalweg(self):
+    def force_above_thalweg(self,col,buffer=0):
         """
-        Does what is says.
+        Takes a column and sets its elevation to be the thalweg elevation plus
+        a buffer if the original elevation is below that level.
         """
         pd.options.mode.chained_assignment = None
-        for i,_ in enumerate(self.filldf['Water Surface']):
-            if self.filldf['Water Surface'].iloc[i] < self.filldf['Thalweg'].iloc[i]:
-                self.filldf['Water Surface'].iloc[i] = self.filldf['Thalweg'].iloc[i]
+        for i,_ in enumerate(self.filldf[col]):
+            if self.filldf[col].iloc[i] < self.filldf['Thalweg'].iloc[i]+buffer:
+                self.filldf[col].iloc[i] = self.filldf['Thalweg'].iloc[i]+buffer
         pd.options.mode.chained_assignment = 'warn'
         
     def length(self):
