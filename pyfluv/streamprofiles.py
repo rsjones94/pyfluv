@@ -672,6 +672,8 @@ class Profile(object):
                        expandPools = False,expandRiffles=False,showPlot=False):
         """
         Classifies substrate morphology with no field knowledge (i.e., shot calls)
+        
+        Need to update this so calling k_means doesnt throw a scipy warning
         """
         res = self._water_kmeans(nClass=nClass,thalwegSmooth=thalwegSmooth,
                                  waterSmooth=waterSmooth,showPlot=showPlot)
