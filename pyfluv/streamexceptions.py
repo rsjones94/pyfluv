@@ -39,7 +39,7 @@ class NamingError(Exception):
     Errors stemming from malformed stream survey descriptions.
     """
     pass
-    
+
 class MissingKeyError(Exception):
     """
     When a dictionary of keys is missing a mandatory key.

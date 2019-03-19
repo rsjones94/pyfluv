@@ -4,15 +4,29 @@ as additional helper classes.
 """
 
 import logging
+import os
 import re
 
 import numpy as np
 import pandas as pd
 
-
 from . import streamexceptions
 from . import streamgeometry as sg
 from . import streamprofiles as sp
+
+def piney():
+    """
+    Returns a StreamSurvey object containing the survey for the Year 5 (2018)
+    monitoring at the West Piney River mitigation site.
+    """
+    selfloc = os.path.dirname(os.path.realpath(__file__))
+    file = r'\wpr_myr5_adjusted.csv'
+    wpr = StreamSurvey(selfloc+file,
+                       sep=',',
+                       metric=False,
+                       keywords=None,
+                       colRelations=None)
+    return wpr
 
 class StreamSurvey():
     """
@@ -165,7 +179,7 @@ class StreamSurvey():
         packed = self.pack_shots()
         profiles = self.filter_shots(packed, 'Profile', 'type')
         crossSections = self.filter_shots(packed, 'Cross Section', 'type')
-        return(profiles,crossSections)
+        return(profiles, crossSections)
 
     def group_by_name(self):
         """
@@ -175,7 +189,7 @@ class StreamSurvey():
         self.profiles and self.crossSections.
         """
         bulkProAndCross = self.pack_and_separate()
-        proAndCross = [[],[]]
+        proAndCross = [[], []]
 
         for i,shotGroup in enumerate(bulkProAndCross):
             nameDict = self.count_names(shotGroup)
@@ -211,7 +225,7 @@ class StreamSurvey():
                     for packGroup in self.profiles]
         return profiles
 
-    def get_packgroup_coords(self,packGroup):
+    def get_packgroup_coords(self, packGroup):
         """
         Takes a list of packed shots and returns a list of tuples containing the x,y coords for each shot.
         """
@@ -356,7 +370,7 @@ class PackGroupCross():
                 pass
             else:
                 if att == 'Thalweg':
-                    val = [[shot.ex,shot.why] for shot in matchShots]
+                    val = [[shot.ex, shot.why] for shot in matchShots]
                     attributes[att] = list(np.mean(val, axis=0))
                 else:
                     val = [shot.zee for shot in matchShots]
@@ -368,7 +382,7 @@ class PackGroupCross():
         Takes a list of packed XS shots, all with the same name,
         and returns 4 lists: exes, whys, zees and accompanying shot descs.
         """
-        exes,whys,zees,descs = [],[],[],[]
+        exes, whys, zees, descs = [], [], [], []
         for shot in self.packGroup:
             exes.append(shot.ex)
             whys.append(shot.why)
@@ -408,7 +422,7 @@ class PackGroupCross():
         else:
             morphType = None
 
-        exes,whys,zees,desc = self.pull_xs_survey_coords()
+        exes, whys, zees, desc = self.pull_xs_survey_coords()
         attDict = self.pull_atts()
         df = {'exes':exes, 'whys':whys, 'zees':zees, 'desc':desc}
         # have not implemented adding the cross section thalweg
