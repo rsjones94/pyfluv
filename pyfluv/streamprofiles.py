@@ -621,7 +621,7 @@ class Profile():
                     morphRelations = {val:key for key, val in morphRelations.items()}
         self.resort_features()
 
-    def _water_kmeans(self, nClass=2, thalwegSmooth=(1,0), waterSmooth=(1,0), showPlot=False):
+    def _water_kmeans(self, nClass=2, thalwegSmooth=(1, 0), waterSmooth=(1, 0), showPlot=False):
         """
         Classifies each shot based on kmeans using water depth and slope. Thalweg and water surfaces
         can be smoothed before classification. Generally nClass = 2 to classify
@@ -658,10 +658,11 @@ class Profile():
         for col in self.substrateCols:
             self.filldf[col] = blank
 
-    def blind_classify(self, nClass=2, thalwegSmooth=(1,0), waterSmooth=(1,0),
+    def feature_classify_k_means(self, nClass=2, thalwegSmooth=(1, 0), waterSmooth=(1, 0),
                        expandPools=False, expandRiffles=False, showPlot=False):
         """
         Classifies substrate morphology with no field knowledge (i.e., shot calls)
+        by performing k-means grouping with water depth and water slope as parameters.
 
         Need to update this so calling k_means doesnt throw a scipy warning
         """

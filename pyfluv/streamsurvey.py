@@ -14,20 +14,6 @@ from . import streamexceptions
 from . import streamgeometry as sg
 from . import streamprofiles as sp
 
-def piney():
-    """
-    Returns a StreamSurvey object containing the survey for the Year 5 (2018)
-    monitoring at the West Piney River mitigation site.
-    """
-    selfloc = os.path.dirname(os.path.realpath(__file__))
-    file = r'\wpr_myr5_adjusted.csv'
-    wpr = StreamSurvey(selfloc+file,
-                       sep=',',
-                       metric=False,
-                       keywords=None,
-                       colRelations=None)
-    return wpr
-
 class StreamSurvey():
     """
     Reads in a geomorphic survey and formats it for further use.
@@ -166,7 +152,7 @@ class StreamSurvey():
         """
         packedAndSeparated = self.pack_and_separate()
         theDict = {'Profiles':None, 'Cross Sections':None}
-        for i,key in enumerate(theDict):
+        for i, key in enumerate(theDict):
             theDict[key] = self.count_names(packedAndSeparated[i])
 
         return theDict
@@ -191,7 +177,7 @@ class StreamSurvey():
         bulkProAndCross = self.pack_and_separate()
         proAndCross = [[], []]
 
-        for i,shotGroup in enumerate(bulkProAndCross):
+        for i, shotGroup in enumerate(bulkProAndCross):
             nameDict = self.count_names(shotGroup)
             names = nameDict.keys()
             for name in names:
@@ -499,7 +485,7 @@ class Parser():
             result['type'] = 'Cross Section'
 
         for descriptor in splitDict['descriptors']:
-            for key,pattern in self.parseDict.items():
+            for key, pattern in self.parseDict.items():
                 if self.string_is_in(pattern, descriptor):
                     result['morphs'].append(key)
 
