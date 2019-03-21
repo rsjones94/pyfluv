@@ -300,8 +300,10 @@ class GrainDistribution():
                           }
 
         y = cumulativeDict[cumulative]
-        if normalize:
+        if normalize and not cumulative:
             y = [float(i)/sum(y)*100 for i in y]
+        elif normalize and cumulative:
+            y = [i*(100/max(y)) for i in y]
         x = list(self.distr.keys())
 
         if semilog:
