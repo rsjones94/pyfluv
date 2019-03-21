@@ -134,7 +134,7 @@ def get_nearest_value(series,index):
         if ind < 0 and ind > len(series)-1:
             break
         elif ind < 0 or ind > len(series)-1:
-            next
+            pass
         else:
             val = series[ind]
     return(val)
@@ -154,19 +154,18 @@ def interpolate_value(seriesX,seriesY,index):
     """
     if not pd.isnull(seriesY[index]):
         return(seriesY[index])
-    else:
+    try:
+        leftRight = get_populated_indices(seriesY,index)
+    except (IndexError, KeyError):
         try:
-            leftRight = get_populated_indices(seriesY,index)
-        except (IndexError, KeyError):
-            try:
-                return(get_nearest_value(seriesY,index))
-            except streamexceptions.InputError: #happens when seriesY is all null values
-                return(seriesY[index])
-        p1 = (seriesX[leftRight[0]],seriesY[leftRight[0]])
-        p2 = (seriesX[leftRight[1]],seriesY[leftRight[1]])
-        line = line_from_points(p1,p2)
-        val = y_from_equation(seriesX[index],line)
-        return(val)
+            return(get_nearest_value(seriesY,index))
+        except streamexceptions.InputError: #happens when seriesY is all null values
+            return(seriesY[index])
+    p1 = (seriesX[leftRight[0]],seriesY[leftRight[0]])
+    p2 = (seriesX[leftRight[1]],seriesY[leftRight[1]])
+    line = line_from_points(p1,p2)
+    val = y_from_equation(seriesX[index],line)
+    return(val)
 
 def interpolate_series(seriesX,seriesY):
     """
@@ -307,10 +306,7 @@ def _does_intersect(s1,s2):
 
     l1 = line_from_points(s1[0],s1[1])
     l2 = line_from_points(s2[0],s2[1])
-    if intersects_on_interval(yRange,l1,l2,vertical=True) and intersects_on_interval(xRange,l1,l2,vertical=False):
-        return(True)
-    else:
-        return(False)
+    return bool(intersects_on_interval(yRange,l1,l2,vertical=True) and intersects_on_interval(xRange,l1,l2,vertical=False))
 
 def intersects_on_interval(interval,l1,l2,vertical=False):
     """
@@ -644,7 +640,7 @@ def remove_side(seriesX,seriesY,xVal,leftRight):
     Raises:
         InputError: if leftRight is neither 'left' nor 'right'
     """
-    if leftRight is not 'left' and leftRight is not 'right':
+    if leftRight not in ('left', 'right'):
         raise streamexceptions.InputError('Invalid leftRight value. findType must be "left" or "right"')
 
     newX, newY = [],[]
@@ -858,7 +854,7 @@ def is_cut(index,seriesX,seriesY,findType):
     Raises:
         InputError: if findType is not "overhang" or "undercut".
     """
-    if findType is not 'overhang' and findType is not 'undercut':
+    if findType not in ('overhang', 'undercut'):
         raise streamexceptions.InputError('Invalid findType value. findType must be "overhang" or "undercut"')
     pointX = seriesX[index]
     pointY = seriesY[index]
@@ -876,13 +872,13 @@ def is_cut(index,seriesX,seriesY,findType):
         eqs = indices_of_equivalents(sectX,seriesX) # indices of all natural points in the series that have the same x value as the intersection point
 
         if findType == 'overhang':
-                elCheck = sectY < pointY
+            elCheck = sectY < pointY
         elif findType == 'undercut':
-                elCheck = sectY > pointY
+            elCheck = sectY > pointY
 
         if len(eqs) == 1: # if eqs is length 1 (meaning the only eq point is the actual point we're checking), we just have to check if the intersection is appropriately above or below
             if elCheck:
-               return(True)
+                return(True)
         else: # if eqs is not length 1, then we need to make sure that that at least one equivalent point is not on the same line as the point we're checking (i.e., they are not on the same vertical line segment).
               # we also should only check equivalent points where the elevation is above or below (depending on the findType) the check point
             for j in range(0,len(eqs)):
@@ -893,9 +889,9 @@ def is_cut(index,seriesX,seriesY,findType):
 
                 eqYisBelow = eqY < pointY
                 if eqYisBelow and findType == 'undercut': # if looking for undercuts, we only should check eqpoints that are above
-                    next
+                    pass
                 elif not(eqYisBelow) and findType == 'overhang': # if looking for overcuts, we only should check eqpoints that are below
-                    next
+                    pass
 
                 segmentRange = [index,eqIndex]
                 segmentRange.sort()
@@ -925,7 +921,7 @@ def get_cuts(seriesX,seriesY,findType):
     Raises:
         InputError: If findType is not "overhang" or "undercut"
     """
-    if findType is not 'overhang' and findType is not 'undercut':
+    if findType not in ('overhang', 'undercut'):
         raise streamexceptions.InputError('Invalid findType value. findType must be "overhang" or "undercut"')
 
     cuts = []
@@ -983,7 +979,7 @@ def pare_contiguous_sequences(sequences,seriesY,minOrMax=None):
     Raises:
         InputError: If minOrMax is not "min" or "max".
     """
-    if minOrMax is not 'min' and minOrMax is not 'max':
+    if minOrMax not in ('min', 'max'):
         raise streamexceptions.InputError('Invalid minOrMax value. minOrMax must be "min" or "max"')
 
     keepList = []
@@ -1174,7 +1170,7 @@ def get_centroid(seriesX,seriesY):
         # Calculate the signed area of triangle ABC
         area = ((a[0] * (b[1] - c[1])) +
                 (b[0] * (c[1] - a[1])) +
-                (c[0] * (a[1] - b[1]))) / 2.0;
+                (c[0] * (a[1] - b[1]))) / 2.0
         # If the area is zero, the triangle's line segments are
         # colinear so we should skip it
         if 0 == area:
@@ -1274,14 +1270,13 @@ def length_of_overlap_2d(s1,s2):
 
     if not(lineIsSame):
         return(0)
-    else:
-        s1proj = (s1[0][0],s1[1][0]) # range of s1, or the projection of s1 onto the x axis represented as a range of x
-        s2proj = (s2[0][0],s2[1][0]) # range of s2, or the projection of s2 onto the y axis represented as a range of x
-        # we need to get the range of the overlap of the x values
-        xOverlap = length_of_overlap_1d(s1proj,s2proj)
-        slope = l1[0]
-        lengthOfOverlap = (xOverlap**2 + (xOverlap*slope)**2)**0.5 # Pythagorean theorem
-        return(lengthOfOverlap)
+    s1proj = (s1[0][0],s1[1][0]) # range of s1, or the projection of s1 onto the x axis represented as a range of x
+    s2proj = (s2[0][0],s2[1][0]) # range of s2, or the projection of s2 onto the y axis represented as a range of x
+    # we need to get the range of the overlap of the x values
+    xOverlap = length_of_overlap_1d(s1proj,s2proj)
+    slope = l1[0]
+    lengthOfOverlap = (xOverlap**2 + (xOverlap*slope)**2)**0.5 # Pythagorean theorem
+    return(lengthOfOverlap)
 
 
 def length_of_segment(segment):
@@ -1329,7 +1324,7 @@ def wetted_perimeter(childX,childY,parentX,parentY):
         if not(np.isclose(0,line[0])): # if the line isn't flat, we know it's fully wetted
             length += length_of_segment(segment)
         else: # otherwise, we can only add the length of the segment that overlaps with a portion of the original XS; it could be a ceiling but it (more likely) represents a water surface
-            for j in range(1,len(parentX)):
+            for _ in range(1,len(parentX)):
                 checkSeg = [[parentX[i-1],parentY[i-1]],[parentX[i],parentY[i]]]
                 lapLength = length_of_overlap_2d(segment,checkSeg)
                 length += lapLength
@@ -1359,7 +1354,7 @@ def is_simple(seriesX,seriesY):
         # check if the segment intersects with any segments in the series, EXCEPT itself or the segments immediately before/after (these will always intersect by their definition)
         for j in range(1,len(seriesX)):
             if j in range(i-1,i+2):
-                next
+                pass
             else:
                 checkSeg = [[seriesX[j-1],seriesY[j-1]],[seriesX[j],seriesY[j]]]
                 if does_intersect(segment,checkSeg):
@@ -1821,8 +1816,8 @@ def is_populated(mList):
     A null value is represented by None; other values are represented by a 1.
     """
     result = [None]*len(mList[0])
-    for i,li in enumerate(mList):
-        for j,el in enumerate(li):
+    for _, li in enumerate(mList):
+        for j, el in enumerate(li):
             if not pd.isnull(el):
                 result[j] = 1
 
@@ -1846,10 +1841,9 @@ def crack_slicing_tuple(tup,index):
     """
     if not(index > tup[0] and index < tup[1]-1):
         return(tup)
-    else:
-        tup1 = (tup[0],index)
-        tup2 = (index,tup[1])
-        return(tup1,tup2)
+    tup1 = (tup[0],index)
+    tup2 = (index,tup[1])
+    return(tup1,tup2)
 
 def crack_crushed_list(crushedList,index):
     """
@@ -1927,22 +1921,16 @@ def overlap(tup1,tup2):
         if (tup2[0] >= tup1[0] and tup2[0] < tup1[1]):
             return(True)
 
-    if innerlap(tup1,tup2) or innerlap(tup2,tup1):
-        return(True)
-    else:
-        return(False)
+    return bool(innerlap(tup1,tup2) or innerlap(tup2,tup1))
 
 def within(tup1,tup2):
     """
     Determines if a slicing tuple's tup1 domain is entirely within another slicing tuple's tup2 domain (inclusive).
     """
-    if tup1[0] >= tup2[0] and tup1[1] <= tup2[1]:
-        return(True)
-    else:
-        return(False)
+    return bool(tup1[0] >= tup2[0] and tup1[1] <= tup2[1])
 
 def is_odd(num):
-   return(num % 2 != 0)
+    return(num % 2 != 0)
 
 
 def blend_polygons():
@@ -1959,4 +1947,3 @@ def blend_polygons():
         WHAT DOES IT MEAN TO AVERAGE SHAPES. This will be used to transition between riffles, pools and reaches smoothly
     """
     pass
-
