@@ -12,7 +12,7 @@ from . import streamexceptions
 from . import streamconstants as sc
 from . import streammath as sm
 
-class CrossSection(object):
+class CrossSection():
 
     """
     A generic geomorphic cross section.`
@@ -48,9 +48,9 @@ class CrossSection(object):
         boundTruths(dict): a dictionary that stores whether an attribute (such as bkfW) is exact or represents a minimum
         """
 
-    def __init__(self, df, name = None, morphType = None, metric = False, manN = None,
-                 waterSlope = None, project = True, bkfEl = None, wsEl = None, tobEl = None,
-                 thwStation = None, sizeDist = None, fillFraction = 1):
+    def __init__(self, df, name=None, morphType=None, metric=False, manN=None,
+                 waterSlope=None, project=True, bkfEl=None, wsEl=None, tobEl=None,
+                 thwStation=None, sizeDist=None, fillFraction=1):
         """
         Method to initialize a CrossSection.
 
@@ -82,7 +82,7 @@ class CrossSection(object):
         """
 
         self.name = name
-        if isinstance(df,dict):
+        if isinstance(df, dict):
             df = pd.DataFrame.from_dict(df)
         self.df = df
         self.morphType = morphType
@@ -91,7 +91,7 @@ class CrossSection(object):
         self.metric = metric
         if self.metric:
             self.unitDict = sc.METRIC_CONSTANTS
-        elif not(self.metric):
+        elif not self.metric:
             self.unitDict = sc.IMPERIAL_CONSTANTS
         self.thwStation = thwStation
         self.manN = manN
@@ -115,9 +115,8 @@ class CrossSection(object):
         Prints the name of the CrossSection object. If the name attribute is None, prints "UNNAMED".
         """
         if self.name:
-            return(self.name)
-        else:
-            return("UNNAMED")
+            return self.name
+        return "UNNAMED"
 
     def _bkf_savestate(func):
         """
@@ -132,8 +131,8 @@ class CrossSection(object):
                 result = func(self, *args, **kwargs)
             finally: # we need to clean up even if the function fails
                 self.bkfEl = saveEl
-            return(result)
-        return(wrapper)
+            return result
+        return wrapper
 
     # use the property decorator to make it so setting bkf also recalculates the bkf stations/elevations
     @property
@@ -141,65 +140,65 @@ class CrossSection(object):
         return self._bkfEl
 
     @bkfEl.setter
-    def bkfEl(self,value = None):
+    def bkfEl(self, value=None):
         self._bkfEl = value
         self._set_bankfull_stations_and_elevations()
         self._determine_bounding_truths()
 
-    def qplot(self, labelPlot = True, ve=None, showBkf=True, showWs = True,
-              showTob = True, showFloodEl = True, showCutSection=False):
+    def qplot(self, labelPlot=True, ve=None, showBkf=True, showWs=True,
+              showTob=True, showFloodEl=True, showCutSection=False):
         """
         Uses matplotlib to create a quick plot of the cross section.
         If showCutSection is True but no overhangs are present, no removed overhangs will be shown.
         """
         ax = plt.subplot()
         if showCutSection and self.hasOverhangs:
-            plt.plot(self.rawSta,self.rawEl, "b--", color="#f44e42", linewidth = 2, label = 'Overhang')
+            plt.plot(self.rawSta, self.rawEl, "b--", color="#f44e42", linewidth=2, label='Overhang')
 
-        plt.plot(self.stations,self.elevations, color="black", linewidth = 2)
-        plt.scatter(self.stations,self.elevations, color="black")
+        plt.plot(self.stations, self.elevations, color="black", linewidth=2)
+        plt.scatter(self.stations, self.elevations, color="black")
 
         # in retrospect, this probably should have been done with a loop and a truth dict
 
         if showFloodEl and self.bkfEl:
             broken = sm.break_at_bankfull(self.stations,
                                           self.elevations,
-                                          self.flood_prone_elevation()
-                                          ,self.thwIndex)
-            exes = [broken[0][0],broken[0][-1]]
-            whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="#06AA00", linewidth = 2, label = 'Floodprone Elevation')
-            plt.scatter(exes,whys, color="#06AA00")
+                                          self.flood_prone_elevation(),
+                                          self.thwIndex)
+            exes = [broken[0][0], broken[0][-1]]
+            whys = [broken[1][0], broken[1][-1]]
+            plt.plot(exes, whys, color="#06AA00", linewidth=2, label='Floodprone Elevation')
+            plt.scatter(exes, whys, color="#06AA00")
 
         if showTob and self.tobEl:
             broken = sm.break_at_bankfull(self.stations,
                                           self.elevations,
                                           self.tobEl,
                                           self.thwIndex)
-            exes = [broken[0][0],broken[0][-1]]
-            whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="#FFBD10", linewidth = 2, label = 'Top of Bank')
-            plt.scatter(exes,whys, color="#FFBD10")
+            exes = [broken[0][0], broken[0][-1]]
+            whys = [broken[1][0], broken[1][-1]]
+            plt.plot(exes, whys, color="#FFBD10", linewidth=2, label='Top of Bank')
+            plt.scatter(exes, whys, color="#FFBD10")
 
         if showBkf and self.bkfEl:
             broken = sm.break_at_bankfull(self.stations,
                                           self.elevations,
                                           self.bkfEl,
                                           self.thwIndex)
-            exes = [broken[0][0],broken[0][-1]]
-            whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, color="#FF0000", linewidth = 2, label = 'Bankfull')
-            plt.scatter(exes,whys, color="#FF0000")
+            exes = [broken[0][0], broken[0][-1]]
+            whys = [broken[1][0], broken[1][-1]]
+            plt.plot(exes, whys, color="#FF0000", linewidth=2, label='Bankfull')
+            plt.scatter(exes, whys, color="#FF0000")
 
         if showWs and self.wsEl:
             broken = sm.break_at_bankfull(self.stations,
                                           self.elevations,
                                           self.wsEl,
                                           self.thwIndex)
-            exes = [broken[0][0],broken[0][-1]]
-            whys = [broken[1][0],broken[1][-1]]
-            plt.plot(exes,whys, "b--", color = '#31A9FF', linewidth = 2, label = 'Water Surface')
-            plt.scatter(exes,whys, color="#31A9FF")
+            exes = [broken[0][0], broken[0][-1]]
+            whys = [broken[1][0], broken[1][-1]]
+            plt.plot(exes, whys, "b--", color='#31A9FF', linewidth=2, label='Water Surface')
+            plt.scatter(exes, whys, color="#31A9FF")
         if ve is not None:
             ax.set_aspect(ve)
         if labelPlot:
@@ -208,7 +207,7 @@ class CrossSection(object):
             plt.ylabel('Elevation (' + self.unitDict['lengthUnit'] + ')')
             plt.legend()
 
-    def planplot(self, labelPlot = True, showProjections = True, equalAspect=True):
+    def planplot(self, labelPlot=True, showProjections=True, equalAspect=True):
         """
         Uses matplotlib to create a quick plot of the planform of the cross
         section. If showProjections is True but self.project is False, no
@@ -219,18 +218,17 @@ class CrossSection(object):
             to.
         """
         ax = plt.subplot()
-        plt.plot(self.df['exes'],self.df['whys'],
-                 label = 'Cross Section Planform')
+        plt.plot(self.df['exes'], self.df['whys'], label='Cross Section Planform')
         plt.ticklabel_format(useOffset=False)
         if showProjections and self.project:
             projected = self._get_centerline_shots()
             projX = projected[0]
             projY = projected[1]
-            plt.scatter(projX,projY)
-            for i in range(len(projX)):
-                px = (self.df['exes'][i],projX[i])
-                py = (self.df['whys'][i],projY[i])
-                plt.plot(px,py)
+            plt.scatter(projX, projY)
+            for i, _ in enumerate(projX):
+                px = (self.df['exes'][i], projX[i])
+                py = (self.df['whys'][i], projY[i])
+                plt.plot(px, py)
         if equalAspect:
             ax.set_aspect('equal')
         if labelPlot:
@@ -253,17 +251,17 @@ class CrossSection(object):
         Raises:
             None
         """
-        return(sm.centerline_series(self.df['exes'],self.df['whys']))
+        return sm.centerline_series(self.df['exes'], self.df['whys'])
 
     def _create_2d_form(self):
         """
         Uses the survey x,y,z data to create stationing and elevation data.
             Defines rawSta and rawEl, representing stationing and elevation.
         """
-        self.rawSta = sm.get_stationing(self.df['exes'],self.df['whys'],project = self.project)
+        self.rawSta = sm.get_stationing(self.df['exes'], self.df['whys'], project=self.project)
         self.df['Station'] = self.rawSta
         self.rawEl = self.df['zees']
-        if isinstance(self.rawEl,pd.core.series.Series):
+        if isinstance(self.rawEl, pd.core.series.Series):
             self.rawEl = self.rawEl.tolist()
 
     def _validate_geometry(self):
@@ -271,13 +269,13 @@ class CrossSection(object):
         Checks if a cross section is self-intersecting (always illegal) and if it has
             overhangs (okay, but changes data processing).
         """
-        noOverhangs = not(sm.monotonic_increasing(self.rawSta))
+        noOverhangs = not sm.monotonic_increasing(self.rawSta)
         if noOverhangs:
             self.hasOverhangs = True
-            logging.warning(f'Overhangs present in geometry on XS {self.name}.')
+            logging.warning('Overhangs present in geometry on XS %s.', self.name)
 
-        simplicity = sm.is_simple(self.rawSta,self.rawEl)
-        if not(simplicity[0]): # if the geometry is not simple
+        simplicity = sm.is_simple(self.rawSta, self.rawEl)
+        if not simplicity[0]: # if the geometry is not simple
             raise streamexceptions.GeometryError('Error: geometry is self-intersecting on segments ' + str(simplicity[1]) + ' and ' + str(simplicity[2]))
 
     def _set_thw_index(self):
@@ -285,23 +283,15 @@ class CrossSection(object):
         Finds the index of the thw in stations. If user didn't specify thwSta, then we guess it by finding the index of
         the minimum elevation in the channel. If this value is not unique, the leftmost is selected.
         """
-        if not(self.thwStation): # if the user didn't specify this, we need to guess it. If the min value is not unique, the leftmost value is used.
+        if not self.thwStation: # if the user didn't specify this, we need to guess it. If the min value is not unique, the leftmost value is used.
             self.thwIndex = sm.find_min_index(self.elevations)
         else:
             if self.thwStation < self.stations[0] or self.thwStation > self.stations[len(self.stations)-1]:
                 logging.warning('Thalweg station specified is out of surveyed bounds. Guessing thalweg station.')
                 self.thwIndex = sm.find_min_index(self.elevations)
             else:
-                first = sm.get_nth_closest_index_by_value(self.stations,self.thwStation,1)
+                first = sm.get_nth_closest_index_by_value(self.stations, self.thwStation, 1)
                 self.thwIndex = first
-                """
-                second = sm.get_nth_closest_index_by_value(self.stations,self.thwStation,2)
-                # we want to find the two closest points to the station specified and pick the lowest one
-                if self.elevations[first] <= self.elevations[second]:
-                    self.thwIndex = first
-                else:
-                    self.thwIndex = second
-                """
 
     def _set_bankfull_stations_and_elevations(self):
         """
@@ -313,7 +303,7 @@ class CrossSection(object):
             if self.elevations[self.thwIndex] >= self.bkfEl:
                 raise streamexceptions.PhysicsLogicError('Thw index (' + str(self.thwIndex) + ') is at or above bankfull elevation.')
 
-            broken = sm.break_at_bankfull(self.stations,self.elevations,self.bkfEl,self.thwIndex)
+            broken = sm.break_at_bankfull(self.stations, self.elevations, self.bkfEl, self.thwIndex)
             self.bStations = broken[0]
             self.bElevations = broken[1]
         else:
@@ -331,23 +321,21 @@ class CrossSection(object):
         elif self.fillFraction == 0:
             method = 'cut'
 
-        if not(self.hasOverhangs):
+        if not self.hasOverhangs:
             self.stations = self.rawSta
             self.elevations = self.rawEl
         elif self.hasOverhangs:
             try:
-                removed = sm.remove_overhangs(self.rawSta,self.rawEl,method=method,adjustY=True) # remove_overhangs will change soon; this will need to be updated
+                removed = sm.remove_overhangs(self.rawSta, self.rawEl, method=method, adjustY=True) # remove_overhangs will change soon; this will need to be updated
                 self.stations = removed[0]
                 self.elevations = removed[1]
             except IndexError:
-                """
-                This will get thrown when self.hasOverhangs is True, but remove_overhangs can't
-                actually find any due to the points causing the overhang to be unusually close together.
-                When this happens, the numerical error in calculations due to leaving the points in
-                will be small, so we will just pass the raw stations and elevations.
-                HOWEVER, this is a bug and should be fixed in the future.
-                """
-                logging.warning(f'Overhangs detected but could not be removed on XS {self.name}.')
+                #This will get thrown when self.hasOverhangs is True, but remove_overhangs can't
+                #actually find any due to the points causing the overhang to be unusually close together.
+                #When this happens, the numerical error in calculations due to leaving the points in
+                #will be small, so we will just pass the raw stations and elevations.
+                #HOWEVER, this is a bug and should be fixed in the future.
+                logging.warning('Overhangs detected but could not be removed on XS %s.', self.name)
                 self.stations = self.rawSta
                 self.elevations = self.rawEl
 
@@ -369,11 +357,11 @@ class CrossSection(object):
         leftMax = max(self.elevations[:self.thwIndex+1])
         rightMax = max(self.elevations[self.thwIndex:])
 
-        boundDict = {'bkfWidth':None,'floodproneWidth':None}
+        boundDict = {'bkfWidth':None, 'floodproneWidth':None}
         if self.bkfEl:
             fpEl = self.flood_prone_elevation()
-            boundDict['bkfWidth'] = (self.bkfEl<=leftMax,self.bkfEl<=rightMax)
-            boundDict['floodproneWidth'] = (fpEl<=leftMax,fpEl<=rightMax)
+            boundDict['bkfWidth'] = (self.bkfEl <= leftMax, self.bkfEl <= rightMax)
+            boundDict['floodproneWidth'] = (fpEl <= leftMax, fpEl <= rightMax)
         self.boundTruths = boundDict
 
     def area(self):
@@ -381,44 +369,44 @@ class CrossSection(object):
         Calculates the area under a given elevation. Only calculates area in
         primary channel (as defined by min el) by default.
         """
-        return(sm.get_area(self.bStations,self.bElevations))
+        return sm.get_area(self.bStations, self.bElevations)
 
     def wetted_perimeter(self):
         """
         Calculates the wetted perimeter under a given elevation.
         """
         segmentLengths = []
-        for i in range(0,len(self.bStations)-1):
-            p1 = (self.bStations[i],self.bElevations[i])
-            p2 = (self.bStations[i+1],self.bElevations[i+1])
-            length = sm.length_of_segment((p1,p2))
+        for i in range(len(self.bStations)-1):
+            p1 = (self.bStations[i], self.bElevations[i])
+            p2 = (self.bStations[i+1], self.bElevations[i+1])
+            length = sm.length_of_segment((p1, p2))
             segmentLengths.append(length)
-        return(sum(segmentLengths))
+        return sum(segmentLengths)
 
     def hydraulic_radius(self):
         """
         Calculates the hydraulic radius given an elevation.
         """
-        return(self.area() / self.wetted_perimeter())
+        return self.area() / self.wetted_perimeter()
 
     def shear_stress(self):
         """
         Calculates the shear stress at bkf. If metric, units are N/m^2.
         If imperial, units are lbs/ft^2
         """
-        return(self.unitDict['gammaWater']*self.mean_depth()*self.waterSlope)
+        return self.unitDict['gammaWater']*self.mean_depth()*self.waterSlope
 
     def shear_velocity(self):
         """
         Calculates the shear velocity at bkf.
         """
-        return((self.unitDict['g']*self.hydraulic_radius()*self.waterSlope)**(1/2))
+        return (self.unitDict['g']*self.hydraulic_radius()*self.waterSlope)**(1/2)
 
     def stream_power(self):
         """
         Calculates the stream power at bkf.
         """
-        return(self.unitDict['gammaWater']*self.discharge_rate()*self.waterSlope*self.width())
+        return self.unitDict['gammaWater']*self.discharge_rate()*self.waterSlope*self.width()
 
     def threshhold_particle(self):
         """
@@ -430,7 +418,7 @@ class CrossSection(object):
         """
         Calculates the elevation of the floodprone area. This elevation is at twice the bkf max depth by default.
         """
-        return(min(self.bElevations) + 2*self.max_depth())
+        return min(self.bElevations) + 2*self.max_depth()
 
     def flood_prone_width(self):
         """
@@ -441,13 +429,13 @@ class CrossSection(object):
                                       self.flood_prone_elevation(),
                                       self.thwIndex)
         floodSta = broken[0]
-        return(sm.max_width(floodSta))
+        return sm.max_width(floodSta)
 
     def calculate_entrenchment_ratio(self):
         """
         Calculates the entrenchment ratio - the flood prone width divided by the bankfull width
         """
-        return(self.flood_prone_width() / self.width())
+        return self.flood_prone_width() / self.width()
 
     def bank_height_ratio(self):
         """
@@ -457,25 +445,25 @@ class CrossSection(object):
         minEl = min(self.bElevations)
         bkfHeight = self.bkfEl - minEl
         tobHeight = self.tobEl - minEl
-        return(tobHeight / bkfHeight)
+        return tobHeight / bkfHeight
 
     def mean_depth(self):
         """
         Calculates the mean depth given a certain elevation.
         """
-        return(sm.get_mean_depth(self.bStations,self.bElevations,self.bkfEl,True))
+        return sm.get_mean_depth(self.bStations, self.bElevations, self.bkfEl, True)
 
     def max_depth(self):
         """
         Calculates the max depth given a certain elevation.
         """
-        return(sm.max_depth(self.bElevations,self.bkfEl))
+        return sm.max_depth(self.bElevations, self.bkfEl)
 
     def width(self):
         """
         Calculates the bankfull width given a certain elevation.
         """
-        return(sm.max_width(self.bStations))
+        return sm.max_width(self.bStations)
 
     def flow_velocity(self):
         """
@@ -483,29 +471,29 @@ class CrossSection(object):
         Units are ft/s or meters/s.
         """
         manNum = self.unitDict['manningsNumerator']
-        return((manNum/self.manN)*self.hydraulic_radius()**(2/3)*self.waterSlope**(1/2))
+        return (manNum/self.manN)*self.hydraulic_radius()**(2/3)*self.waterSlope**(1/2)
 
     def discharge_rate(self):
         """
         Calculates the volumetric flow given a bkf elevation, ws slope and manning's n.
         Units are cubic ft/s or cubic meters/s.
         """
-        return(self.area()*self.flow_velocity())
+        return self.area()*self.flow_velocity()
 
     def widthdepth_ratio(self):
         """
         Calculates the ratio of the bankfull width to the mean bankfull depth.
         """
-        return(self.width() / self.mean_depth())
+        return self.width() / self.mean_depth()
 
     def froude(self):
         """
         Calculates the Froude number at the cross section.
         """
-        return(self.flow_velocity()/(self.unitDict['g']*self.mean_depth())**(1/2))
+        return self.flow_velocity()/(self.unitDict['g']*self.mean_depth())**(1/2)
 
     @_bkf_savestate
-    def attribute_list(self, attributeMethod, deltaEl = 0.1):
+    def attribute_list(self, attributeMethod, deltaEl=0.1):
         """
         Returns two arrays: a list of elevations and a corresponding list of the channel attribute if bkf
         were at that elevation.
@@ -531,10 +519,10 @@ class CrossSection(object):
             attrArray.append(attributeMethod())
             self.bkfEl += deltaEl
 
-        return(elArray,attrArray)
+        return(elArray, attrArray)
 
     @_bkf_savestate
-    def get_attr(self,attributeMethod,elevation):
+    def get_attr(self, attributeMethod, elevation):
         """
         Returns an attribute (that is a function of bkf elevation) at a given bkf elevation.
 
@@ -542,24 +530,24 @@ class CrossSection(object):
         """
         self.bkfEl = elevation
         at = attributeMethod()
-        return(at)
+        return at
 
-    def _attr_nthderiv(self,attributeMethod,n,elevation,delta = 0.01):
+    def _attr_nthderiv(self, attributeMethod, n, elevation, delta=0.01):
         """
         This is the same as attr_nthderiv(), but does not have the @_bkf_savestate decorator to save
         on computation time when called multiple times. Does not save the bankfull state.
         """
-        checkList, change = sm.build_deriv_exes(elevation,n,delta)
+        checkList, change = sm.build_deriv_exes(elevation, n, delta)
         atList = []
         for el in checkList:
             self.bkfEl = el
             at = attributeMethod()
             atList.append(at)
-        result = sm.diffreduce(atList,change)
-        return(result)
+        result = sm.diffreduce(atList, change)
+        return result
 
     @_bkf_savestate
-    def attr_nthderiv(self,attributeMethod,n,elevation,delta = 0.01):
+    def attr_nthderiv(self, attributeMethod, n, elevation, delta=0.01):
         """
         Finds the central nth numerical derivative of an attribute with respect to elevation at a given elevation.
 
@@ -575,14 +563,14 @@ class CrossSection(object):
         Raises:
             None.
         """
-        result = self._attr_nthderiv(attributeMethod,n,elevation,delta)
-        return(result)
+        result = self._attr_nthderiv(attributeMethod, n, elevation, delta)
+        return result
 
     @_bkf_savestate
-    def find_floodplain_elevation(self, attribute = 'width', returns = 'lower', delta = None):
+    def find_release_elevation(self, attribute='width', returns='lower', delta=None):
         """
-        Estimates the elevation of the floodplain by maximizing a target function that is evaluated
-        at each possible survey elevation.
+        Estimates the elevation of flow release (the floodplain or top of bank)
+        by maximizing a target function that is evaluated at each possible survey elevation.
 
         Args:
             attribute: the attribute used to find flow relief. Can be 'area' or 'width' (preferred)
@@ -617,33 +605,33 @@ class CrossSection(object):
         if delta is None:
             delta = (max(self.elevations)-min(self.elevations))*0.1
 
-        if returns not in ['lower','upper','min','max','left','right','mean']:
+        if returns not in ['lower', 'upper', 'min', 'max', 'left', 'right', 'mean']:
             raise streamexceptions.InputError("Invalid method. Method must be one of 'lower','upper','left','right','mean'.")
 
         if attribute == 'area':
             attributeMethod = self.area
             deriv = 3
-            logging.warn('Floodplain estimation by the third derivative of bkf area is unstable.')
+            logging.warning('Floodplain estimation by the third derivative of bkf area is unstable. Use width instead.')
         elif attribute == 'width':
             attributeMethod = self.width
             deriv = 2
         else:
             raise streamexceptions.InputError("Invalid attribute. Attribute must be 'area' or 'width'.")
 
-        leftEls = sm.make_monotonic(self.elevations[self.thwIndex-1::-1],removeDuplicates=True)
-        rightEls = sm.make_monotonic(self.elevations[self.thwIndex+1:],removeDuplicates=True)
+        leftEls = sm.make_monotonic(self.elevations[self.thwIndex-1::-1], removeDuplicates=True)
+        rightEls = sm.make_monotonic(self.elevations[self.thwIndex+1:], removeDuplicates=True)
 
-        els = [None,None]
+        els = [None, None]
         # we need to filter out elevations within delta/2 of the thalweg elevation
         els[0] = [el for el in leftEls if el > (self.elevations[self.thwIndex] + delta/2)]
         els[1] = [el for el in rightEls if el > (self.elevations[self.thwIndex] + delta/2)]
 
-        funcResults = [None,None]
-        for i,side in enumerate(els):
-            funcResults[i] = [self._attr_nthderiv(attributeMethod,deriv,el,delta) for el in side]
-        maxes = [max(funcResults[0]),max(funcResults[1])]
-        inds = [sm.find_max_index(funcResults[0]),sm.find_max_index(funcResults[1])]
-        winEls = [els[0][inds[0]],els[1][inds[1]]]
+        funcResults = [None, None]
+        for i, side in enumerate(els):
+            funcResults[i] = [self._attr_nthderiv(attributeMethod, deriv, el, delta) for el in side]
+        maxes = [max(funcResults[0]), max(funcResults[1])]
+        inds = [sm.find_max_index(funcResults[0]), sm.find_max_index(funcResults[1])]
+        winEls = [els[0][inds[0]], els[1][inds[1]]]
 
         maxSide = sm.find_max_index(maxes) # 0 for left, 1 for right
         minSide = maxSide^1 # flips the bit
@@ -651,13 +639,13 @@ class CrossSection(object):
         highSide = sm.find_max_index(winEls) # 0 for left, 1 for right
         lowSide = highSide^1
 
-        resultDict = {'min':winEls[minSide],'max':winEls[maxSide],'left':winEls[0],
-                      'right':winEls[1],'lower':winEls[lowSide],'upper':winEls[highSide],
+        resultDict = {'min':winEls[minSide], 'max':winEls[maxSide], 'left':winEls[0],
+                      'right':winEls[1], 'lower':winEls[lowSide], 'upper':winEls[highSide],
                       'mean':np.mean(winEls)}
-        return(resultDict[returns])
+        return resultDict[returns]
 
     @_bkf_savestate
-    def bkf_brute_search(self, attributeMethod, target, delta = 0.1):
+    def bkf_brute_search(self, attributeMethod, target, delta=0.1):
         """
         Finds the most ideal bkf elevation by performing a brute force search,
         looking for a target value of a specified attribute. The attribute need
@@ -683,22 +671,22 @@ class CrossSection(object):
             None.
         """
 
-        arrays = self.attribute_list(attributeMethod = attributeMethod,
-                                     deltaEl = delta)
+        arrays = self.attribute_list(attributeMethod=attributeMethod, deltaEl=delta)
         elevations = arrays[0]
         attributes = np.asarray(arrays[1])
         dists = np.abs(attributes-target)
 
         bestIndex = sm.find_min_index(dists)
 
-        return(elevations[bestIndex])
+        return elevations[bestIndex]
 
     @_bkf_savestate
     def bkf_binary_search(self,
                           attributeMethod,
                           target,
-                          epsilon = None,
-                          returnFailed = False):
+                          epsilon=None,
+                          returnFailed=False,
+                          maxIter=1000):
         """
         Finds the most ideal bkf elevation by performing a binary-esque search,
         looking for a target value of a specified attribute. This runs much
@@ -714,6 +702,8 @@ class CrossSection(object):
             target: the ideal value of attribute.
             epsilon: the maximum acceptable absolute deviation from the target
                      attribute.
+            maxIter: the maximum number of iterations to attempt before breaking.
+                     It is unusual to need more than 30, but the default is 1000.
 
         Returns:
             The ideal bkf elevation.
@@ -733,22 +723,20 @@ class CrossSection(object):
             thwEl = self.elevations[self.thwIndex]
             if thwEl > bottom:
                 bottom = thwEl
-        """
-        The above nested if is meant to handle when a secondary channel
-        contains the thw. But if the thwInd indicates a point in the main
-        channel that is NOT the true thw then this will cause the algorithm to
-        start with an incorrectly high bottom.
-        """
+        #The above nested if is meant to handle when a secondary channel
+        #contains the thw. But if the thwInd indicates a point in the main
+        #channel that is NOT the true local thw then this will cause the algorithm to
+        #start with an incorrectly high bottom.
 
         found = False
         foundUpperBound = False
         n = 0
 
-        while not found and n < 1000:
+        while not found and n < maxIter:
             n += 1
             self.bkfEl = (bottom + top)/2
             calculatedValue = attributeMethod()
-            if np.isclose(calculatedValue,target,atol=epsilon):
+            if np.isclose(calculatedValue, target, atol=epsilon):
                 found = True
             else:
                 if calculatedValue > target:
@@ -762,29 +750,27 @@ class CrossSection(object):
                         # in case the target cannot be found within the
                         # confinements of the surveyed channel
                         if top >= max(self.elevations)*10**2:
-                            print('Target too great for channel ' + str(self) +
-                                  '. Breaking.')
-                            break
+                            logging.warning('Target too great for channel %s. Breaking.', str(self))
+                            return None
 
         foundEl = self.bkfEl # save the best result we found
 
         if found:
-            print('Converged in ' + str(n) + ' iterations.')
-            return(foundEl)
-        else:
-            print('Could not converge in ' + str(n) + ' iterations.')
-            if returnFailed:
-                return(foundEl)
-            else:
-                return(None)
+            logging.info('Converged in %d iterations.', n)
+            return foundEl
+
+        logging.warning('Could not converge in %d iterations.', n)
+        if returnFailed:
+            return foundEl
+        return None
 
     def crossseg(self):
         """
         Returns a tuple representing the centerline of the cross section as
         a 2d line segment.
         """
-        row1 = self.df.iloc[1,:]
-        row2 = self.df.iloc[-1,:]
-        start = (row1['exes'],row1['whys'])
-        end = (row2['exes'],row2['whys'])
-        return(start,end)
+        row1 = self.df.iloc[1, :]
+        row2 = self.df.iloc[-1, :]
+        start = (row1['exes'], row1['whys'])
+        end = (row2['exes'], row2['whys'])
+        return(start, end)
