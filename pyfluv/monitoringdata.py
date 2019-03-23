@@ -8,6 +8,7 @@ import pandas as pd
 
 from . import streamsurvey
 from . import graindistributions
+from . import reference
 
 def piney_survey():
     """
@@ -53,3 +54,15 @@ def piney_pebbles():
             gd = graindistributions.GrainDistribution(distr=data, name=colName, metric=True)
             pebbleCounts.append(gd)
     return pebbleCounts
+
+def eco71():
+    """
+    Returns a Reference object containing reference reach data for ecoregion 71
+    (the ecoregion that west piney is in). Data collected from
+    https://www.tn.gov/content/dam/tn/environment/water/documents/wr_wq_regional-curves-ecoregion711.pdf
+    """
+    selfloc = os.path.dirname(os.path.realpath(__file__))
+    file = r'\data\eco71.csv'
+    eco = pd.read_csv(selfloc+file, sep=',', encoding="ISO-8859-1")
+    ecoReference = reference.Reference(reaches=eco, eco=71)
+    return ecoReference

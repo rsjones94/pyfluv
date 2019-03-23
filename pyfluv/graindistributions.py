@@ -218,7 +218,7 @@ class GrainDistribution():
 
     def stddev(self):
         """
-        Returns the standard deviation of the pebble count.
+        Returns the standard deviation of the pebble count (in mm or inches).
         """
         return (self.dx(84) - self.dx(16)) / 2
 
