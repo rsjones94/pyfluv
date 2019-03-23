@@ -40,18 +40,29 @@ class Reference():
         drains = [col for col in self.reaches if 'Drain' in col or 'drain' in col]
         return drains[0]
 
-    def qplot(self, col, logx=True, logy=True):
+    def qplot(self, col, plotType='loglog'):
         """
         Plots the drainage area against a specified column.
+
+        Args:
+            col: a string pointing to a column in self.reaches
+            pltType: a string specifying the plot type. Can be 'loglog', 'semilogx', 'semilogy' or 'linear'
         """
+
         _, ax = plt.subplots()
+        plotDict = {'loglog':plt.loglog, 'semilogx':plt.semilogx,
+                    'semilogy':plt.semilogy, 'linear':None}
 
         drainCol = self.identify_draincol()
         x = self.reaches[drainCol]
         y = self.reaches[col]
 
-        ax.loglog()
-        plt.scatter(x,y)
+        try:
+            plotDict[plotType]()
+        except TypeError:
+            pass
+
+        plt.scatter(x, y)
         plt.xlabel(drainCol)
         plt.ylabel(col)
         plt.title(f'{self.eco}: {drainCol} vs. {col}')
