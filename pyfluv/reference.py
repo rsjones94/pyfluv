@@ -69,22 +69,28 @@ class Reference():
     def fit(self, col):
         """
         Fits an exponential regression to a specified column and returns the
-        coefficients (a,b) for y = a*x^b
+        coefficients (a,b) for y = a*x^b. Returns the a tuple where the first
+        entry is the tuple (a,b) and the second is the r^2 value of the fit.
 
         Args:
             col: a string pointing to a column in self.reaches
         """
         drainCol = self.identify_draincol()
-        x = np.array(self.reaches[drainCol])
-        y = np.array(self.reaches[col])
+        exes = np.array(self.reaches[drainCol])
+        whys = np.array(self.reaches[col])
 
-        return curve_fit(sm.func_powerlaw, x, y)[0]
+        res = curve_fit(sm.func_powerlaw, exes, whys)[0]
+        
+        predictions = [sm.func_powerlaw(x, res[0], res[1]) for x in exes]
+        r2 = sm.r2(predictions,whys)
+        
+        return(res,r2)
 
     def trend(self, col):
         """
         Adds a power trendline to a plot given a column name in self.reaches
         """
-        res = self.fit(col)
+        res = self.fit(col)[0]
         drainCol = self.identify_draincol()
         xMin = min(self.reaches[drainCol])
         xMax = max(self.reaches[drainCol])

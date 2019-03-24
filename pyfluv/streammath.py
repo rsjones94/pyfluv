@@ -1938,6 +1938,20 @@ def func_powerlaw(x, c, m):
     """
     return c*np.power(x,m)
 
+def r2(predicted,actual):
+    """
+    Gives the r^2 value for a set of predicted data against actual data.
+    """
+    predicted = np.array(predicted)
+    actual = np.array(actual)
+    
+    meanVal = np.mean(actual)
+    
+    sse = sum((actual-predicted)**2)
+    sst = sum((actual-meanVal)**2)
+    
+    return 1-(sse/sst)
+
 def blend_polygons():
     """
     Takes two polygons (represented as an array of X-Y coordinates) and returns one polygon that represents a weighted average of the two shapes.
