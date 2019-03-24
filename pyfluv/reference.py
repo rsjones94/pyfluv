@@ -3,10 +3,11 @@ Contains the Reference class, which stores, plots and fits regressions to
 reference reach data.
 """
 
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
+from scipy.optimize import curve_fit
+
+from . import streammath as sm
 
 class Reference():
 
@@ -48,8 +49,6 @@ class Reference():
             col: a string pointing to a column in self.reaches
             pltType: a string specifying the plot type. Can be 'loglog', 'semilogx', 'semilogy' or 'linear'
         """
-
-        _, ax = plt.subplots()
         plotDict = {'loglog':plt.loglog, 'semilogx':plt.semilogx,
                     'semilogy':plt.semilogy, 'linear':None}
 
@@ -71,5 +70,25 @@ class Reference():
         """
         Fits an exponential regression to a specified column and returns the
         coefficients (a,b) for y = a*x^b
+
+        Args:
+            col: a string pointing to a column in self.reaches
         """
-        pass
+        drainCol = self.identify_draincol()
+        x = np.array(self.reaches[drainCol])
+        y = np.array(self.reaches[col])
+
+        return curve_fit(sm.func_powerlaw, x, y)[0]
+
+    def trend(self, col):
+        """
+        Adds a power trendline to a plot given a column name in self.reaches
+        """
+        res = self.fit(col)
+        drainCol = self.identify_draincol()
+        xMin = min(self.reaches[drainCol])
+        xMax = max(self.reaches[drainCol])
+        xSpace = np.linspace(xMin, xMax, 10000)
+        newY = [sm.func_powerlaw(x, res[0], res[1]) for x in xSpace]
+        plt.plot(xSpace, newY)
+        return newY

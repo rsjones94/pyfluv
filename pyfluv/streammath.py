@@ -1932,6 +1932,11 @@ def within(tup1,tup2):
 def is_odd(num):
     return(num % 2 != 0)
 
+def func_powerlaw(x, c, m):
+    """
+    Power function with 0 intercept
+    """
+    return c*np.power(x,m)
 
 def blend_polygons():
     """

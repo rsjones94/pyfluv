@@ -291,9 +291,7 @@ class GrainDistribution():
     def sizeplot(self, normalize=True, semilog=True, cumulative=True):
         """
         A plot of the particles in the distribution.
-        This calls a new plot figure.
         """
-        _, ax = plt.subplots()
 
         cumulativeDict = {True:self.extract_unbinned_cumsum(),
                           False:self.distr.values()
@@ -307,10 +305,10 @@ class GrainDistribution():
         x = list(self.distr.keys())
 
         if semilog:
-            ax.semilogx(x, y)
+            plt.semilogx(x, y)
         else:
-            ax.plot(x, y)
-        ax.grid()
+            plt.plot(x, y)
+        plt.grid()
 
         normalDict = {True:' (Normalized)', False:''}
         isCumulativeDict = {True:'Cumulative ', False:''}
