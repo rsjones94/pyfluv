@@ -16,8 +16,10 @@ def piney_survey():
     Year 5 (2018) summer monitoring at the West Piney River mitigation site.
     """
     selfloc = os.path.dirname(os.path.realpath(__file__))
-    file = r'\data\wpr_myr5_survey_adjusted.csv'
-    wpr = streamsurvey.StreamSurvey(selfloc+file,
+    sub = r'data'
+    name = r'wpr_myr5_survey_adjusted.csv'
+    file = os.path.join(selfloc,sub,name)
+    wpr = streamsurvey.StreamSurvey(file,
                                     sep=',',
                                     metric=False,
                                     keywords=None,
@@ -32,8 +34,10 @@ def piney_pebbles():
     Note that bedrock calls are converted to large boulders (>1024mm).
     """
     selfloc = os.path.dirname(os.path.realpath(__file__))
-    file = r'\data\wpr_myr5_pebbles.csv'
-    pebbles = pd.read_csv(selfloc+file, sep=',')
+    sub = r'data'
+    name = r'wpr_myr5_pebbles.csv'
+    file = os.path.join(selfloc,sub,name)
+    pebbles = pd.read_csv(file, sep=',')
     sizes = list(pebbles['Minimum Size (mm)'])
 
     def try_float(value):
@@ -62,7 +66,9 @@ def eco71():
     https://www.tn.gov/content/dam/tn/environment/water/documents/wr_wq_regional-curves-ecoregion711.pdf
     """
     selfloc = os.path.dirname(os.path.realpath(__file__))
-    file = r'\data\eco71.csv'
-    eco = pd.read_csv(selfloc+file, sep=',', encoding="ISO-8859-1")
+    sub = r'data'
+    name = r'eco71.csv'
+    file = os.path.join(selfloc,sub,name)
+    eco = pd.read_csv(file, sep=',', encoding="ISO-8859-1")
     ecoReference = reference.Reference(reaches=eco, eco=71)
     return ecoReference
