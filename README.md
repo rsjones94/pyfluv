@@ -21,7 +21,7 @@ If you have pip on your machine, just
 pip install pyfluv
 ```
 
-from the terminal. Pip will install pyfluv's dependencies (as of version 0.22 these are numpy, matplotlib, sklearn and scipy) for you.
+from the terminal. Pip will install pyfluv's dependencies (as of version 0.3.0 these are numpy, pandas, matplotlib, sklearn and scipy) for you.
 
 Once pyfluv is installed, it can be imported in Python with
 
@@ -31,7 +31,7 @@ import pyfluv
 
 ## pyfluv basics
 
-Because pyfluv is pre-alpha, it has limited functionality. Documentation will be updated when the alpha version is released.
+Because pyfluv is currently in its alpha release, its functionality is subject to change. For an overview of its current functionality, please refer to the Jupyter notebooks hosted [here](https://github.com/rsjones94/pyfluv-notebooks).
 
 ## Contributing
 

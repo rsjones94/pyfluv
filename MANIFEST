@@ -3,7 +3,11 @@ setup.cfg
 setup.py
 pyfluv\__init__.py
 pyfluv\graindistributions.py
+pyfluv\monitoringdata.py
+pyfluv\reference.py
 pyfluv\streamconstants.py
+pyfluv\streamexceptions.py
 pyfluv\streamgeometry.py
 pyfluv\streammath.py
-pyfluv\westpineyriver.py
+pyfluv\streamprofiles.py
+pyfluv\streamsurvey.py
