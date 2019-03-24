@@ -308,7 +308,6 @@ class GrainDistribution():
             plt.semilogx(x, y)
         else:
             plt.plot(x, y)
-        plt.grid()
 
         normalDict = {True:' (Normalized)', False:''}
         isCumulativeDict = {True:'Cumulative ', False:''}

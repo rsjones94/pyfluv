@@ -80,11 +80,11 @@ class Reference():
         whys = np.array(self.reaches[col])
 
         res = curve_fit(sm.func_powerlaw, exes, whys)[0]
-        
+
         predictions = [sm.func_powerlaw(x, res[0], res[1]) for x in exes]
-        r2 = sm.r2(predictions,whys)
-        
-        return(res,r2)
+        r2 = sm.r2(predictions, whys)
+
+        return(res, r2)
 
     def trend(self, col):
         """
