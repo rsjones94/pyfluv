@@ -11,3 +11,6 @@ pyfluv\streamgeometry.py
 pyfluv\streammath.py
 pyfluv\streamprofiles.py
 pyfluv\streamsurvey.py
+pyfluv\data\eco71.csv
+pyfluv\data\wpr_myr5_pebbles.csv
+pyfluv\data\wpr_myr5_survey_adjusted.csv
