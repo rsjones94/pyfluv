@@ -402,9 +402,10 @@ class CrossSection():
 
     def stream_power(self):
         """
-        Calculates the stream power at bkf.
+        Calculates the stream power at bkf. If imperial
+        the units are foot-pounds/second. If metric units are watts/m^2.
         """
-        return self.unitDict['gammaWater']*self.discharge_rate()*self.waterSlope*self.width()
+        return self.unitDict['gammaWater']*self.discharge_rate()*self.waterSlope*self.unitDict['g']
 
     def threshhold_particle(self):
         """
