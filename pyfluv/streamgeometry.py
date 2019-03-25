@@ -43,14 +43,13 @@ class CrossSection():
             0 indicates that the overhangs will be cut, 1 indicates they will be filled, and
             intermediate values are some mix of cut and fill (intermediate values not yet supported).
         manN(float): manning's N
-        sizeDist(GrainDistribution): an object of the class GrainDistribution
         unitDict(dict): a dictionary of unit values and conversion ratios; values depend on value of self.metric
         boundTruths(dict): a dictionary that stores whether an attribute (such as bkfW) is exact or represents a minimum
         """
 
     def __init__(self, df, name=None, morphType=None, metric=False, manN=None,
                  waterSlope=None, project=True, bkfEl=None, wsEl=None, tobEl=None,
-                 thwStation=None, sizeDist=None, fillFraction=1):
+                 thwStation=None, fillFraction=1):
         """
         Method to initialize a CrossSection.
 
@@ -87,7 +86,6 @@ class CrossSection():
         self.df = df
         self.morphType = morphType
         self.project = project
-        self.sizeDist = sizeDist
         self.metric = metric
         if self.metric:
             self.unitDict = sc.METRIC_CONSTANTS
