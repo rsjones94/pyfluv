@@ -153,7 +153,7 @@ class CrossSection():
         if showCutSection and self.hasOverhangs:
             plt.plot(self.rawSta, self.rawEl, "b--", color="#f44e42", linewidth=2, label='Overhang')
 
-        plt.plot(self.stations, self.elevations, color="black", linewidth=2)
+        plt.plot(self.stations, self.elevations, color="black", linewidth=2, labe='Cross Section')
         plt.scatter(self.stations, self.elevations, color="black")
 
         # in retrospect, this probably should have been done with a loop and a truth dict
