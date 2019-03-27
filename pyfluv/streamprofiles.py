@@ -37,7 +37,7 @@ class Profile():
         Args:
             df: a dict or pandas dataframe with at least three columns/keys "exes", "whys", "Thalweg"
                 and additional optional columns/keys. Standardized col/key names are
-                "Water Surface", "Bankfull", "Top of Bank", "Riffle", "Run", "Pool", "Glide", "Unclassified".
+                "Water Surface", "Bankfull", "Top of Bank", "Riffle", "Run", "Pool", "Glide".
                 If df is passed as a dict, it will be coerced to a Pandas dataframe.
             metric: a bool indicating if units are feet (False) or meters (True)
 
@@ -514,7 +514,7 @@ class Profile():
         you intend to reclassify many features then set resort to False.
         After you are done reclassifying then call self.resort_features().
         Otherwise entries in self.features may not be sorted and may have
-        incorrect morphtypes in eahc entry.
+        incorrect morphtypes in each entry.
         """
         if newMorph not in self.morphCols:
             raise Exception('Invalid newMorph')
