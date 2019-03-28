@@ -18,7 +18,8 @@ class Reference():
         reaches(pandas.core.frame.DataFrame): a pandas dataframe containing
             data for each reference reach: name, drainage, XS area, XS width,
             XS depth, XS flow rate.
-        eco(str or int): the level III or IV ecoregion code (e.g., 71, 71f)
+        eco(str or int): the area that the Reference object should represent,
+            usually a level III or IV ecoregion code (e.g., 71, 71f)
     """
 
     def __init__(self, reaches, eco=None):
@@ -97,4 +98,3 @@ class Reference():
         xSpace = np.linspace(xMin, xMax, 10000)
         newY = [sm.func_powerlaw(x, res[0], res[1]) for x in xSpace]
         plt.plot(xSpace, newY)
-        return newY
