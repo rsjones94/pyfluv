@@ -522,10 +522,11 @@ class Profile():
         feature.morphType = newMorph
         featIndStart = feature.indices[0]
         featIndEnd = feature.indices[-1] # inclusive
-
+        
         feature.filldf[newMorph] = self.filldf['Thalweg']
-        self.filldf.loc[featIndStart:featIndEnd, oldMorph] = self.filldf['Thalweg']
-        if oldMorph != 'Unclassified':
+        if newMorph != 'Unclassfied': # update the new column
+            self.filldf.loc[featIndStart:featIndEnd, newMorph] = self.filldf['Thalweg']
+        if oldMorph != 'Unclassified': # blank out the old column
             blanker = [np.NaN for i, index in feature.filldf.iterrows()]
             feature.filldf[oldMorph] = blanker
             self.filldf.loc[featIndStart:featIndEnd, oldMorph] = blanker
