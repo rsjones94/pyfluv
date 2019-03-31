@@ -655,9 +655,14 @@ class Profile():
         return interpretation
 
     def clear_substrate(self):
+        """
+        Removes all riffle, run, pool and glide calls and creates new Features
+        (aka on long Unclassified Feature)
+        """
         blank = [np.NaN for i, index in self.filldf.iterrows()]
         for col in self.substrateCols:
             self.filldf[col] = blank
+        self.create_features()
 
     def feature_classify_k_means(self, nClass=2, thalwegSmooth=(1, 0), waterSmooth=(1, 0),
                        expandPools=False, expandRiffles=False, showPlot=False):
