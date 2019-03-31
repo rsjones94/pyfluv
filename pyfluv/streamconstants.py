@@ -9,6 +9,8 @@ METRIC_CONSTANTS = {'gammaWater':9806.6500286389, # weight density of water, N/m
                     'inchesToMil':25.4, # conversion factor from inches to millimeters
                     'milToInches':(1/25.4), # conversion factor from millimeters to inches
                     'g':9.80665, # little g, gravitational acceleration in m/s^2
+                    'radToDegrees':57.2958, # radians to degrees
+                    'degreesToRad':1/57.2958, # degrees to radians
                     'lengthUnit':'meters',
                     'timeUnit':'seconds',
                     'forceUnit':'newtons',
@@ -24,6 +26,8 @@ IMPERIAL_CONSTANTS = {'gammaWater':62.427961, # weight density of water, lbs/ft^
                       'inchesToMil':25.4, # conversion factor from inches to millimeters
                       'milToInches':(1/25.4), # conversion factor from millimeters to inches
                       'g':32.17405, # little g, gravitational acceleration in ft/s^2
+                      'radToDegrees':57.2958, # radians to degrees
+                      'degreesToRad':1/57.2958, # degrees to radians
                       'lengthUnit':'feet',
                       'timeUnit':'seconds',
                       'forceUnit':'pounds',

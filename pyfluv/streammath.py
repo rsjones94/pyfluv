@@ -422,6 +422,8 @@ def angle_by_points(p1,p2,p3):
     Raises:
         None.
     """
+    p1, p2, p3 = p2, p1, p3
+    
     P12 = segment_length(p1,p2)
     P13 = segment_length(p1,p3)
     P23 = segment_length(p2,p3)

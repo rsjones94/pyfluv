@@ -11,6 +11,7 @@ import pandas as pd
 from . import streamexceptions
 from . import streamconstants as sc
 from . import streammath as sm
+from . import vis
 
 class CrossSection():
 
@@ -153,7 +154,7 @@ class CrossSection():
         if showCutSection and self.hasOverhangs:
             plt.plot(self.rawSta, self.rawEl, "b--", color="#f44e42", linewidth=2, label='Overhang')
 
-        plt.plot(self.stations, self.elevations, color="black", linewidth=2, labe='Cross Section')
+        plt.plot(self.stations, self.elevations, color="black", linewidth=2, label='Cross Section')
         plt.scatter(self.stations, self.elevations, color="black")
 
         # in retrospect, this probably should have been done with a loop and a truth dict
@@ -490,7 +491,34 @@ class CrossSection():
         Calculates the Froude number at the cross section.
         """
         return self.flow_velocity()/(self.unitDict['g']*self.mean_depth())**(1/2)
+    
+    def bank_angle(self, n=4, plot=False):
+        """
+        Calculates the angle in degrees of the left and right banks by using Visvalingam's
+        algorithm to reduce the channel shape to n points and then evaluate
+        the angle of the outmost segments.
+        """
+        exes, whys = vis.visvalingam(self.bStations, self.bElevations, nKeep=n)
+        if plot:
+            plt.plot(exes, whys, linewidth=4)
+        
+        leftLeft = exes[0], whys[0]
+        leftMid = exes[1], whys[1]
+        leftRight = exes[1]+1, whys[1]
 
+        rightLeft = exes[-3]-1, whys[-3]
+        rightMid = exes[-2], whys[-2]
+        rightRight = exes[-1], whys[-2]
+        
+        left = sm.angle_by_points(leftLeft, leftMid, leftRight)
+        right = sm.angle_by_points(rightLeft, rightMid, rightRight)
+        
+        left = 180-left*self.unitDict['radToDegrees']
+        right = 180-right*self.unitDict['radToDegrees']
+        
+        return left, right
+        
+    
     @_bkf_savestate
     def attribute_list(self, attributeMethod, deltaEl=0.1):
         """

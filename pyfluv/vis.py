@@ -65,7 +65,7 @@ def visvalingam(exes, whys, nKeep=None, nRemove=None):
     exes = [i for i in exes if i is not None]
     whys = [i for i in whys if i is not None]
 
-    return(exes, whys)
+    return exes, whys
 
 
 
