@@ -367,12 +367,16 @@ class CrossSection():
         """
         Calculates the area under a given elevation. Only calculates area in
         primary channel (as defined by min el) by default.
+        
+        Units are square feet or square meters.
         """
         return sm.get_area(self.bStations, self.bElevations)
 
     def wetted_perimeter(self):
         """
         Calculates the wetted perimeter under a given elevation.
+        
+        Units are feet or meters.
         """
         segmentLengths = []
         for i in range(len(self.bStations)-1):
@@ -385,26 +389,32 @@ class CrossSection():
     def hydraulic_radius(self):
         """
         Calculates the hydraulic radius given an elevation.
+        
+        Units are feet or meters.
         """
         return self.area() / self.wetted_perimeter()
 
     def shear_stress(self):
         """
-        Calculates the shear stress at bkf. If metric, units are N/m^2.
-        If imperial, units are lbs/ft^2
+        Calculates the shear stress at bkf.
+        
+        If metric, units are N/m^2. If imperial, units are lbs/ft^2
         """
         return self.unitDict['gammaWater']*self.mean_depth()*self.waterSlope
 
     def shear_velocity(self):
         """
         Calculates the shear velocity at bkf.
+        
+        Units are ft/s or m/s.
         """
         return (self.unitDict['g']*self.hydraulic_radius()*self.waterSlope)**(1/2)
 
     def stream_power(self):
         """
-        Calculates the stream power at bkf. If imperial
-        the units are foot-pounds/second. If metric units are watts/m^2.
+        Calculates the stream power at bkf.
+        
+        If imperial the units are foot-pounds/second. If metric units are watts/m^2.
         """
         return self.unitDict['gammaWater']*self.discharge_rate()*self.waterSlope*self.unitDict['g']
 
@@ -417,12 +427,16 @@ class CrossSection():
     def flood_prone_elevation(self):
         """
         Calculates the elevation of the floodprone area. This elevation is at twice the bkf max depth by default.
+        
+        Units are feet or meters.
         """
         return min(self.bElevations) + 2*self.max_depth()
 
     def flood_prone_width(self):
         """
         Calculates the width of the floodprone area.
+        
+        Units are feet or meters.
         """
         broken = sm.break_at_bankfull(self.stations,
                                       self.elevations,
@@ -434,6 +448,8 @@ class CrossSection():
     def calculate_entrenchment_ratio(self):
         """
         Calculates the entrenchment ratio - the flood prone width divided by the bankfull width
+        
+        Dimensionless.
         """
         return self.flood_prone_width() / self.width()
 
@@ -441,6 +457,8 @@ class CrossSection():
         """
         The height of the top of bank above the channel thalweg divided by the
         height of bankfull above the thalweg.
+        
+        Dimensionless.
         """
         minEl = min(self.bElevations)
         bkfHeight = self.bkfEl - minEl
@@ -450,12 +468,16 @@ class CrossSection():
     def mean_depth(self):
         """
         Calculates the mean depth given a certain elevation.
+        
+        Units are feet or meters.
         """
         return sm.get_mean_depth(self.bStations, self.bElevations, self.bkfEl, True)
 
     def max_depth(self):
         """
         Calculates the max depth given a certain elevation.
+        
+        Units are feet or meters.
         """
         return sm.max_depth(self.bElevations, self.bkfEl)
 
@@ -468,6 +490,7 @@ class CrossSection():
     def flow_velocity(self):
         """
         Calculates the bkf discharge velocity, given a bkf elevation, ws slope and manning's n.
+        
         Units are ft/s or meters/s.
         """
         manNum = self.unitDict['manningsNumerator']
@@ -476,6 +499,7 @@ class CrossSection():
     def discharge_rate(self):
         """
         Calculates the volumetric flow given a bkf elevation, ws slope and manning's n.
+        
         Units are cubic ft/s or cubic meters/s.
         """
         return self.area()*self.flow_velocity()
@@ -483,12 +507,16 @@ class CrossSection():
     def widthdepth_ratio(self):
         """
         Calculates the ratio of the bankfull width to the mean bankfull depth.
+        
+        Dimensionless.
         """
         return self.width() / self.mean_depth()
 
     def froude(self):
         """
         Calculates the Froude number at the cross section.
+        
+        Dimensionless.
         """
         return self.flow_velocity()/(self.unitDict['g']*self.mean_depth())**(1/2)
     
@@ -497,6 +525,8 @@ class CrossSection():
         Calculates the angle in degrees of the left and right banks by using Visvalingam's
         algorithm to reduce the channel shape to n points and then evaluate
         the angle of the outmost segments.
+        
+        Units are degrees.
         """
         exes, whys = vis.visvalingam(self.bStations, self.bElevations, nKeep=n)
         if plot:
