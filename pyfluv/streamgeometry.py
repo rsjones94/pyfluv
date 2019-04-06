@@ -849,7 +849,7 @@ class CrossSection():
                               self.tobEl,
                               self.thwIndex)
         
-        simX, simY = vis.visvalingam(exes, whys, nKeep=n, nRemove=None)
+        simX, simY = vis.visvalingamish(exes, whys, nKeep=n, nRemove=None)
         
         retX = []
         retX.extend(simX[0:2])
