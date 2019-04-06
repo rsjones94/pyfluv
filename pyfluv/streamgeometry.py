@@ -520,25 +520,23 @@ class CrossSection():
         """
         return self.flow_velocity()/(self.unitDict['g']*self.mean_depth())**(1/2)
     
-    def bank_angle(self, n=4, plot=False):
+    def bank_angle(self, n=4):
         """
         Calculates the angle in degrees of the left and right banks by using Visvalingam's
         algorithm to reduce the channel shape to n points and then evaluate
-        the angle of the outmost segments.
+        the angle of the outmost segments. Need a tobEl.
         
         Units are degrees.
         """
-        exes, whys = vis.visvalingam(self.bStations, self.bElevations, nKeep=n)
-        if plot:
-            plt.plot(exes, whys, linewidth=4)
+        exes, whys = self.substrate_diff(n=n, plot=False)
         
         leftLeft = exes[0], whys[0]
         leftMid = exes[1], whys[1]
         leftRight = exes[1]+1, whys[1]
 
-        rightLeft = exes[-3]-1, whys[-3]
+        rightLeft = exes[-2]-1, whys[-2]
         rightMid = exes[-2], whys[-2]
-        rightRight = exes[-1], whys[-2]
+        rightRight = exes[-1], whys[-1]
         
         left = sm.angle_by_points(leftLeft, leftMid, leftRight)
         right = sm.angle_by_points(rightLeft, rightMid, rightRight)
@@ -831,3 +829,39 @@ class CrossSection():
         start = (row1['exes'], row1['whys'])
         end = (row2['exes'], row2['whys'])
         return(start, end)
+        
+    def substrate_diff(self, n=4, plot=False):
+        """
+        Differentiates the substrate from the banks. Requires a tobEl.
+        
+        Args:
+            n: the number of points to simplify the channel to.
+               By default this is 4. For triangular channels, use 3. For
+               Complex channels, use 5.
+            plot: whether to add the differentiation to a plot
+               
+        Returns:
+            2 lists of length 4 giving the coordinates of the left top of bank,
+            left bottom of bank, right bottom of bank, right top of bank.
+        """
+        exes, whys = sm.break_at_bankfull(self.stations,
+                              self.elevations,
+                              self.tobEl,
+                              self.thwIndex)
+        
+        simX, simY = vis.visvalingam(exes, whys, nKeep=n, nRemove=None)
+        
+        retX = []
+        retX.extend(simX[0:2])
+        retX.extend(simX[-2:])
+        
+        retY = []
+        retY.extend(simY[0:2])
+        retY.extend(simY[-2:])
+        
+        if plot:
+            plt.plot(retX, retY, color="lightcoral", linewidth=3, label='Inflections')
+            plt.scatter(retX, retY, color="lightcoral")
+            plt.legend()
+            
+        return retX, retY
