@@ -10,14 +10,14 @@ from . import streamsurvey
 from . import graindistributions
 from . import reference
 
-def piney_survey():
+def standard_survey():
     """
     Returns a StreamSurvey object containing the geomorphic survey for the
-    Year 5 (2018) summer monitoring at the West Piney River mitigation site.
+    Year 5 (2018) summer monitoring at the [redacted] mitigation site.
     """
     selfloc = os.path.dirname(os.path.realpath(__file__))
     sub = r'data'
-    name = r'wpr_myr5_survey_adjusted.csv'
+    name = r'myr5_survey_adjusted.csv'
     file = os.path.join(selfloc,sub,name)
     wpr = streamsurvey.StreamSurvey(file,
                                     sep=',',
@@ -26,16 +26,16 @@ def piney_survey():
                                     colRelations=None)
     return wpr
 
-def piney_pebbles():
+def standard_pebbles():
     """
     Returns a list of GrainDistribution objects containing the pebble survey for
-    the Year 5 (2018) summer monitoring at the West Piney River mitigation site.
+    the Year 5 (2018) summer monitoring at the [redacted] mitigation site.
 
     Note that bedrock calls are converted to large boulders (>1024mm).
     """
     selfloc = os.path.dirname(os.path.realpath(__file__))
     sub = r'data'
-    name = r'wpr_myr5_pebbles.csv'
+    name = r'myr5_pebbles.csv'
     file = os.path.join(selfloc,sub,name)
     pebbles = pd.read_csv(file, sep=',')
     sizes = list(pebbles['Minimum Size (mm)'])
