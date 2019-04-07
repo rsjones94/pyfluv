@@ -445,7 +445,7 @@ class CrossSection():
         floodSta = broken[0]
         return sm.max_width(floodSta)
 
-    def calculate_entrenchment_ratio(self):
+    def entrenchment_ratio(self):
         """
         Calculates the entrenchment ratio - the flood prone width divided by the bankfull width
         
