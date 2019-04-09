@@ -1,6 +1,6 @@
 ![alt text](assets/pyfluv_logo_text.png "Pyfluv Logo")
 
-A python package for the analysis of stream planform, profile and cross sections with a focus on restoration and mitigation.
+A Python package for the analysis of restoration geomorphology.
 
 This project is currently in its alpha stage. Functionality is limited and there are no promises of correctness or stability.
 
@@ -9,7 +9,7 @@ This project is currently in its alpha stage. Functionality is limited and there
 ### Prerequisites
 
 Pyfluv has only been tested for **Python 3.7**. There are no plans to test pyfluv with any other versions of Python,
-but it *should* work with any **3.X** distribution.
+but it should work with any **3.X** distribution.
 
 ### Installing
 
