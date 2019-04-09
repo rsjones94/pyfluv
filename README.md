@@ -1,4 +1,4 @@
-# pyfluv
+![alt text](assets/pyfluv_logo_text.png "Pyfluv Logo")
 
 A python package for the analysis of stream planform, profile and cross sections with a focus on restoration and mitigation.
 
