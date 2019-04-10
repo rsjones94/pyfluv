@@ -5,12 +5,14 @@ pyfluv\__init__.py
 pyfluv\graindistributions.py
 pyfluv\monitoringdata.py
 pyfluv\reference.py
+pyfluv\segment.py
 pyfluv\streamconstants.py
 pyfluv\streamexceptions.py
 pyfluv\streamgeometry.py
 pyfluv\streammath.py
 pyfluv\streamprofiles.py
 pyfluv\streamsurvey.py
+pyfluv\vis.py
 pyfluv\data\eco71.csv
-pyfluv\data\wpr_myr5_pebbles.csv
-pyfluv\data\wpr_myr5_survey_adjusted.csv
+pyfluv\data\myr5_pebbles.csv
+pyfluv\data\myr5_survey_adjusted.csv
