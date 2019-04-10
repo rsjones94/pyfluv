@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
   name = 'pyfluv',
   packages = ['pyfluv'],
-  version = '0.3.3',
+  version = '0.3.3post2',
   include_package_data=True,
   package_data= {'pyfluv': ['data/*']},
   license='GNU General Public License v3 (GPLv3)',
@@ -10,7 +10,7 @@ setup(
   author = 'Sky Jones',
   author_email = 'rsajones94@gmail.com',
   url = 'https://github.com/rsjones94',
-  download_url = 'https://github.com/rsjones94/pyfluv/archive/v0.3.3post1.tar.gz',
+  download_url = 'https://github.com/rsjones94/pyfluv/archive/v0.3.3post2.tar.gz',
   keywords = [
               'river', 'fluvial', 'geomorphology', 'stream',
               'analysis', 'profile', 'planform', 'geometry', 'rosgen', 'restoration',
