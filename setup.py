@@ -10,7 +10,7 @@ setup(
   author = 'Sky Jones',
   author_email = 'rsajones94@gmail.com',
   url = 'https://github.com/rsjones94',
-  download_url = 'https://github.com/rsjones94/pyfluv/archive/v0.3.3.tar.gz',
+  download_url = 'https://github.com/rsjones94/pyfluv/archive/v0.3.3post1.tar.gz',
   keywords = [
               'river', 'fluvial', 'geomorphology', 'stream',
               'analysis', 'profile', 'planform', 'geometry', 'rosgen', 'restoration',
