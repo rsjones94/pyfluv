@@ -1364,15 +1364,39 @@ def is_simple(seriesX,seriesY):
                     bad2 = j
                     return(False,bad1,bad2)
     return(True,bad1,bad2)
+    
+def projected_magnitude(a, b):
+    """
+    Find the magnitude of the vector connecting a vector's tip to the tip of its
+    projection onto another vector.
+    
+    Args:
+        a: a vector as a list or tuple of form (x,y) to be projected onto b
+        b: a vector as a list or tuple of form (x,y) which a is to be projected on
+
+    Returns:
+        The the distance of the projection of a onto b
+
+    Raises:
+        None.
+
+    Notes:
+        Will throw a runtime warning when either a or b is zero.
+    """
+    projected = project_point(a, b)
+    a = np.array(a)
+    vec = a - projected
+    
+    return np.sqrt(np.sum(vec**2))
 
 
-def project_point(a,b):
+def project_point(a, b):
     """
     Project a vector onto another vector
 
     Args:
         a: a vector as a list or tuple of form (x,y) to be projected onto b
-        a: a vector as a list or tuple of form (x,y) which a is to be projected on
+        b: a vector as a list or tuple of form (x,y) which a is to be projected on
 
     Returns:
         The projection of a onto b as a numpy array (x,y)
@@ -1383,8 +1407,8 @@ def project_point(a,b):
     Notes:
         Will throw a runtime warning when either a or b is zero.
     """
-    if all(np.isclose(a,(0,0))):
-        raise streamexceptions.NullVectorError('Vector to be projected has zero magnitude.')
+    if np.count_nonzero(a) == 0:
+        return(a)
 
     maga = (sum(np.multiply(a,a)))**0.5
     #print("maga = " + str(maga))

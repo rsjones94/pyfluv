@@ -12,6 +12,7 @@ from . import streamexceptions
 from . import streamconstants as sc
 from . import streammath as sm
 from . import vis
+from . import segment
 
 class CrossSection():
 
@@ -830,14 +831,15 @@ class CrossSection():
         end = (row2['exes'], row2['whys'])
         return(start, end)
         
-    def substrate_diff(self, n=4, plot=False):
+    def substrate_diff(self, n=3, plot=False):
         """
         Differentiates the substrate from the banks. Requires a tobEl.
         
         Args:
-            n: the number of points to simplify the channel to.
-               By default this is 4. For triangular channels, use 3. For
-               Complex channels, use 5.
+            n: the number of segments to simplify the channel to.
+               By default this is 3. For triangular channels, use 2. For
+               Complex channels, use 4. n=4 is generally slow, n>4 is generally
+               VERY slow.
             plot: whether to add the differentiation to a plot
                
         Returns:
@@ -849,7 +851,10 @@ class CrossSection():
                               self.tobEl,
                               self.thwIndex)
         
-        simX, simY = vis.visvalingamish(exes, whys, nKeep=n, nRemove=None)
+        inds, error = segment.segment(exes, whys, n)
+        
+        simX = [exes[ind] for ind in inds]
+        simY = [whys[ind] for ind in inds]
         
         retX = []
         retX.extend(simX[0:2])
