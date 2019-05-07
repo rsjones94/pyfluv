@@ -65,7 +65,7 @@ def x_from_equation(y,equation):
         equation: A tuple or list of form (slope,intercept). The intercept is assumed to be a y-intercept unless slope is float('Inf'), which indicates it is an x-intercept.
 
     Returns:
-        An int or float representing the x-coordinate on the line at y. If the line is vertical, returns the string 'Undefined'.
+        An int or float representing the x-coordinate on the line at y. If the line is vertical, returns the string the x intercept of the equation.
 
     Raises:
         None.
@@ -88,6 +88,9 @@ def get_populated_indices(series,index):
     Returns:
         A list (previous,next) representing the indices of the none-None values in series that
         bookend the the series at index.
+        
+    Raises:
+        IndexError if there is the index is has no bookending non-null values.
     """
     result = []
     ind = index
