@@ -112,14 +112,16 @@ def get_populated_indices(series,index):
 
 def get_nearest_value(series,index):
     """
-    Starting at an index in a list, finds the nearest (index-wise) value and returns it.
+    Starting at an index in a list, finds the nearest (index-wise) non-null
+    value and returns it.
 
     Args:
         series: a list of numbers
         index: the start point of the search
 
     Returns:
-        The closest (index-wise) non-none value.
+        The closest (index-wise) non-none value. If the next and previous values
+        are equidistant, returns the next.
     """
     n = len(series)
     if index > n - 1:
@@ -243,7 +245,8 @@ def ccw(A,B,C):
 def does_intersect(s1,s2):
     """
     Modified from user Grumdrig via https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect.
-    Does not handle colinearity.
+    Does not handle colinearity. Takes two line segments, each represented as a tuple
+    of tuples of coordinates.
     """
     A = s1[0]
     B = s1[1]
@@ -349,7 +352,7 @@ def is_float_in(checkTuple,tupleList):
 
     Args:
         checkTuple: A tuple or list of values or a single numeric value that you want to check is in tupleList.
-        tupleList: A a list or tuple containing lists or tuples that have the same length as checkTuple or a list or tuple of numeric values.
+        tupleList: A list or tuple containing lists or tuples that have the same length as checkTuple or a list or tuple of numeric values.
 
     Returns:
         True if checkTuple is in tupleList. False otherwise.
@@ -413,6 +416,7 @@ def segment_length(p1,p2):
 def angle_by_points(p1,p2,p3):
     """
     Gets the angle defined by three points in radians, assuming p2 is the hinge/on the bisecting line
+    Note that this will always return the smaller of the two possible complimentary angles.
 
     Args:
         p1: A list or tuple of form (x,y)
