@@ -643,7 +643,9 @@ def remove_side(seriesX,seriesY,xVal,leftRight):
         seriesX: A list of x coordinates.
         seriesY: A list of corresponding y coordinates.
         xVal: The x intercept of the vertical line.
-        leftRight: A string specifying which side to remove points from. 'left' to remove points to the left of xVal, 'right' to remove points to the right.
+        leftRight: A string specifying which side to remove points from.
+            'left' to remove points to the left of xVal, 'right' to remove points to the right.
+            Keeps points that fall on the line
 
     Returns:
         A tuple of two lists representing the modified series.

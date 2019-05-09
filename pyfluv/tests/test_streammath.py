@@ -222,4 +222,43 @@ def test_above_below():
     assert sm.above_below(p2, l1) == 1
     assert sm.above_below(p3, l1) == -1
     
+def test_scalp_series():
     
+    exes = [0,1,2,3,4,5]
+    whys = [5,4,2,5,6,-3]
+    
+    l1 = (-1,4)
+    
+    assert sm.scalp_series(exes, whys, l1, above=True) == ([2,5],[2,-3])
+    assert sm.scalp_series(exes, whys, l1, above=False) == ([0,1,2,3,4],[5,4,2,5,6])
+    
+def test_remove_side():
+    
+    exes = [0,1,2,3,4,5]
+    whys = [5,4,2,5,6,-3]
+    
+    x1 = 3
+    
+    assert sm.remove_side(exes, whys, x1, 'right') == ([0,1,2,3],[5,4,2,5])
+    assert sm.remove_side(exes, whys, x1, 'left') == ([3,4,5],[5,6,-3])
+    
+def test_keep_range():
+    
+    exes = [0,1,2,3,4,5]
+    whys = [5,4,2,5,6,-3]
+    
+    r1 = (1.5,4)
+    
+    assert sm.keep_range(exes, whys, r1) == ([2,3,4],[2,5,6])
+    
+def test_tri_area():
+    
+    p1 = (0,0)
+    p2 = (1,1)
+    p3 = (2,0)
+    
+    assert sm.tri_area(p1, p2, p3) == sm.tri_area(p2, p3, p1) == sm.tri_area(p3, p1, p2) == 1
+    
+def test_get_nearest_intersect_bounds():
+    
+    assert False
