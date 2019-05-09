@@ -466,7 +466,7 @@ def on_line_together(index1,index2,seriesX,seriesY, tol = 10e-5):
         p2 = [seriesX[i],seriesY[i]]
         p3 = [seriesX[index2],seriesY[index2]]
         angle = angle_by_points(p1,p2,p3)
-        angleIsNought = np.isclose(0,angle,atol=tol)
+        angleIsNought = np.isclose(np.pi,angle,atol=tol)
         if not(angleIsNought):
             return(False)
     return(True)
@@ -474,7 +474,7 @@ def on_line_together(index1,index2,seriesX,seriesY, tol = 10e-5):
 
 def get_intersections(seriesX,seriesY,line):
     """
-    Returns a list of points where a line intersects a series of linear line segments.
+    Returns a list of points where a line intersects a series of line segments.
 
     Args:
         seriesX: A list of x coordinates.
@@ -483,9 +483,11 @@ def get_intersections(seriesX,seriesY,line):
             If slope is float('inf'), then the intercept is assumed to be an x-intercept. Otherwise, it is a y-intercept.
 
     Returns:
-        A tuple of lists representing the intersections with the form (x,y). These are guaranteed to be unique.
-            The form is (x-coordinates,y-coordinates,intersectionIndex). intersectionIndex is a list whose entries represent
-            what index an intersection comes after in seriesX and seriesY
+        A tuple of tuples and list representing the intersections with the form (x,y).
+        These are guaranteed to be unique. The form is
+        (x-coordinates,y-coordinates,intersectionIndex). intersectionIndex is a
+        list whose entries represent what index an intersection comes after in
+        seriesX and seriesY
 
     Raises:
         None.
@@ -590,7 +592,7 @@ def above_below(point,line):
     y = y_from_equation(point[0],line)
 
     try:
-        if point[1] == y:
+        if np.isclose(point[1], y):
             ans = 0
         elif point[1] > y:
             ans = 1

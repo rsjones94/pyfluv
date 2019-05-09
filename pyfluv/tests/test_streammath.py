@@ -4,6 +4,7 @@ Tests for streammath.py using pytest
 import numpy as np
 import pytest
 
+from ..streamexceptions import InputError
 from .. import streammath as sm
 
 def test_line_from_points():
@@ -64,8 +65,8 @@ def test_get_nearest_value():
     assert sm.get_nearest_value(testList1, 1) == 1
     assert sm.get_nearest_value(testList1, 3) == 0
     assert sm.get_nearest_value(testList1, 4) == 2
-    with pytest.raises(Exception) as e_info:
-        e = sm.get_nearest_value(testList2, 1) # should raise a streamexceptions.InputError
+    with pytest.raises(InputError) as e_info:
+        e = sm.get_nearest_value(testList2, 1)
     
 def test_interpolate_value():
     
@@ -160,5 +161,65 @@ def test_angle_by_points():
     assert np.isclose(sm.angle_by_points(p5, p2, p3), np.pi/4)
     assert np.isclose(sm.angle_by_points(p6, p2, p3), np.pi)
     assert np.isclose(sm.angle_by_points(p7, p2, p3), np.pi/2)
+    
+def test_on_line_together():
+    
+    exes = [0,1,2,3,4,5,6,7]
+    whys = [0,1,2,3,3,4,6,6]
+    
+    assert sm.on_line_together(0, 1, exes, whys) == True
+    with pytest.raises(ValueError) as e_info:
+        e = sm.on_line_together(1, 0, exes, whys)
+    assert sm.on_line_together(0, 3, exes, whys) == True
+    assert sm.on_line_together(2, 4, exes, whys) == False
+    assert sm.on_line_together(4, 6, exes, whys) == False
+    assert sm.on_line_together(4, 7, exes, whys) == False
+    
+def test_get_intersections():
+    
+    exes = [0,1,2,3,4,5,6,7,8,9]
+    whys = [5,4,2,1,0,2,3,6,3,1]
+    
+    l1 = (0,4)
+    l2 = (-1,4)
+    l3 = (float('inf'),4)
+    
+    expectedA = ((1.0, 6.333333333333333, 7.666666666666667), (4.0, 4.0, 4.0), [0, 6, 7])
+    expectedB = ((2.0, 4.0), (2.0, 0.0), [1, 4])
+    expectedC = ((4,), (0.0,), [3])
+    
+    assert np.allclose(sm.get_intersections(exes, whys, l1), expectedA)
+    assert np.allclose(sm.get_intersections(exes, whys, l2), expectedB)
+    assert np.allclose(sm.get_intersections(exes, whys, l3), expectedC)
+    
+def test_insert_points_in_series():
+    
+    exes = [0,1,2,3,4,5,6,7,8,9]
+    whys = [5,4,2,1,0,2,3,6,3,1]
+    
+    toInsert = ((1.0, 6.333333333333333, 7.666666666666667), (4.0, 4.0, 4.0), [0, 6, 7])
+    
+    expectedX = [0,1.0,1,2,3,4,5,6,6.33333333333333333,7,7.666666666666667,8,9]
+    expectedY = [5,4.0,4,2,1,0,2,3,4.0,6,4.0,3,1]
+    expectedFlag = [0,1,0,0,0,0,0,0,1,0,1,0,0]
+    
+    assert np.allclose(sm.insert_points_in_series(exes, whys, toInsert),
+                       [expectedX, expectedY, expectedFlag])
+
+def test_above_below():
+    
+    l1 = (0,1)
+    l2 = (-1,3)
+    
+    p1 = (1,1)
+    p2 = (2,2)
+    p3 = (-2,0.5)
+    
+    assert sm.above_below(p1, l1) == 0
+    assert sm.above_below(p2, l1) == 1
+    assert sm.above_below(p3, l1) == -1
+    assert sm.above_below(p1, l2) == -1
+    assert sm.above_below(p2, l1) == 1
+    assert sm.above_below(p3, l1) == -1
     
     
