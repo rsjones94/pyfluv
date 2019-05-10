@@ -768,7 +768,7 @@ def get_nearest_intersect_bounds(seriesX,seriesY,flag,searchStart):
     return (xBounds,yBounds,indices)
 
 
-def prepare_cross_section(seriesX,seriesY,line, thw = None):
+def prepare_cross_section(seriesX, seriesY, line, thw=None):
     """
     Takes a cross section and returns the shape under the XS and between the main channel (defined as having the lowest thalweg by default)
 
@@ -790,9 +790,22 @@ def prepare_cross_section(seriesX,seriesY,line, thw = None):
 
     if thw == None:
         mainChannelIndex = np.asarray(withAddedIntersects[1]).argmin() # find the index of the deepest point in the XS. If there are multiple points of equal depth, the leftmost is selected
-    else:
-        mainChannelIndex = thw
-
+    else: # we need to find how many added points there are before our thw
+        thwX = seriesX[thw]
+        thwY = seriesY[thw]
+        compareCoords = zip(withAddedIntersects[0], withAddedIntersects[1])
+        
+        ind = -1
+        for cd in compareCoords:
+            ind += 1
+            if np.allclose((thwX,thwY),cd):
+                break
+            if ind == len(withAddedIntersects[0]):
+                raise IndexError('Array out of bounds; could not find coordinate match')
+                
+        mainChannelIndex = ind
+        print(f'New index is {mainChannelIndex}: ({withAddedIntersects[0][mainChannelIndex]},{withAddedIntersects[1][mainChannelIndex]})')
+        
     # find the left and right bounds of the channel (nearest [by index] intersecting points to the thw)
     channelBounds = get_nearest_intersect_bounds(withAddedIntersects[0],withAddedIntersects[1],withAddedIntersects[2],mainChannelIndex)
     # get the stations of points between the intersect bounds - we'll use it to set the keep_range limits (to preserve undercuts)
@@ -804,7 +817,7 @@ def prepare_cross_section(seriesX,seriesY,line, thw = None):
     chopped = keep_range(withAddedIntersects[0],withAddedIntersects[1],(minX,maxX)) #if you use channelBounds[0] you will remove undercuts in some cases that should be preserved
     #remove points above channel
     scalped = scalp_series(chopped[0],chopped[1],line,above=True)
-    # what's left is the fundamental shape of the channel
+    # what's left is the bankfull shape of the channel
     return(scalped[0],scalped[1])
 
 
@@ -921,7 +934,7 @@ def is_cut(index,seriesX,seriesY,findType):
 
 def get_cuts(seriesX,seriesY,findType):
     """
-    Determines if which points in a series are part of an overhang or an undercut.
+    Determines which points in a series are part of an overhang or an undercut.
 
     Args:
         seriesX: A list of x coordinates.

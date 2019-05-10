@@ -102,12 +102,12 @@ def test_does_intersect():
     """
     
     seg1 = ((0,0),(1,1))
-    seg2 = ((0,2),(2,0)) # barely touching - technically intersects
+    # seg2 = ((0,2),(2,0)) # barely touching - technically intersects
     seg3 = ((0,0.5),(2,0.25)) # obviously intersects
     seg4 = ((-1,0),(0,1)) # parallel
     seg5 = ((-1,0.25),(0,0.25)) # would intersect if extended further
     
-    # assert sm.does_intersect(seg1, seg2) == True # test fails
+    # assert sm.does_intersect(seg1, seg2) == True # test fails - is this behavior desired?
     assert sm.does_intersect(seg1, seg3) == True
     assert sm.does_intersect(seg1, seg4) == False
     assert sm.does_intersect(seg1, seg5) == False
@@ -261,4 +261,53 @@ def test_tri_area():
     
 def test_get_nearest_intersect_bounds():
     
-    assert False
+    exes = [0,1,1,2,3,4,5,6,6.33333333333333333,7,7.666666666666667,8,9]
+    whys = [5,4,4,2,1,0,2,3,4,6,4,3,1]
+    flag = [0,1,0,0,0,0,0,0,1,0,1,0,0]
+    
+    assert np.allclose(sm.get_nearest_intersect_bounds(exes, whys, flag, 3),
+                       ([1,6.333333333],[4,4],[1,8]))
+    
+def test_prepare_cross_section():
+    
+    exes = [0,1,2,3,4,5,6,7,8,9,10]
+    whys = [5,4,2,1,0,2,3,6,3,1,6]
+    
+    l1 = (0,4)
+    altThw = 9
+    
+    assert np.allclose(sm.prepare_cross_section(exes, whys, l1, thw=None),
+                       ([1.0, 1, 2, 3, 4, 5, 6, 6.333333333333333], [4.0, 4, 2, 1, 0, 2, 3, 4.0]))
+    assert np.allclose(sm.prepare_cross_section(exes, whys, l1, thw=altThw),
+                       ([7.666666666666667, 8, 9, 9.6], [4.0, 3, 1, 4.0]))
+    
+def test_shoelace_area():
+    
+    x1 = [0,1,2]
+    y1 = [1,0,1]
+    
+    x2 = [0,0,1,1]
+    y2 = [1,0,0,1]
+    
+    x3 = [0,2,4,6,6,0]
+    y3 = [2,0,0,2,3,3]
+    
+    assert np.isclose(sm.shoelace_area(x1, y1), -1)
+    assert np.isclose(sm.shoelace_area(x2, y2), -1)
+    assert np.isclose(sm.shoelace_area(x3, y3), -14)
+
+def test_get_area():
+
+    x1 = [0,1,2]
+    y1 = [1,0,1]
+    
+    x2 = [0,0,1,1]
+    y2 = [1,0,0,1]
+    
+    x3 = [0,2,4,6,6,0]
+    y3 = [2,0,0,2,3,3]
+    
+    assert np.isclose(sm.get_area(x1, y1), 1)
+    assert np.isclose(sm.get_area(x2, y2), 1)
+    assert np.isclose(sm.get_area(x3, y3), 14)
+    
