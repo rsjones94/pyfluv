@@ -343,11 +343,11 @@ def test_get_cuts():
     """
     exes = [0,1,2,3,3,4,5,4.5,6,7,8,8,8,9,6.5,10]
     whys = [10,9,8,5,2,2,3,2,4,5,8,8.5,9,10,1,3]
-    
+
     # fails - bug where vertical walls erroneously inhibit identification as overhang/undercut
     assert sm.get_cuts(exes, whys, 'overhang') == [6,9,10,11,12,13] assert sm.get_cuts(exes, whys, 'undercut') == [7,12]
     """
-    
+
 def test_find_contiguous_sequences():
 
     nums = [1,2,3,5,4,5,4,7,8,10,11,12,1,2]
@@ -357,22 +357,22 @@ def test_pare_contiguous_sequences():
 
     whys = [10,9,8,5,2,2,3,2,4,5,9,10,1,3]
     seq = [[4,5],[7],[8,9,10]]
-    
+
     assert sm.pare_contiguous_sequences(seq, whys, minOrMax='max') == [4,7,10]
     assert sm.pare_contiguous_sequences(seq, whys, minOrMax='min') == [4,7,8]
-    
+
 def test_remove_overhangs():
-    
+
     x1 = [0,1,2,3,4,5]
     y1 = [5,4,3,3,4,5]
     with pytest.raises(IndexError) as e_info:
         e = sm.remove_overhangs(x1, y1, method = 'cut', adjustY = True)
-    
+
     x2 = [0,1,2,2,3,4,5]
     y2 = [5,4,3,2,2,3,5]
     with pytest.raises(IndexError) as e_info:
         e = sm.remove_overhangs(x2, y2, method = 'cut', adjustY = True)
-        
+
     x3 = [0,1,2,1.5,3,4,3.5,5]
     y3 = [5,4,3,2,2,3,3,5]
     assert np.allclose(sm.remove_overhangs(x3, y3, method = 'cut', adjustY = True),
@@ -383,7 +383,7 @@ def test_remove_overhangs():
                        ([0, 1, 2, 2, 3, 3.5, 3.5, 5], [5, 4, 3, 2.0, 2, 2.5, 3, 5]))
     assert np.allclose(sm.remove_overhangs(x3, y3, method = 'fill', adjustY = False),
                        ([0, 1, 2, 2, 3, 3.5, 3.5, 5], [5, 4, 3, 2, 2, 3, 3, 5]))
-    
+
     """
     This fails; overhangs that contain a vertical wall within it are not totally removed
     x4 = [0,3,2,2,1,4,5,6]
@@ -391,232 +391,275 @@ def test_remove_overhangs():
     assert np.allclose(sm.remove_overhangs(x4, y4, method = 'cut', adjustY = False),
                        ([0, 1, 1, 1, 1, 4, 5, 6], [5, 4, 3, 2, 1, 1, 5, 6]))
     """
-    
+
 def test_get_mean_elevation():
-    
+
     exes = [0,2,4,5]
     whys = [2,0,0,1]
     expectedResult = 1*(2/5) + 0*(2/5) + 0.5*(1/5)
-    
+
     assert np.isclose(sm.get_mean_elevation(exes, whys, ignoreCeilings=True), expectedResult)
-    
+
 def test_get_mean_depth():
-    
+
     exes = [0,2,4,5]
     whys = [2,0,0,1]
     expectedResult = 1*(2/5) + 0*(2/5) + 0.5*(1/5)
-    
+
     assert np.isclose(sm.get_mean_depth(exes, whys, bkfEl=1, ignoreCeilings=True), 1-expectedResult)
-    
+
 def test_get_centroid():
-    
+
     x1 = [0,0,1,1]
     y1 = [1,0,0,1]
-    
+
     x2 = [0,2,4,6]
     y2 = [2,0,0,2]
-    
+
     x3 = [0,0,1,4,5,4.5,6]
     y3 = [4,2,1,5,6,3.5,8]
-    
+
     assert np.allclose(sm.get_centroid(x1,y1), [0.5, 0.5])
     assert np.allclose(sm.get_centroid(x2,y2), [3.0, 1.1666666666666667])
     assert np.allclose(sm.get_centroid(x3,y3), [2.4878787878787882, 4.3545454545454545])
 
 def test_max_depth():
-    
+
     y1 = [1,0,0,1]
     y2 = [3,1,1,2]
-    
+
     assert sm.max_depth(y1,1) == 1
     assert sm.max_depth(y2,3) == 2
     assert sm.max_depth(y2,4) == 3
-    
+
 def test_max_width():
-    
+
     x1 = [0,0,1,1]
     x2 = [0,2,4,6]
     x3 = [2,4,6,8]
-    
+
     assert sm.max_width(x1) == 1
     assert sm.max_width(x2) == 6
     assert sm.max_width(x3) == 6
-    
+
 def test_length_of_overlap_1d():
-    
+
     x1 = (0,1)
     x2 = (1,2)
     x3 = (0.5,1.5)
     x4 = (1.5,0.5)
     x5 = (0.25,0.65)
     x6 = (2,3)
-    
+
     assert np.isclose(sm.length_of_overlap_1d(x1,x2), 0)
     assert np.isclose(sm.length_of_overlap_1d(x1,x3), 0.5)
     assert np.isclose(sm.length_of_overlap_1d(x1,x4), 0.5)
     assert np.isclose(sm.length_of_overlap_1d(x1,x5), 0.4)
     assert np.isclose(sm.length_of_overlap_1d(x1,x6), 0)
-    
+
 def test_length_of_overlap_2d():
-    
+
     x1 = [[0,0],[2,1]]
     x2 = [[1,0.5],[3,1.5]]
     x3 = [[1.5,1],[3.5,2]]
-    
+
     assert np.isclose(sm.length_of_overlap_2d(x1,x2), (1/2)*5**(1/2))
     assert np.isclose(sm.length_of_overlap_2d(x1,x3), 0)
-    
+
 def test_length_of_segment():
-    
+
     p1 = (0,0)
     p2 = (1,0)
     p3 = (0,1)
     p4 = (1,1)
     p5 = (2,1)
-    
+
     assert np.isclose(sm.length_of_segment((p1,p2)), 1)
     assert np.isclose(sm.length_of_segment((p1,p3)), 1)
     assert np.isclose(sm.length_of_segment((p1,p4)), 2**(1/2))
     assert np.isclose(sm.length_of_segment((p2,p5)), 2**(1/2))
-    
+
 def test_is_simple():
-    
+
     x1 = [0,0,1,1]
     y1 = [1,0,0,1]
-    
+
     x2 = [1,0,1,0]
     y2 = [1,0,0,1]
-    
+
     assert sm.is_simple(x1, y1) == (True,-1,-1)
     assert sm.is_simple(x2, y2) == (False,1,3)
-    
+
 def test_project_point():
-    
+
     v1 = (1,1)
     v2 = (2,2)
     v3 = (1,0)
     v4 = (1,2)
-    
+
     assert np.allclose(sm.project_point(v1,v2), (1,1))
     assert np.allclose(sm.project_point(v1,v3), (1,0))
     assert np.allclose(sm.project_point(v1,v4), (0.6,1.2))
     assert np.allclose(sm.project_point(v3,v4), (0.2,0.4))
 
 def test_centerline_series():
-    
+
     x = [1,2,3,4,5]
     y = [2,3,5,5,6]
-    
+
     assert np.allclose(sm.centerline_series(x,y), ([1,2,3.5,4,5],[2,3,4.5,5,6]))
-    
+
 def test_get_stationing():
-    
+
     x = [1,2,3,4,5]
     y = [2,3,5,5,6]
-    
+
     assert np.allclose(sm.get_stationing(x,y, project=True), [0,1.414213562373095,3.5355339059327364,4.242640687119285,5.656854249492379])
     assert np.allclose(sm.get_stationing(x,y, project=False), [0,1.4142135623730951,3.6502815398728847,4.650281539872885,6.06449510224598])
-    
+
 def test_monotonic_increasing():
-    
+
     l1 = [1,2,3,3,4,5]
     l2 = [0,0,2,3,4,4,3,5]
-    
+
     assert sm.monotonic_increasing(l1) == True
     assert sm.monotonic_increasing(l2) == False
-    
+
 def test_crawl_to_elevation():
-    
+
     whys = [10,9,8,5,2,2,3,2,4,5,8,8.5,9,10,1,3,8]
-    
+
     assert sm.crawl_to_elevation(whys, elevation=6, startInd=4) == [2,10]
     assert sm.crawl_to_elevation(whys, elevation=6, startInd=14) == [13,16]
     assert sm.crawl_to_elevation(whys, elevation=9, startInd=4) == [1,12]
-    
+
 def test_get_first():
-    
+
     ser = pd.Series([1,4,5])
     assert sm.get_first(ser) == 1
-    
+
 def test_get_last():
-    
+
     ser = pd.Series([1,4,5])
     assert sm.get_last(ser) == 5
-    
+
 def test_get_middle():
-    
+
     ser = pd.Series([1,4,5])
     assert sm.get_middle(ser) == 3
-    
+
 def test_find_min_index():
-    
+
     l1 = [1,3,2,4,-1,2.3,6]
     l2 = [6,1,3,-1,2,4,-1,2.3,6]
-    
+
     assert sm.find_min_index(l1) == 4
     assert sm.find_min_index(l2) == 3
-    
+
 def test_find_max_index():
-    
+
     l1 = [1,3,2,4,-1,2.3,6]
     l2 = [6,1,3,-1,2,4,-1,2.3,6]
-    
+
     assert sm.find_max_index(l1) == 6
     assert sm.find_max_index(l2) == 0
-    
+
 def test_get_closest_index_by_value():
-    
+
     l = [1,3,2,4,5,4,6]
-    
+
     assert sm.get_closest_index_by_value(l, value=2.2) == 2
-    
+
 def test_get_nth_closest_index_by_value():
-    
+
     l = [1,3,2,4,5,4,6]
-    
+
     assert sm.get_nth_closest_index_by_value(l, value=2.2, n=2) == 1
     assert sm.get_nth_closest_index_by_value(l, value=2.2, n=3) == 0
     assert sm.get_nth_closest_index_by_value(l, value=2.2, n=4) == 3 or sm.get_nth_closest_index_by_value(l, value=2.2, n=4) == 5
-    
+
 def test_break_at_bankfull():
-    
+
     exes = [0,1,2,3,4,5,6,7]
     whys = [5,4,3,2,1,1,2,3]
-    
+
     assert np.allclose(sm.break_at_bankfull(exes,whys, bkfEl=3.5, startInd=4),
                        ([1.5,2,3,4,5,6,7,7],[3.5,3,2,1,1,2,3,3.5]))
-    
+
     exes.reverse()
     whys.reverse()
     assert np.allclose(sm.break_at_bankfull(exes,whys, bkfEl=3.5, startInd=4),
                        ([7,7,6,5,4,3,2,1.5],[3.5,3,2,1,1,2,3,3.5]))
-    
+
 def test_make_countdict():
-    
+
     l = [1,1,1,3,2,3,3,1,4,5,2,2]
-    
+
     assert sm.make_countdict(l) == {1:4,3:3,2:3,4:1,5:1}
-    
+
 def test_strip_doubles():
-    
+
     l = [1,1,1,3,2,3,3,1,4,5,2,2]
-    
+
     assert sm.strip_doubles(l) == [1,3,2,3,1,4,5,2]
-    
+
 def test_make_monotonic():
-    
+
     l = [1,1,1,3,2,3,3,1,4,5,2,2,0]
-    
+
     assert sm.make_monotonic(l, increasing=True, removeDuplicates=False) == [1,1,1,3,3,3,4,5]
     assert sm.make_monotonic(l, increasing=True, removeDuplicates=True) == [1,3,4,5]
     assert sm.make_monotonic(l, increasing=False, removeDuplicates=False) == [1,1,1,1,0]
     assert sm.make_monotonic(l, increasing=False, removeDuplicates=True) == [1,0]
-    
+
 def test_diffreduce():
-    
+
     l = [1,2,4,8]
-    
+
     assert np.isclose(sm.diffreduce(l, delta=None), 1)
     assert np.isclose(sm.diffreduce(l, delta=2), 0.125)
-    
-    
+
+def test_build_deriv_exes():
+
+    evenBuild = sm.build_deriv_exes(value=10, n=2, interval = 0.1)
+    oddBuild = sm.build_deriv_exes(value=10, n=3, interval = 0.1)
+
+    assert np.allclose(evenBuild[0], [9.95,10,10.05]) and np.isclose(evenBuild[1], 0.05)
+    assert np.allclose(oddBuild[0], [9.975,10,10.025,10.05]) and np.isclose(oddBuild[1], 0.025)
+
+def test_closest_point():
+
+    x = [0,1,2,3,4,5]
+    y = [2,3,2,5,6,7]
+    points = [[ex,why] for ex,why in zip(x,y)]
+    pt = [2,5]
+
+    assert sm.closest_point(pt,points) == 3
+
+def test_make_consecutive_list():
+
+    l = [3,2,4,None,np.NaN,2,3,2,2,np.NaN,4,None,None,5,4,5,6]
+
+    assert sm.make_consecutive_list(l, indices=True) == [[0,1,2],[5,6,7,8],[10],[13,14,15,16]]
+    assert sm.make_consecutive_list(l, indices=False) == [[3,2,4],[2,3,2,2],[4],[5,4,5,6]]
+
+def test_is_odd():
+
+    assert sm.is_odd(2) == False
+    assert sm.is_odd(3) == True
+    assert sm.is_odd(0) == False
+
+def test_func_powerlaw():
+
+    assert sm.func_powerlaw(x=1, c=2, m=3) == 2
+    assert sm.func_powerlaw(x=2, c=2, m=3) == 16
+    assert sm.func_powerlaw(x=2, c=2, m=0) == 2
+
+def test_r2():
+
+    p1 = [1,2,3,4,5]
+    a1 = [1,2,3,4,5]
+    a2 = [1,2,2,4,6]
+
+    assert np.isclose(sm.r2(p1, a1), 1)
+    assert np.isclose(sm.r2(p1, a2), 0.875)

@@ -1720,11 +1720,13 @@ def build_deriv_exes(value,n,interval):
     """
     Intended as a helper function for attr_nthderiv() in the CrossSection class.
     Takes in a a value, and builds a list that has (n+1) equally spaced values centered around value
-    if n is odd. Else, has equally spaced values with n/2 values above and n/2-1 values below.
+    if n is even. Else, has equally spaced values with n/2 values above and n/2-1 values below.
     Reducing this with np.diff until len is one is the nth derivative.
 
     Interval is the MAX range of the list returned. If n is even, the range will be interval.
     If n is odd, the range will be be somewhat smaller.
+    
+    Returns a list of values and the delta between them as a tuple
     """
     isOdd = (n%2 != 0)
     if isOdd:
@@ -1747,6 +1749,8 @@ def build_deriv_exes(value,n,interval):
 def closest_point(point, points):
     """
     Finds the index of the point in a list closest to an input point.
+    
+    Point is an x-y coord, points is two lists of x and y coords.
     """
     points = np.asarray(points)
     dist_2 = np.sum((points - point)**2, axis=1)
@@ -1771,26 +1775,12 @@ def make_consecutive_list(series,indices = True):
             appender = []
     return(consec)
 
-def is_populated(mList):
-    """
-    Takes a list of lists where each sublist is of equal length and returns a list
-    where each index indicates if all the lists have a non-null value at that index.
-    A null value is represented by None; other values are represented by a 1.
-    """
-    result = [None]*len(mList[0])
-    for _, li in enumerate(mList):
-        for j, el in enumerate(li):
-            if not pd.isnull(el):
-                result[j] = 1
-
-    return(result)
-
 def is_odd(num):
     return(num % 2 != 0)
 
 def func_powerlaw(x, c, m):
     """
-    Power function with 0 intercept
+    Power function with 0 intercept. m is the exponent, c is the multiplicative constant.
     """
     return c*np.power(x,m)
 
