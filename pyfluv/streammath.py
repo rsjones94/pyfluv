@@ -1021,7 +1021,6 @@ def pare_contiguous_sequences(sequences,seriesY,minOrMax=None):
         keepList.append(currentWinner)
     return(keepList)
 
-
 def remove_overhangs(seriesX,seriesY,method,adjustY=True):
     """
     Returns new cross section x and y coordinates that have had overhangs removed either by cutting them off or filling under them
@@ -1099,11 +1098,11 @@ def remove_overhangs(seriesX,seriesY,method,adjustY=True):
     newY = [newY[i] for i in pointsEssential]
     return(newX,newY)
 
-
-def get_mean_elevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results if overhangs are present - should remove first to prevent couble counting surfaces (when there is more than one depth for a given x)
+def get_mean_elevation(seriesX,seriesY,ignoreCeilings=True): # gives weird results if overhangs are present - should remove first to prevent double counting surfaces (when there is more than one depth for a given x)
     """
     Takes a series of x and y points and returns the weighted mean elevation of the line segments.
         By default, ignores ceilings (any line segment [x1,y1],[x2,y2] where x1>=x2).
+        The weight is the x2-x1 for each line segment, not the segment length.
 
     Args:
         seriesX: A list of x-coordinates.
@@ -1145,7 +1144,8 @@ def get_mean_elevation(seriesX,seriesY,ignoreCeilings=True): # gives weird resul
 
 def get_mean_depth(seriesX,seriesY,bkfEl,ignoreCeilings=True):
     """
-    A wrapper for streammath.get_mean_elevation(), but will subtract a number (usually bankfull depth) for you.
+    A wrapper for streammath.get_mean_elevation(), but will subtract the elevation from
+    a number (usually bankfull depth) for you.
 
     Args:
         seriesX: A list of x-coordinates.
@@ -1276,8 +1276,8 @@ def length_of_overlap_2d(s1,s2):
     Calculates the length of overlap of two 2d line segments.
 
     Args:
-        s1: a tuple or list of tuples or lists representing a line segment of form ((x1,y2),(x2,y2))
-        s2: a tuple or list of tuples or lists representing a line segment of form ((x1,y2),(x2,y2))
+        s1: a list of tuples or lists representing a line segment of form ((x1,y2),(x2,y2))
+        s2: a list of tuples or lists representing a line segment of form ((x1,y2),(x2,y2))
 
     Returns:
         The unsigned length of the overlap between the line segments.
@@ -1325,38 +1325,6 @@ def length_of_segment(segment):
     return(length)
 
 
-def wetted_perimeter(childX,childY,parentX,parentY):
-    """
-    Calculates the total wetted perimeter of a prepared cross section by comparing it to its parent XS.
-        It can be assumed that all segments that are not horizontal are wetted, but a horizontal segment
-        is wetted for only its length that overlaps with a segment in the parent XS.
-
-    Args:
-        childX: a list of prepared x coordinates.
-        childY: a list of prepared y coordinates.
-        parentX: a list of x coordinates that childX originated from.
-        parentY: a list of y coordinates that childY originated from.
-
-    Returns:
-        The wetted perimeter of the cross section.
-
-    Raises:
-        None.
-    """
-    length = 0
-    for i in range(1,len(childX)):
-        segment = [[childX[i-1],childY[i-1]],[childX[i],childY[i]]]
-        line = line_from_points(segment[0],segment[1])
-        if not(np.isclose(0,line[0])): # if the line isn't flat, we know it's fully wetted
-            length += length_of_segment(segment)
-        else: # otherwise, we can only add the length of the segment that overlaps with a portion of the original XS; it could be a ceiling but it (more likely) represents a water surface
-            for _ in range(1,len(parentX)):
-                checkSeg = [[parentX[i-1],parentY[i-1]],[parentX[i],parentY[i]]]
-                lapLength = length_of_overlap_2d(segment,checkSeg)
-                length += lapLength
-    return(length)
-
-
 def is_simple(seriesX,seriesY):
     """
     Given two lists of x and y coords for a multipoint line, determines if the series of line segments is simple (non self-intersecting) or not.
@@ -1366,7 +1334,7 @@ def is_simple(seriesX,seriesY):
         seriesY: a list of y coordinates.
 
     Returns:
-        (True,-1,-1) if the series is simple. If the series self-intersections, returns a tuple where the first value
+        (True,-1,-1) if the series is simple. If the series self-intersects, returns a tuple where the first value
             is False, and the second and third are the indices of the line segments that intersect eachother.
 
     Raises:
@@ -1388,31 +1356,6 @@ def is_simple(seriesX,seriesY):
                     bad2 = j
                     return(False,bad1,bad2)
     return(True,bad1,bad2)
-    
-def projected_magnitude(a, b):
-    """
-    Find the magnitude of the vector connecting a vector's tip to the tip of its
-    projection onto another vector.
-    
-    Args:
-        a: a vector as a list or tuple of form (x,y) to be projected onto b
-        b: a vector as a list or tuple of form (x,y) which a is to be projected on
-
-    Returns:
-        The the distance of the projection of a onto b
-
-    Raises:
-        None.
-
-    Notes:
-        Will throw a runtime warning when either a or b is zero.
-    """
-    projected = project_point(a, b)
-    a = np.array(a)
-    vec = a - projected
-    
-    return np.sqrt(np.sum(vec**2))
-
 
 def project_point(a, b):
     """
@@ -1634,23 +1577,6 @@ def find_max_index(seriesY):
             winIndex = i
     return(winIndex)
 
-def get_climbing_indices(seriesY,startIndex):
-    """
-    Starting at a specified index in a series, builds a list of indices by finding the first point
-    to the left or right of the index with a greater value than the previous value found and repeating.
-
-    Args:
-        seriesY: a list of elevation points
-        startIndex: the index to begin the search at
-
-    Returns:
-        A list of ordered indices.
-
-    Raises:
-        None.
-    """
-    pass
-
 def get_closest_index_by_value(series,value):
     """
     Returns the index of the value in a list that is closest to a specified value.
@@ -1662,7 +1588,7 @@ def get_closest_index_by_value(series,value):
 def get_nth_closest_index_by_value(series,value,n):
     """
     Returns the index of the nth closest match in an array to a specified value. If there are multiple equally close matches
-    they are returned leftmost first.
+    are returned in an arbitrary order
     """
     array = np.asarray(series)
     diffArray = np.abs(array - value)
@@ -1744,7 +1670,7 @@ def strip_doubles(series):
     stripped = [i for i,_ in itertools.groupby(series)]
     return(stripped)
 
-def make_monotonic(series,increasing = True, removeDuplicates = False):
+def make_monotonic(series, increasing=True, removeDuplicates=False):
     """
     Makes a list monotonic increasing (default) or decreasing by removing subsequent elements which violate montoticity.
 
@@ -1779,7 +1705,8 @@ def diffreduce(series,delta=None):
     """
     Reduces a list with numpy.reduce until there is only one element left.
     If delta is specified, the list is divided by delta after each iteration.
-    This is equivalent to finding the (len(series)-1)th derivative.
+    This is equivalent to finding the (len(series)-1)th derivative assuming
+    equal spacing.
     """
     while len(series) > 1:
         series = np.diff(series)
