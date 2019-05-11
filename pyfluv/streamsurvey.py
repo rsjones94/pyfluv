@@ -460,6 +460,8 @@ class Parser():
     def string_is_in(self, matchString, string):
         """
         Returns true if matchString is in string.
+        
+        Could and should be a function, not a class method.
         """
         contained = re.search(matchString, string)
         return bool(contained)
@@ -469,7 +471,8 @@ class Parser():
 
     def get_meaning(self, string):
         """
-        Gets the semantic meaning of the dictionary returned by self.dict_split.
+        Gets the semantic meaning of the desc string by creating a dictionary with 
+        self.dict_split and parsing it.
         """
         result = {'type':None, # profile or cross section
                   'morphs':[], # depends on if type is profile or cross section
@@ -517,11 +520,11 @@ class Shot():
         self.shotLine = shotLine
         self.colRelations = colRelations
         self.parseDict = parseDict
-        self.set_shotnum()
-        self.set_ex()
-        self.set_why()
-        self.set_zee()
-        self.set_desc()
+        self.shotnum = getattr(self.shotLine, self.colRelations['shotnum'])
+        self.ex = getattr(self.shotLine, self.colRelations['exes'])
+        self.why = getattr(self.shotLine, self.colRelations['whys'])
+        self.zee = getattr(self.shotLine, self.colRelations['zees'])
+        self.desc = getattr(self.shotLine, self.colRelations['desc'])
         self.set_meaning()
 
     def __str__(self):
@@ -529,22 +532,7 @@ class Shot():
 
     def __repr__(self):
         return f'<shot object:{self.shotnum},{self.desc}>'
-
-    def set_shotnum(self):
-        self.shotnum = getattr(self.shotLine, self.colRelations['shotnum'])
-
-    def set_ex(self):
-        self.ex = getattr(self.shotLine, self.colRelations['exes'])
-
-    def set_why(self):
-        self.why = getattr(self.shotLine, self.colRelations['whys'])
-
-    def set_zee(self):
-        self.zee = getattr(self.shotLine, self.colRelations['zees'])
-
-    def set_desc(self):
-        self.desc = getattr(self.shotLine, self.colRelations['desc'])
-
+        
     def set_meaning(self):
         parsed = Parser(self.parseDict)
         meaning = parsed.get_meaning(self.desc)
