@@ -231,6 +231,7 @@ class PackGroupPro():
             keywords: dict relating standardized names to shot keywords
             colrelations: a dict relating direction, elevation and description names to how they appear
                           in the raw data
+            name: the name of the profile
         """
         self.packGroup = packGroup
         self.metric = metric
@@ -239,9 +240,6 @@ class PackGroupPro():
         self.name = self.packGroup[0].meaning['name']
         if stripName:
             self.name = self.name.replace(self.keywords['Profile'], '')
-
-        self.make_uCols()
-        self.make_sCols()
 
     def substrate_filter(self):
         """
@@ -324,7 +322,7 @@ class PackGroupCross():
     def __init__(self, packGroup, keywords, metric=False, stripName=False):
         """
         Args:
-            packGroup: a list of packed shots representing a profile.
+            packGroup: a list of packed shots representing a cross section.
             keyWords: a dictionary relating full morph names to morph keywords
         """
         self.packGroup = packGroup
