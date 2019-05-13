@@ -89,12 +89,17 @@ class Reference():
 
     def trend(self, col):
         """
-        Adds a power trendline to a plot given a column name in self.reaches
+        Adds a power trendline to a plot given a column name in self.reaches.
+        Also returns the fit and the fit's r^2 a la self.fit.
         """
-        res = self.fit(col)[0]
+        
+        fit = self.fit(col)
+        res = fit[0]
         drainCol = self.identify_draincol()
         xMin = min(self.reaches[drainCol])
         xMax = max(self.reaches[drainCol])
         xSpace = np.linspace(xMin, xMax, 10000)
         newY = [sm.func_powerlaw(x, res[0], res[1]) for x in xSpace]
         plt.plot(xSpace, newY)
+        
+        return(fit)

@@ -39,7 +39,7 @@ class GrainDistribution():
         Raises:
             None.
         """
-        bedrockCalls = 'Bedrock' in distr
+        bedrockCalls = 'Bedrock' in distr or 'bedrock' in distr
         if bedrockCalls:
             if metric:
                 bedrockVal = 1024
