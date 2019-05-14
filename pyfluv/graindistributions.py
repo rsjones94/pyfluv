@@ -39,30 +39,21 @@ class GrainDistribution():
         Raises:
             None.
         """
-        bedrockCalls = 'Bedrock' in distr or 'bedrock' in distr
-        if bedrockCalls:
-            if metric:
-                bedrockVal = 1024
-            else:
-                bedrockVal = 40.31496
-
+        
+        self.name = name
+        self.metric = metric
         self.distr = distr.copy()
         if isinstance(self.distr, list):
-            self.distr = [i if i != 'Bedrock' else bedrockVal for i in self.distr]
             self.distr = sm.make_countdict(self.distr)
-        else:
-            if bedrockCalls:
-                try:
-                    self.distr[bedrockVal] += self.distr['Bedrock']
-                    del self.distr['Bedrock']
-                except KeyError:
-                    self.distr[bedrockVal] = self.distr['Bedrock']
-                    del self.distr['Bedrock']
+        
+        bedrockCalls = 'Bedrock' in distr or 'bedrock' in distr
+        if bedrockCalls:
+            self.distr = self.coerce_bedrock(self.distr)
+
         for key, value in self.distr.items():
             if np.isnan(value):
                 self.distr[key] = 0
-        self.name = name
-        self.metric = metric
+                
         if self.metric:
             self.unitDict = sc.METRIC_CONSTANTS
         elif not self.metric:
@@ -77,6 +68,27 @@ class GrainDistribution():
         if self.name:
             return self.name
         return "UNNAMED"
+    
+    def coerce_bedrock(self, distribution):
+        """
+        Coerces bedrock calls to max size. distribution must be a dict or Series
+        """
+        
+        distribution = distribution.copy()
+        
+        if self.metric:
+            bedrockVal = 1024
+        else:
+            bedrockVal = 40.31496
+            
+        try: # works if bedrockVal is in the dict as a key already
+            distribution[bedrockVal] += distribution['Bedrock']
+            del distribution['Bedrock']
+        except KeyError: # if not we'll make the key
+            distribution[bedrockVal] = distribution['Bedrock']
+            del distribution['Bedrock']
+                
+        return distribution
 
     def make_bindict(self):
         """
