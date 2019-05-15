@@ -25,6 +25,11 @@ class Profile():
         name
         unitDict
         features
+        haveCols
+        basicCols
+        fillCols
+        morphCols
+        substrateCols
     """
 
     basicCols = ['exes', 'whys', 'Thalweg']
