@@ -364,16 +364,17 @@ class PackGroupCross():
     def pull_xs_survey_coords(self):
         """
         Takes a list of packed XS shots, all with the same name,
-        and returns 4 lists: exes, whys, zees and accompanying shot descs.
+        and returns 5 lists: exes, whys, zees, accompanying shot descs and shotnum.
         """
-        exes, whys, zees, descs = [], [], [], []
+        exes, whys, zees, descs, shotnum = [], [], [], [], []
         for shot in self.packGroup:
             exes.append(shot.ex)
             whys.append(shot.why)
             zees.append(shot.zee)
             descs.append(shot.desc)
+            shotnum.append(shot.shotnum)
 
-        return(exes, whys, zees, descs)
+        return(exes, whys, zees, descs, shotnum)
 
     def get_cross_morph(self):
         """
@@ -406,9 +407,9 @@ class PackGroupCross():
         else:
             morphType = None
 
-        exes, whys, zees, desc = self.pull_xs_survey_coords()
+        exes, whys, zees, desc, shotnum = self.pull_xs_survey_coords()
         attDict = self.pull_atts()
-        df = {'exes':exes, 'whys':whys, 'zees':zees, 'desc':desc}
+        df = {'exes':exes, 'whys':whys, 'zees':zees, 'desc':desc, 'shotnum':shotnum}
         # have not implemented adding the cross section thalweg
         cross = sg.CrossSection(df=df,
                                 name=self.name,
