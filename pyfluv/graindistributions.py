@@ -133,13 +133,13 @@ class GrainDistribution():
 
         return cumSum
 
-    def normalize_cum_sum(self):
+    def normalize_cumulative_sum(self):
         """
         Normalizes the cumulative sum so that the max is 100.
         """
         cumSum = self.cumulative_sum()
         ratio = 100/max(cumSum)
-        normCumSum = np.asarray(cumSum)*ratio
+        normCumSum = [l*ratio for l in cumSum]
         return list(normCumSum)
 
     def dx(self, x):
@@ -150,7 +150,7 @@ class GrainDistribution():
         sizes.extend(self.distr.keys())
 
         cSum = [0]
-        cSum.extend(self.normalize_cum_sum())
+        cSum.extend(self.normalize_cumulative_sum())
 
         for i, _ in enumerate(cSum):
             if cSum[i] >= x:
@@ -269,12 +269,11 @@ class GrainDistribution():
 
         return binned
 
-
     def estimate_mannings_n(self):
         """
         Estimate's Manning's n in the channel based on roughness. Not accurate for vegetated channels.
         """
-        pass
+        raise NotImplementedError()
 
     def extract_binned_counts(self):
         """
